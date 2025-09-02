@@ -15,6 +15,9 @@ import (
 
 	"github.com/swaggo/gin-swagger"
     swaggerFiles "github.com/swaggo/files"
+	//"github.com/swaggo/gin-swagger/swaggerFiles"
+	_ "api-customer-merchant/docs"
+
 )
 
 func main() {
@@ -24,8 +27,7 @@ func main() {
 
 	// Create single router
 	r := gin.Default()
-	url := ginSwagger.URL("http://localhost:8080/swagger/doc.json")
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, url))
+	
 
 	// Customer routes under /customer
 	customer := r.Group("/customer")
@@ -58,6 +60,8 @@ func main() {
 		protected.Use(middleware.AuthMiddleware("merchant"))
 		protected.POST("/logout", merchantAuth.Logout)
 	}
+
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// Run on :8080
 	port := os.Getenv("PORT")
