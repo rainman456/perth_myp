@@ -1,0 +1,317 @@
+info:
+  contact: {}
+paths:
+  /customer/auth/google:
+    get:
+      description: Redirects to Google OAuth login page
+      produces:
+      - application/json
+      responses:
+        "307":
+          description: Redirect to Google OAuth
+          schema:
+            type: object
+      summary: Initiate Google OAuth for customer
+      tags:
+      - Customer
+  /customer/auth/google/callback:
+    get:
+      description: Processes Google OAuth callback and returns JWT token
+      parameters:
+      - description: OAuth code
+        in: query
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: JWT token
+          schema:
+            properties:
+              token:
+                type: string
+            type: object
+        "400":
+          description: Code not provided
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Server error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Handle Google OAuth callback for customer
+      tags:
+      - Customer
+  /customer/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticates a customer using email and password
+      parameters:
+      - description: Customer login credentials
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            email:
+              type: string
+            password:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: JWT token
+          schema:
+            properties:
+              token:
+                type: string
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Invalid role
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Server error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Customer login
+      tags:
+      - Customer
+  /customer/logout:
+    post:
+      description: Invalidates the customer's JWT token
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Logout successful
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "400":
+          description: Authorization header required
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Customer logout
+      tags:
+      - Customer
+  /customer/register:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new customer account with email, name, password, and
+        optional country
+      parameters:
+      - description: Customer registration details
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            country:
+              type: string
+            email:
+              type: string
+            name:
+              type: string
+            password:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: JWT token
+          schema:
+            properties:
+              token:
+                type: string
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Server error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Register a new customer
+      tags:
+      - Customer
+  /merchant/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticates a merchant using email and password
+      parameters:
+      - description: Merchant login credentials
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            email:
+              type: string
+            password:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: JWT token
+          schema:
+            properties:
+              token:
+                type: string
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Invalid role
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Server error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Merchant login
+      tags:
+      - Merchant
+  /merchant/logout:
+    post:
+      description: Invalidates the merchant's JWT token
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Logout successful
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "400":
+          description: Authorization header required
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Merchant logout
+      tags:
+      - Merchant
+  /merchant/register:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new merchant account with email, name, password, and
+        optional country
+      parameters:
+      - description: Merchant registration details
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            country:
+              type: string
+            email:
+              type: string
+            name:
+              type: string
+            password:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: JWT token
+          schema:
+            properties:
+              token:
+                type: string
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Server error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Register a new merchant
+      tags:
+      - Merchant
+swagger: "2.0"

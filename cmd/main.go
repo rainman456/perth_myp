@@ -12,6 +12,9 @@ import (
 	"api-customer-merchant/internal/shared/db"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/swaggo/gin-swagger"
+    swaggerFiles "github.com/swaggo/files"
 )
 
 func main() {
@@ -21,6 +24,8 @@ func main() {
 
 	// Create single router
 	r := gin.Default()
+	url := ginSwagger.URL("http://localhost:8080/swagger/doc.json")
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, url))
 
 	// Customer routes under /customer
 	customer := r.Group("/customer")

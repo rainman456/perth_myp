@@ -19,6 +19,18 @@ func NewAuthHandler() *AuthHandler {
 	return &AuthHandler{service: services.NewAuthService()}
 }
 
+
+// Register godoc
+// @Summary Register a new merchant
+// @Description Creates a new merchant account with email, name, password, and optional country
+// @Tags Merchant
+// @Accept json
+// @Produce json
+// @Param body body object{email=string,name=string,password=string,country=string} true "Merchant registration details"
+// @Success 200 {object} object{token=string} "JWT token"
+// @Failure 400 {object} object{error=string} "Invalid request"
+// @Failure 500 {object} object{error=string} "Server error"
+// @Router /merchant/register [post]
 func (h *AuthHandler) Register(c *gin.Context) {
 	var req struct {
 		Email    string `json:"email" binding:"required,email"`
@@ -47,6 +59,20 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"token": token})
 }
 
+
+// Login godoc
+// @Summary Merchant login
+// @Description Authenticates a merchant using email and password
+// @Tags Merchant
+// @Accept json
+// @Produce json
+// @Param body body object{email=string,password=string} true "Merchant login credentials"
+// @Success 200 {object} object{token=string} "JWT token"
+// @Failure 400 {object} object{error=string} "Invalid request"
+// @Failure 401 {object} object{error=string} "Unauthorized"
+// @Failure 403 {object} object{error=string} "Invalid role"
+// @Failure 500 {object} object{error=string} "Server error"
+// @Router /merchant/login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req struct {
 		Email    string `json:"email" binding:"required,email"`
@@ -99,6 +125,15 @@ func (h *AuthHandler) GoogleCallback(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"token": token})
 }
 
+// Logout godoc
+// @Summary Merchant logout
+// @Description Invalidates the merchant's JWT token
+// @Tags Merchant
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {object} object{message=string} "Logout successful"
+// @Failure 400 {object} object{error=string} "Authorization header required"
+// @Router /merchant/logout [post]
 func (h *AuthHandler) Logout(c *gin.Context) {
 	authHeader := c.GetHeader("Authorization")
 	if authHeader == "" {
