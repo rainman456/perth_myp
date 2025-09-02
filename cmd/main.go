@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"log"
+	"os"
 
 	customerHandlers "api-customer-merchant/internal/customer/handlers"
 	merchantHandlers "api-customer-merchant/internal/merchant/handlers"
@@ -53,8 +55,15 @@ func main() {
 	}
 
 	// Run on :8080
-	log.Println("Starting API on :8080")
-	if err := r.Run(":8080"); err != nil {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	// Run on 0.0.0.0:port for Render compatibility
+	addr := fmt.Sprintf("0.0.0.0:%s", port)
+	log.Printf("Example app listening on port %s", port)
+	if err := r.Run(addr); err != nil {
 		log.Fatalf("API failed: %v", err)
 	}
 }
