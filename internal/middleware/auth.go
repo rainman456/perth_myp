@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"net/http"
+	"os"
 	"strings"
 
 	"api-customer-merchant/internal/shared/utils"
@@ -25,8 +26,9 @@ func AuthMiddleware(requiredRole string) gin.HandlerFunc {
 			c.Abort()
 			return
 		}
+		key := os.Getenv("JWT_SECRET")
 
-		secret := []byte("your_super_secret_key_here") // Load from env
+		secret := []byte(key) // Load from env
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, jwt.ErrSignatureInvalid
