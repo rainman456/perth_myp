@@ -61,8 +61,7 @@ func main() {
 		protected.POST("/logout", merchantAuth.Logout)
 	}
 
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.URL("/swagger/swagger.json")))
 	// Run on :8080
 	port := os.Getenv("PORT")
 	if port == "" {
