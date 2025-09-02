@@ -1,5 +1,14 @@
+basePath: /
 info:
-  contact: {}
+  contact:
+    email: support@example.com
+    name: API Support
+  description: API for customer and merchant authentication in a multivendor platform
+  license:
+    name: MIT
+  termsOfService: http://example.com/terms/
+  title: Multivendor API
+  version: "1.0"
 paths:
   /customer/auth/google:
     get:
@@ -314,4 +323,9 @@ paths:
       summary: Register a new merchant
       tags:
       - Merchant
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

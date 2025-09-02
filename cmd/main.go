@@ -12,6 +12,7 @@ import (
 	"api-customer-merchant/internal/shared/db"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
@@ -30,6 +31,10 @@ import (
 // @in header
 // @name Authorization
 func main() {
+
+	if err := godotenv.Load(); err != nil {
+             log.Println("No .env file found, relying on environment variables")
+         }
 	// Connect to database and migrate
 	db.Connect()
 	db.DB.AutoMigrate(&models.User{})
@@ -70,7 +75,7 @@ func main() {
 	}
 
 	// Swagger endpoint
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.URL("/swagger/swagger.json")))
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// Get port from environment variable or default to 8080
 	port := os.Getenv("PORT")

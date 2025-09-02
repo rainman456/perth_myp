@@ -8,7 +8,7 @@ WORKDIR /app
 COPY go.mod go.sum ./
 
 # Install swag CLI for Swagger documentation
-RUN go install github.com/swaggo/swag/cmd/swag@v1.8.12
+RUN go install go install github.com/swaggo/swag/cmd/swag@latest
 
 # Download dependencies
 RUN go mod download
@@ -17,7 +17,7 @@ RUN go mod download
 COPY . .
 
 # Generate Swagger documentation and verify output
-RUN swag init -g cmd/main.go --output docs && ls -l docs/
+RUN swag init --generalInfo cmd/main.go
 
 # Build the application
 RUN go build -o bin/api cmd/main.go

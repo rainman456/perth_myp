@@ -1,8 +1,19 @@
 {
     "swagger": "2.0",
     "info": {
-        "contact": {}
+        "description": "API for customer and merchant authentication in a multivendor platform",
+        "title": "Multivendor API",
+        "termsOfService": "http://example.com/terms/",
+        "contact": {
+            "name": "API Support",
+            "email": "support@example.com"
+        },
+        "license": {
+            "name": "MIT"
+        },
+        "version": "1.0"
     },
+    "basePath": "/",
     "paths": {
         "/customer/auth/google": {
             "get": {
@@ -493,6 +504,13 @@
                     }
                 }
             }
+        }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
         }
     }
 }
