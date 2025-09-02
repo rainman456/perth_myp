@@ -1,6 +1,5 @@
-# Use Go 1.24 as the base image
+# Use Go 1.24 as the base image to match go.mod requirement
 FROM golang:1.24
-
 
 # Set working directory
 WORKDIR /app
@@ -9,7 +8,7 @@ WORKDIR /app
 COPY go.mod go.sum ./
 
 # Install swag CLI for Swagger documentation
-RUN go install github.com/swaggo/swag/cmd/swag@latest
+RUN go install github.com/swaggo/swag/cmd/swag@v1.8.12
 
 # Download dependencies
 RUN go mod download
@@ -17,8 +16,8 @@ RUN go mod download
 # Copy the entire project
 COPY . .
 
-# Generate Swagger documentation
-RUN swag init -g cmd/main.go  
+# Generate Swagger documentation and verify output
+RUN swag init -g cmd/main.go --output docs && ls -l docs/
 
 # Build the application
 RUN go build -o bin/api cmd/main.go

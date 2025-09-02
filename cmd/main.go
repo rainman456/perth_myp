@@ -12,14 +12,23 @@ import (
 	"api-customer-merchant/internal/shared/db"
 
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 
-	"github.com/swaggo/gin-swagger"
-    swaggerFiles "github.com/swaggo/files"
-	//"github.com/swaggo/gin-swagger/swaggerFiles"
-	_ "api-customer-merchant/docs"
-
+	_ "api-customer-merchant/docs" // Import generated docs
 )
 
+// @title Multivendor API
+// @version 1.0
+// @description API for customer and merchant authentication in a multivendor platform
+// @termsOfService http://example.com/terms/
+// @contact.name API Support
+// @contact.email support@example.com
+// @license.name MIT
+// @BasePath /
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
 func main() {
 	// Connect to database and migrate
 	db.Connect()
@@ -27,7 +36,6 @@ func main() {
 
 	// Create single router
 	r := gin.Default()
-	
 
 	// Customer routes under /customer
 	customer := r.Group("/customer")
@@ -61,14 +69,16 @@ func main() {
 		protected.POST("/logout", merchantAuth.Logout)
 	}
 
+	// Swagger endpoint
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.URL("/swagger/swagger.json")))
-	// Run on :8080
+
+	// Get port from environment variable or default to 8080
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
 
-	// Run on 0.0.0.0:port for Render compatibility
+	// Run on 0.0.0.0:port for Railway compatibility
 	addr := fmt.Sprintf("0.0.0.0:%s", port)
 	log.Printf("Example app listening on port %s", port)
 	if err := r.Run(addr); err != nil {
