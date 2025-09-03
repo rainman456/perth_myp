@@ -195,7 +195,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Authenticates a merchant using email and password
+      description: Authenticates a merchant using work_email and password
       parameters:
       - description: Merchant login credentials
         in: body
@@ -203,9 +203,9 @@ paths:
         required: true
         schema:
           properties:
-            email:
-              type: string
             password:
+              type: string
+            work_email:
               type: string
           type: object
       produces:
@@ -233,7 +233,7 @@ paths:
                 type: string
             type: object
         "403":
-          description: Invalid role
+          description: Account not approved
           schema:
             properties:
               error:
@@ -274,12 +274,12 @@ paths:
       summary: Merchant logout
       tags:
       - Merchant
-  /merchant/register:
+  /merchant/submitApplication:
     post:
       consumes:
       - application/json
-      description: Creates a new merchant account with email, name, password, and
-        optional country
+      description: Creates a new merchant account with required details (password
+        set by admin console later)
       parameters:
       - description: Merchant registration details
         in: body
@@ -287,6 +287,14 @@ paths:
         required: true
         schema:
           properties:
+            business_description:
+              type: string
+            business_registration_certificate:
+              type: string
+            business_type:
+              type: string
+            city:
+              type: string
             country:
               type: string
             email:
@@ -294,6 +302,24 @@ paths:
             name:
               type: string
             password:
+              type: string
+            personal_email:
+              type: string
+            phone_number:
+              type: string
+            store_logo_url:
+              type: string
+            store_name:
+              type: string
+            street_address:
+              type: string
+            website:
+              type: string
+            work_address:
+              type: string
+            work_email:
+              type: string
+            zip_code:
               type: string
           type: object
       produces:
@@ -303,7 +329,7 @@ paths:
           description: JWT token
           schema:
             properties:
-              token:
+              message:
                 type: string
             type: object
         "400":
@@ -320,7 +346,7 @@ paths:
               error:
                 type: string
             type: object
-      summary: Register a new merchant
+      summary: Submit application for new merchant
       tags:
       - Merchant
 securityDefinitions:

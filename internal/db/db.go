@@ -1,6 +1,7 @@
 package db
 
 import (
+	"api-customer-merchant/internal/db/models"
 	"log"
 	"os"
 
@@ -24,3 +25,14 @@ func Connect() {
 
 	log.Println("Database connected successfully")
 }
+
+func AutoMigrate() {
+       err := DB.AutoMigrate(
+           &models.User{},
+		   &models.Merchant{},
+           // Add other models here when implemented
+       )
+       if err != nil {
+           log.Fatalf("Failed to auto-migrate: %v", err)
+       }
+   }

@@ -5,13 +5,13 @@ import (
 	"os"
 	"strings"
 
-	"api-customer-merchant/internal/shared/utils"
+	"api-customer-merchant/internal/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func AuthMiddleware(requiredRole string) gin.HandlerFunc {
+func AuthMiddleware(entityType string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
@@ -43,20 +43,13 @@ func AuthMiddleware(requiredRole string) gin.HandlerFunc {
 		}
 
 		claims, ok := token.Claims.(jwt.MapClaims)
-		if !ok {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
-			c.Abort()
-			return
-		}
+			if !ok || claims["entityType"] != entityType {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Invalid entity type"})
+				c.Abort()
+				return
+			}
 
-		role := claims["role"].(string)
-		if role != requiredRole {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Insufficient permissions"})
-			c.Abort()
-			return
-		}
-
-		c.Set("user_id", claims["user_id"])
-		c.Next()
+			c.Set("entityId", claims["id"])
+			c.Next()
 	}
 }

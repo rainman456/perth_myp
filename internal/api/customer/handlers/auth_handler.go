@@ -1,15 +1,17 @@
 package handlers
 
-import (
-	"net/http"
-	"strings"
+ import (
+       "net/http"
+       //"os"
+       "strings"
 
-	"api-customer-merchant/internal/shared/auth/services"
-	"api-customer-merchant/internal/shared/utils"
+       //"api-customer-merchant/internal/db/models"
+       services "api-customer-merchant/internal/domain/identity"
+       "api-customer-merchant/internal/utils"
 
-	"github.com/gin-gonic/gin"
-	"golang.org/x/oauth2"
-)
+       "github.com/gin-gonic/gin"
+       "golang.org/x/oauth2"
+   )
 
 type AuthHandler struct {
 	service *services.AuthService
@@ -19,18 +21,17 @@ func NewAuthHandler() *AuthHandler {
 	return &AuthHandler{service: services.NewAuthService()}
 }
 
-
 // Register godoc
-// @Summary Register a new merchant
-// @Description Creates a new merchant account with email, name, password, and optional country
-// @Tags Merchant
+// @Summary Register a new customer
+// @Description Creates a new customer account with email, name, password, and optional country
+// @Tags Customer
 // @Accept json
 // @Produce json
-// @Param body body object{email=string,name=string,password=string,country=string} true "Merchant registration details"
+// @Param body body object{email=string,name=string,password=string,country=string} true "Customer registration details"
 // @Success 200 {object} object{token=string} "JWT token"
 // @Failure 400 {object} object{error=string} "Invalid request"
 // @Failure 500 {object} object{error=string} "Server error"
-// @Router /merchant/register [post]
+// @Router /customer/register [post]
 func (h *AuthHandler) Register(c *gin.Context) {
 	var req struct {
 		Email    string `json:"email" binding:"required,email"`
@@ -44,7 +45,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	user, err := h.service.Register(req.Email, req.Name, req.Password, req.Country)
+	user, err := h.service.RegisterUser(req.Email, req.Name, req.Password, req.Country)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -61,18 +62,18 @@ func (h *AuthHandler) Register(c *gin.Context) {
 
 
 // Login godoc
-// @Summary Merchant login
-// @Description Authenticates a merchant using email and password
-// @Tags Merchant
+// @Summary Customer login
+// @Description Authenticates a customer using email and password
+// @Tags Customer
 // @Accept json
 // @Produce json
-// @Param body body object{email=string,password=string} true "Merchant login credentials"
+// @Param body body object{email=string,password=string} true "Customer login credentials"
 // @Success 200 {object} object{token=string} "JWT token"
 // @Failure 400 {object} object{error=string} "Invalid request"
 // @Failure 401 {object} object{error=string} "Unauthorized"
 // @Failure 403 {object} object{error=string} "Invalid role"
 // @Failure 500 {object} object{error=string} "Server error"
-// @Router /merchant/login [post]
+// @Router /customer/login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req struct {
 		Email    string `json:"email" binding:"required,email"`
@@ -84,16 +85,16 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	user, err := h.service.Login(req.Email, req.Password)
+	user, err := h.service.LoginUser(req.Email, req.Password)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 
-	if user.Role != "merchant" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Invalid role for this API"})
-		return
-	}
+	// if user.Role != "customer" {
+	// 	c.JSON(http.StatusForbidden, gin.H{"error": "Invalid role for this API"})
+	// 	return
+	// }
 
 	token, err := h.service.GenerateJWT(user)
 	if err != nil {
@@ -104,11 +105,31 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"token": token})
 }
 
+
+// GoogleAuth godoc
+// @Summary Initiate Google OAuth for customer
+// @Description Redirects to Google OAuth login page
+// @Tags Customer
+// @Produce json
+// @Success 307 {object} object{} "Redirect to Google OAuth"
+// @Router /customer/auth/google [get]
 func (h *AuthHandler) GoogleAuth(c *gin.Context) {
-	url := h.service.GetOAuthConfig().AuthCodeURL("state-customer", oauth2.AccessTypeOffline)
+	url := h.service.GetOAuthConfig("customer").AuthCodeURL("state-customer", oauth2.AccessTypeOffline)
 	c.Redirect(http.StatusTemporaryRedirect, url)
 }
 
+
+
+// GoogleCallback godoc
+// @Summary Handle Google OAuth callback for customer
+// @Description Processes Google OAuth callback and returns JWT token
+// @Tags Customer
+// @Produce json
+// @Param code query string true "OAuth code"
+// @Success 200 {object} object{token=string} "JWT token"
+// @Failure 400 {object} object{error=string} "Code not provided"
+// @Failure 500 {object} object{error=string} "Server error"
+// @Router /customer/auth/google/callback [get]
 func (h *AuthHandler) GoogleCallback(c *gin.Context) {
 	code := c.Query("code")
 	if code == "" {
@@ -116,7 +137,7 @@ func (h *AuthHandler) GoogleCallback(c *gin.Context) {
 		return
 	}
 
-	_, token, err := h.service.GoogleLogin(code, "http://localhost:8080")
+	_, token, err := h.service.GoogleLogin(code, "http://localhost:8080","customer")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -125,15 +146,17 @@ func (h *AuthHandler) GoogleCallback(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"token": token})
 }
 
+
+
 // Logout godoc
-// @Summary Merchant logout
-// @Description Invalidates the merchant's JWT token
-// @Tags Merchant
+// @Summary Customer logout
+// @Description Invalidates the customer's JWT token
+// @Tags Customer
 // @Security BearerAuth
 // @Produce json
 // @Success 200 {object} object{message=string} "Logout successful"
 // @Failure 400 {object} object{error=string} "Authorization header required"
-// @Router /merchant/logout [post]
+// @Router /customer/logout [post]
 func (h *AuthHandler) Logout(c *gin.Context) {
 	authHeader := c.GetHeader("Authorization")
 	if authHeader == "" {

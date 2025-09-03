@@ -1,8 +1,8 @@
 package repositories
 
 import (
-	"api-customer-merchant/internal/shared/auth/models"
-	"api-customer-merchant/internal/shared/db"
+	"api-customer-merchant/internal/db/models"
+	"api-customer-merchant/internal/db"
 
 	"gorm.io/gorm"
 )

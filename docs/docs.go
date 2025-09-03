@@ -307,7 +307,7 @@ const docTemplate = `{
         },
         "/merchant/login": {
             "post": {
-                "description": "Authenticates a merchant using email and password",
+                "description": "Authenticates a merchant using work_email and password",
                 "consumes": [
                     "application/json"
                 ],
@@ -327,10 +327,10 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "properties": {
-                                "email": {
+                                "password": {
                                     "type": "string"
                                 },
-                                "password": {
+                                "work_email": {
                                     "type": "string"
                                 }
                             }
@@ -372,7 +372,7 @@ const docTemplate = `{
                         }
                     },
                     "403": {
-                        "description": "Invalid role",
+                        "description": "Account not approved",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -437,9 +437,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/merchant/register": {
+        "/merchant/submitApplication": {
             "post": {
-                "description": "Creates a new merchant account with email, name, password, and optional country",
+                "description": "Creates a new merchant account with required details (password set by admin console later)",
                 "consumes": [
                     "application/json"
                 ],
@@ -449,7 +449,7 @@ const docTemplate = `{
                 "tags": [
                     "Merchant"
                 ],
-                "summary": "Register a new merchant",
+                "summary": "Submit application for new merchant",
                 "parameters": [
                     {
                         "description": "Merchant registration details",
@@ -459,6 +459,18 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "properties": {
+                                "business_description": {
+                                    "type": "string"
+                                },
+                                "business_registration_certificate": {
+                                    "type": "string"
+                                },
+                                "business_type": {
+                                    "type": "string"
+                                },
+                                "city": {
+                                    "type": "string"
+                                },
                                 "country": {
                                     "type": "string"
                                 },
@@ -469,6 +481,33 @@ const docTemplate = `{
                                     "type": "string"
                                 },
                                 "password": {
+                                    "type": "string"
+                                },
+                                "personal_email": {
+                                    "type": "string"
+                                },
+                                "phone_number": {
+                                    "type": "string"
+                                },
+                                "store_logo_url": {
+                                    "type": "string"
+                                },
+                                "store_name": {
+                                    "type": "string"
+                                },
+                                "street_address": {
+                                    "type": "string"
+                                },
+                                "website": {
+                                    "type": "string"
+                                },
+                                "work_address": {
+                                    "type": "string"
+                                },
+                                "work_email": {
+                                    "type": "string"
+                                },
+                                "zip_code": {
                                     "type": "string"
                                 }
                             }
@@ -481,7 +520,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "properties": {
-                                "token": {
+                                "message": {
                                     "type": "string"
                                 }
                             }

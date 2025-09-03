@@ -5,11 +5,10 @@ import (
 	"log"
 	"os"
 
-	customerHandlers "api-customer-merchant/internal/customer/handlers"
-	merchantHandlers "api-customer-merchant/internal/merchant/handlers"
-	"api-customer-merchant/internal/middleware"
-	"api-customer-merchant/internal/shared/auth/models"
-	"api-customer-merchant/internal/shared/db"
+	customer "api-customer-merchant/internal/api/customer"
+	merchant "api-customer-merchant/internal/api/merchant"
+	//"api-customer-merchant/internal/middleware"
+	"api-customer-merchant/internal/db"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -37,42 +36,14 @@ func main() {
          }
 	// Connect to database and migrate
 	db.Connect()
-	db.DB.AutoMigrate(&models.User{})
+	db.DB.AutoMigrate()
 
 	// Create single router
 	r := gin.Default()
 
 	// Customer routes under /customer
-	customer := r.Group("/customer")
-	{
-		// Public routes
-		customerAuth := customerHandlers.NewAuthHandler()
-		customer.POST("/register", customerAuth.Register)
-		customer.POST("/login", customerAuth.Login)
-		customer.GET("/auth/google", customerAuth.GoogleAuth)
-		customer.GET("/auth/google/callback", customerAuth.GoogleCallback)
-
-		// Protected routes
-		protected := customer.Group("/")
-		protected.Use(middleware.AuthMiddleware("customer"))
-		protected.POST("/logout", customerAuth.Logout)
-	}
-
-	// Merchant routes under /merchant
-	merchant := r.Group("/merchant")
-	{
-		// Public routes
-		merchantAuth := merchantHandlers.NewAuthHandler()
-		merchant.POST("/register", merchantAuth.Register)
-		merchant.POST("/login", merchantAuth.Login)
-		merchant.GET("/auth/google", merchantAuth.GoogleAuth)
-		merchant.GET("/auth/google/callback", merchantAuth.GoogleCallback)
-
-		// Protected routes
-		protected := merchant.Group("/")
-		protected.Use(middleware.AuthMiddleware("merchant"))
-		protected.POST("/logout", merchantAuth.Logout)
-	}
+	customer.RegisterRoutes(r)
+    merchant.RegisterRoutes(r)
 
 	// Swagger endpoint
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
