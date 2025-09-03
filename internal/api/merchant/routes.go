@@ -11,7 +11,7 @@ package merchant
         merchant := r.Group("/merchant")
         {
             authHandler := handlers.NewAuthHandler()
-            merchant.POST("/submitApplcation", authHandler.Register)
+            merchant.POST("/submitApplication", authHandler.Register)
             merchant.POST("/login", authHandler.Login)
             //merchant.GET("/auth/google", authHandler.GoogleAuth)
             //merchant.GET("/auth/google/callback", authHandler.GoogleCallback)

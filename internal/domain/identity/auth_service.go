@@ -40,7 +40,7 @@ func (s *AuthService) RegisterUser(email, name, password, country string) (*mode
 	return user, nil
 }
 
-func (s *AuthService) RegisterMerchant(email, name, password, country, storeName, personalEmail, workEmail, phoneNumber, streetAddress, city, zipCode, workAddress, businessType, website, businessDescription, storeLogoURL, businessRegistrationCertificate string) (*models.Merchant, error) {
+func (s *AuthService) RegisterMerchant( name, password, country, storeName, personalEmail, workEmail, phoneNumber, streetAddress, city, zipCode, workAddress, businessType, website, businessDescription, storeLogoURL, businessRegistrationCertificate string) (*models.Merchant, error) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, err

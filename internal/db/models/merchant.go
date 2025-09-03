@@ -31,8 +31,8 @@ type MerchantBasicInfo struct {
 	StoreName     string `gorm:"size:255;not null" json:"store_name"`
 	PersonalEmail string `gorm:"size:255;not null;unique" json:"personal_email"`
 	WorkEmail     string `gorm:"size:255;not null;unique" json:"work_email"`
-	Password      string `gorm:"type:varchar(255);not null;default:'XXXX'"`
 	PhoneNumber   string `gorm:"size:50" json:"phone_number"`
+	Password      string `gorm:"size:255;not null" json:"password"`
 }
 
 // Address info
@@ -64,7 +64,11 @@ type Merchant struct {
 	MerchantAddress
 	MerchantBusinessInfo
 	MerchantDocuments
-	Status MerchantStatus `gorm:"type:varchar(20);not null;default:'Pending'" json:"status"`
+	Status      MerchantStatus `gorm:"type:varchar(20);not null;default:'Pending'" json:"status"`
+	Products    []Product      `gorm:"foreignKey:MerchantID" json:"products,omitempty"`
+	CartItems   []CartItem     `gorm:"foreignKey:MerchantID" json:"cart_items,omitempty"`
+	OrderItems  []OrderItem    `gorm:"foreignKey:MerchantID" json:"order_items,omitempty"`
+	Payouts     []Payout       `gorm:"foreignKey:MerchantID" json:"payouts,omitempty"`
 }
 
 // BeforeCreate validates the Status field before saving to the database

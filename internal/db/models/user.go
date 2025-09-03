@@ -10,4 +10,6 @@ type User struct {
 	//Role     string `gorm:"not null"` // "customer" (default) or "merchant" (upgraded by admin)
 	GoogleID string    // Google ID for OAuth
 	Country  string `gorm:"type:varchar(100)"` // Optional country field
+	Carts    []Cart  `gorm:"foreignKey:UserID" json:"carts,omitempty"`
+	Orders   []Order `gorm:"foreignKey:UserID" json:"orders,omitempty"`
 }

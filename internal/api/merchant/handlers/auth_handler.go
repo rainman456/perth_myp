@@ -60,7 +60,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 
 	// Create user with merchant role
 	_, err := h.service.RegisterMerchant(
-		req.Email,
+		
 		req.Name,
 		"", // Password set by admin console
 		req.Country,
