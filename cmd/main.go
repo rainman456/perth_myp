@@ -36,7 +36,7 @@ func main() {
          }
 	// Connect to database and migrate
 	db.Connect()
-	db.DB.AutoMigrate()
+	db.AutoMigrate()
 
 	// Create single router
 	r := gin.Default()
