@@ -15,22 +15,29 @@ func NewPaymentRepository() *PaymentRepository {
 	return &PaymentRepository{db: db.DB}
 }
 
-// Create adds a new payment record
+// Create adds a new payment
 func (r *PaymentRepository) Create(payment *models.Payment) error {
 	return r.db.Create(payment).Error
 }
 
-// FindByID retrieves a payment by ID with associated Order
+// FindByID retrieves a payment by ID with associated Order and User
 func (r *PaymentRepository) FindByID(id uint) (*models.Payment, error) {
 	var payment models.Payment
 	err := r.db.Preload("Order.User").First(&payment, id).Error
 	return &payment, err
 }
 
-// FindByOrderID retrieves all payments for an order
-func (r *PaymentRepository) FindByOrderID(orderID uint) ([]models.Payment, error) {
+// FindByOrderID retrieves a payment by order ID
+func (r *PaymentRepository) FindByOrderID(orderID uint) (*models.Payment, error) {
+	var payment models.Payment
+	err := r.db.Preload("Order.User").Where("order_id = ?", orderID).First(&payment).Error
+	return &payment, err
+}
+
+// FindByUserID retrieves all payments for a user
+func (r *PaymentRepository) FindByUserID(userID uint) ([]models.Payment, error) {
 	var payments []models.Payment
-	err := r.db.Preload("Order.User").Where("order_id = ?", orderID).Find(&payments).Error
+	err := r.db.Preload("Order.User").Joins("JOIN orders ON orders.id = payments.order_id").Where("orders.user_id = ?", userID).Find(&payments).Error
 	return payments, err
 }
 

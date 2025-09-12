@@ -1,8 +1,9 @@
 package repositories
 
 import (
-	"api-customer-merchant/internal/db/models"
 	"api-customer-merchant/internal/db"
+	"api-customer-merchant/internal/db/models"
+	"log"
 
 	"gorm.io/gorm"
 )
@@ -23,6 +24,7 @@ func (r *UserRepository) FindByEmail(email string) (*models.User, error) {
 	var user models.User
 	err := r.db.Where("email = ?", email).First(&user).Error
 	if err != nil {
+		log.Printf("Failed to find user by email %s: %v", email, err)
 		return nil, err
 	}
 	return &user, nil

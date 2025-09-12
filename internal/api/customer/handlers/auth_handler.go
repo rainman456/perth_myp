@@ -1,26 +1,32 @@
 package handlers
 
- import (
-       "net/http"
-       //"os"
-       "strings"
+import (
+	"log"
+	"net/http"
+	"os"
 
-       //"api-customer-merchant/internal/db/models"
-       services "api-customer-merchant/internal/domain/identity"
-       "api-customer-merchant/internal/utils"
+	//"os"
+	"strings"
 
-       "github.com/gin-gonic/gin"
-       "golang.org/x/oauth2"
-   )
+	//"api-customer-merchant/internal/db/models"
+	//"api-customer-merchant/internal/db/repositories"
+	services "api-customer-merchant/internal/domain/user"
+	"api-customer-merchant/internal/utils"
+
+	"github.com/gin-gonic/gin"
+	"golang.org/x/oauth2"
+)
 
 type AuthHandler struct {
 	service *services.AuthService
 }
 
-func NewAuthHandler() *AuthHandler {
-	return &AuthHandler{service: services.NewAuthService()}
+// In customer/handlers/auth_handler.go AND merchant/handlers/auth_handler.go
+func NewAuthHandler(s *services.AuthService) *AuthHandler {
+    return &AuthHandler{
+        service: s,
+    }
 }
-
 // Register godoc
 // @Summary Register a new customer
 // @Description Creates a new customer account with email, name, password, and optional country
@@ -57,7 +63,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"token": token})
+	c.JSON(http.StatusCreated, gin.H{"token": token})
 }
 
 
@@ -116,6 +122,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 func (h *AuthHandler) GoogleAuth(c *gin.Context) {
 	url := h.service.GetOAuthConfig("customer").AuthCodeURL("state-customer", oauth2.AccessTypeOffline)
 	c.Redirect(http.StatusTemporaryRedirect, url)
+	 //c.JSON(http.StatusOK, gin.H{"url": url})
 }
 
 
@@ -131,19 +138,26 @@ func (h *AuthHandler) GoogleAuth(c *gin.Context) {
 // @Failure 500 {object} object{error=string} "Server error"
 // @Router /customer/auth/google/callback [get]
 func (h *AuthHandler) GoogleCallback(c *gin.Context) {
-	code := c.Query("code")
-	if code == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Code not provided"})
-		return
-	}
+    code := c.Query("code")
+    state := c.Query("state")
+    if code == "" || state == "" {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Missing code or state"})
+        return
+    }
+    // Verify state (in production, check against stored value)
+    if state != "state-customer" {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid state parameter"})
+        return
+    }
 
-	_, token, err := h.service.GoogleLogin(code, "http://localhost:8080","customer")
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
+    user, token, err := h.service.GoogleLogin(code, os.Getenv("BASE_URL"), "customer")
+    if err != nil {
+        log.Printf("Google login failed: %v", err)
+        c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+        return
+    }
 
-	c.JSON(http.StatusOK, gin.H{"token": token})
+    c.JSON(http.StatusCreated, gin.H{"token": token, "user": user})
 }
 
 
@@ -167,4 +181,18 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 	utils.Add(tokenString)
 	c.JSON(http.StatusOK, gin.H{"message": "Logout successful"})
+}
+
+func (h *AuthHandler) UpdateProfile(c *gin.Context) {
+    userID, _ := c.Get("userID")
+    var req struct { Name string; Country string; Addresses []string }
+    if err := c.ShouldBindJSON(&req); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+        return
+    }
+    if err := h.service.UpdateProfile(userID.(uint), req.Name, req.Country, req.Addresses); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+        return
+    }
+    c.JSON(http.StatusOK, gin.H{"message": "updated"})
 }

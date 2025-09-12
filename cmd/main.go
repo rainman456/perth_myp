@@ -34,6 +34,15 @@ func main() {
 	if err := godotenv.Load(); err != nil {
              log.Println("No .env file found, relying on environment variables")
          }
+
+
+		//  if err := godotenv.Load(); err != nil {
+		// 	log.Fatal("Error loading .env file")
+		// }
+		// secret := os.Getenv("JWT_SECRET")
+		// if secret == "" {
+		// 	log.Fatal("JWT_SECRET not set")
+		// }
 	// Connect to database and migrate
 	db.Connect()
 	db.AutoMigrate()

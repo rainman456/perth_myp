@@ -1,28 +1,31 @@
 package utils
 
-import "sync"
+import (
+    "context"
+    "errors"
+    "log"
+    "time"
+    //"github.com/redis/go-redis/v9"
+)
 
-// Blacklist stores invalidated JWT tokens
-type Blacklist struct {
-	tokens map[string]struct{}
-	mu     sync.RWMutex
+var ctx = context.Background()
+
+// Add adds a token to the Redis blacklist with an expiration
+func Add(token string) error {
+    if RedisClient == nil {
+        log.Println("RedisClient is nil, cannot add token to blacklist")
+        return errors.New("redis client not initialized")
+    }
+    // Set token in Redis with a 24-hour expiration
+    return RedisClient.Set(ctx, "blacklist:"+token, "true", 24*time.Hour).Err()
 }
 
-var blacklist = &Blacklist{
-	tokens: make(map[string]struct{}),
-}
-
-// Add adds a token to the blacklist
-func Add(token string) {
-	blacklist.mu.Lock()
-	defer blacklist.mu.Unlock()
-	blacklist.tokens[token] = struct{}{}
-}
-
-// IsBlacklisted checks if a token is blacklisted
+// IsBlacklisted checks if a token is in the Redis blacklist
 func IsBlacklisted(token string) bool {
-	blacklist.mu.RLock()
-	defer blacklist.mu.RUnlock()
-	_, exists := blacklist.tokens[token]
-	return exists
+    if RedisClient == nil {
+        log.Println("RedisClient is nil, skipping blacklist check")
+        return false // Fallback to allow operation if Redis is unavailable
+    }
+    _, err := RedisClient.Get(ctx, "blacklist:"+token).Result() // Line 22
+    return err == nil // Token exists in Redis if no error
 }
