@@ -7,8 +7,11 @@ import (
 
 	customer "api-customer-merchant/internal/api/customer"
 	merchant "api-customer-merchant/internal/api/merchant"
+	"api-customer-merchant/internal/config"
+
 	//"api-customer-merchant/internal/middleware"
 	"api-customer-merchant/internal/db"
+	"api-customer-merchant/internal/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -31,10 +34,18 @@ import (
 // @name Authorization
 func main() {
 
+	// if err := godotenv.Load(); err != nil {
+    //          log.Println("No .env file found, relying on environment variables")
+    //      }
 	if err := godotenv.Load(); err != nil {
-             log.Println("No .env file found, relying on environment variables")
-         }
-
+		log.Fatal("Error loading .env file")
+	}
+	conf := config.Load()
+	utils.InitRedis(conf)
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		log.Fatal("JWT_SECRET not set")
+	}
 
 		//  if err := godotenv.Load(); err != nil {
 		// 	log.Fatal("Error loading .env file")
@@ -46,9 +57,12 @@ func main() {
 	// Connect to database and migrate
 	db.Connect()
 	db.AutoMigrate()
+	r := gin.Default()
+	r.Use(gin.Recovery())
+
 
 	// Create single router
-	r := gin.Default()
+	//r := gin.Default()
 
 	// Customer routes under /customer
 	customer.RegisterRoutes(r)
