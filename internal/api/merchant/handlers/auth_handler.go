@@ -29,6 +29,55 @@ func NewMerchantAuthHandler(s *merchant.MerchantService) *MerchantHandler {
 // @Failure 400 {object} map[string]string "Invalid request body or malformed JSON"
 // @Failure 500 {object} map[string]string "Internal server error"
 // @Router /merchant/apply [post]
+// @Schema models.MerchantApplication
+// {
+//   "type": "object",
+//   "properties": {
+//     "id": { "type": "string", "format": "uuid", "description": "Unique application ID" },
+//     "first_name": { "type": "string", "description": "Merchant's first name" },
+//     "last_name": { "type": "string", "description": "Merchant's last name" },
+//     "email": { "type": "string", "format": "email", "description": "Merchant's email address" },
+//     "phone": { "type": "string", "description": "Merchant's phone number" },
+//     "personal_address": {
+//       "type": "object",
+//       "description": "Merchant's personal address",
+//       "properties": {
+//         "street": { "type": "string" },
+//         "city": { "type": "string" },
+//         "state": { "type": "string" },
+//         "postal_code": { "type": "string" },
+//         "country": { "type": "string" }
+//       },
+//       "required": ["street", "city", "state", "postal_code", "country"]
+//     },
+//     "work_address": {
+//       "type": "object",
+//       "description": "Merchant's work address",
+//       "properties": {
+//         "street": { "type": "string" },
+//         "city": { "type": "string" },
+//         "state": { "type": "string" },
+//         "postal_code": { "type": "string" },
+//         "country": { "type": "string" }
+//       },
+//       "required": ["street", "city", "state", "postal_code", "country"]
+//     },
+//     "business_name": { "type": "string", "description": "Name of the business" },
+//     "business_type": { "type": "string", "description": "Type of business (e.g., Retail, Service)" },
+//     "tax_id": { "type": "string", "description": "Business tax identification number" },
+//     "documents": {
+//       "type": "object",
+//       "description": "Merchant's documents",
+//       "properties": {
+//         "business_license": { "type": "string", "description": "Business license number" },
+//         "identification": { "type": "string", "description": "Personal identification number" }
+//       }
+//     },
+//     "status": { "type": "string", "description": "Application status (e.g., pending, approved, rejected)" },
+//     "created_at": { "type": "string", "format": "date-time", "description": "Application creation timestamp" }
+//   },
+//   "required": ["first_name", "last_name", "email", "phone", "personal_address", "work_address", "business_name", "business_type", "tax_id"]
+// }
 // @Example request
 // {
 //   "first_name": "John",
@@ -138,6 +187,54 @@ func (h *MerchantHandler) Apply(c *gin.Context) {
 // @Failure 400 {object} map[string]string "Invalid application ID format"
 // @Failure 404 {object} map[string]string "Application not found"
 // @Router /merchant/application/{id} [get]
+// @Schema models.MerchantApplication
+// {
+//   "type": "object",
+//   "properties": {
+//     "id": { "type": "string", "format": "uuid", "description": "Unique application ID" },
+//     "first_name": { "type": "string", "description": "Merchant's first name" },
+//     "last_name": { "type": "string", "description": "Merchant's last name" },
+//     "email": { "type": "string", "format": "email", "description": "Merchant's email address" },
+//     "phone": { "type": "string", "description": "Merchant's phone number" },
+//     "personal_address": {
+//       "type": "object",
+//       "description": "Merchant's personal address",
+//       "properties": {
+//         "street": { "type": "string" },
+//         "city": { "type": "string" },
+//         "state": { "type": "string" },
+//         "postal_code": { "type": "string" },
+//         "country": { "type": "string" }
+//       },
+//       "required": ["street", "city", "state", "postal_code", "country"]
+//     },
+//     "work_address": {
+//       "type": "object",
+//       "description": "Merchant's work address",
+//       "properties": {
+//         "street": { "type": "string" },
+//         "city": { "type": "string" },
+//         "state": { "type": "string" },
+//         "postal_code": { "type": "string" },
+//         "country": { "type": "string" }
+//       },
+//       "required": ["street", "city", "state", "postal_code", "country"]
+//     },
+//     "business_name": { "type": "string", "description": "Name of the business" },
+//     "business_type": { "type": "string", "description": "Type of business (e.g., Retail, Service)" },
+//     "tax_id": { "type": "string", "description": "Business tax identification number" },
+//     "documents": {
+//       "type": "object",
+//       "description": "Merchant's documents",
+//       "properties": {
+//         "business_license": { "type": "string", "description": "Business license number" },
+//         "identification": { "type": "string", "description": "Personal identification number" }
+//       }
+//     },
+//     "status": { "type": "string", "description": "Application status (e.g., pending, approved, rejected)" },
+//     "created_at": { "type": "string", "format": "date-time", "description": "Application creation timestamp" }
+//   }
+// }
 // @Example response 200
 // {
 //   "id": "123e4567-e89b-12d3-a456-426614174000",
@@ -189,6 +286,45 @@ func (h *MerchantHandler) GetApplication(c *gin.Context) {
 // @Failure 401 {object} map[string]string "Unauthorized: Missing or invalid authentication"
 // @Failure 404 {object} map[string]string "Merchant account not found"
 // @Router /merchant/me [get]
+// @Schema models.Merchant
+// {
+//   "type": "object",
+//   "properties": {
+//     "id": { "type": "string", "format": "uuid", "description": "Unique merchant ID" },
+//     "user_id": { "type": "string", "format": "uuid", "description": "Associated user ID" },
+//     "business_name": { "type": "string", "description": "Name of the business" },
+//     "business_type": { "type": "string", "description": "Type of business (e.g., Retail, Service)" },
+//     "tax_id": { "type": "string", "description": "Business tax identification number" },
+//     "personal_address": {
+//       "type": "object",
+//       "description": "Merchant's personal address",
+//       "properties": {
+//         "street": { "type": "string" },
+//         "city": { "type": "string" },
+//         "state": { "type": "string" },
+//         "postal_code": { "type": "string" },
+//         "country": { "type": "string" }
+//       },
+//       "required": ["street", "city", "state", "postal_code", "country"]
+//     },
+//     "work_address": {
+//       "type": "object",
+//       "description": "Merchant's work address",
+//       "properties": {
+//         "street": { "type": "string" },
+//         "city": { "type": "string" },
+//         "state": { "type": "string" },
+//         "postal_code": { "type": "string" },
+//         "country": { "type": "string" }
+//       },
+//       "required": ["street", "city", "state", "postal_code", "country"]
+//     },
+//     "status": { "type": "string", "description": "Merchant status (e.g., active, inactive)" },
+//     "created_at": { "type": "string", "format": "date-time", "description": "Merchant creation timestamp" },
+//     "updated_at": { "type": "string", "format": "date-time", "description": "Merchant last updated timestamp" }
+//   },
+//   "required": ["id", "user_id", "business_name", "business_type", "tax_id", "personal_address", "work_address", "status"]
+// }
 // @Example response 200
 // {
 //   "id": "123e4567-e89b-12d3-a456-426614174000",
@@ -196,6 +332,20 @@ func (h *MerchantHandler) GetApplication(c *gin.Context) {
 //   "business_name": "Doe Enterprises",
 //   "business_type": "Retail",
 //   "tax_id": "12-3456789",
+//   "personal_address": {
+//     "street": "123 Main St",
+//     "city": "Anytown",
+//     "state": "CA",
+//     "postal_code": "12345",
+//     "country": "USA"
+//   },
+//   "work_address": {
+//     "street": "456 Business Rd",
+//     "city": "Anytown",
+//     "state": "CA",
+//     "postal_code": "12345",
+//     "country": "USA"
+//   },
 //   "status": "approved",
 //   "created_at": "2025-09-13T03:45:00Z",
 //   "updated_at": "2025-09-13T03:45:00Z"
