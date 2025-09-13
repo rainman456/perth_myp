@@ -77,17 +77,17 @@ func AutoMigrate() {
    log.Println("Starting AutoMigrate...")
 
     // Independent tables (no incoming FKs or self-referential only)
-    log.Println("Migrating Category...")
-    if err := DB.AutoMigrate(&models.Category{}); err != nil {
-        log.Printf("Failed to migrate Category: %v", err)
-        return
-    }
+    // log.Println("Migrating Category...")
+    // if err := DB.AutoMigrate(&models.Category{}); err != nil {
+    //     log.Printf("Failed to migrate Category: %v", err)
+    //     return
+    // }
 
-     log.Println("Migrating MerchantApplication...")
-     if err := DB.AutoMigrate(&models.MerchantApplication{}); err != nil {
-        log.Printf("Failed to migrate MerchantApplication: %v", err)
-         return
-     }
+    //  log.Println("Migrating MerchantApplication...")
+    //  if err := DB.AutoMigrate(&models.MerchantApplication{}); err != nil {
+    //     log.Printf("Failed to migrate MerchantApplication: %v", err)
+    //      return
+    //  }
 
     // log.Println("Migrating Merchant...")
     // if err := DB.AutoMigrate(&models.Merchant{}); err != nil {
@@ -95,11 +95,11 @@ func AutoMigrate() {
     //     return
     // }
 
-     log.Println("Migrating User...")
-     if err := DB.AutoMigrate(&models.User{}); err != nil {
-         log.Printf("Failed to migrate User: %v", err)
-         return
-     }
+    //  log.Println("Migrating User...")
+    //  if err := DB.AutoMigrate(&models.User{}); err != nil {
+    //      log.Printf("Failed to migrate User: %v", err)
+    //      return
+    //  }
 
     // Tables depending on Merchant/Category/User
     // log.Println("Migrating Product ecosystem (Product, Variant, Media)...")
@@ -161,18 +161,18 @@ func AutoMigrate() {
     //     log.Printf("Failed to migrate ReturnRequest: %v", err)
     //     return
     // }
- /*
+ 
     err := DB.AutoMigrate(
-        //&models.User{},
-        &models.MerchantApplication{},
-         &models.Product{},
-         &models.Variant{},
-         &models.Media{},
+        &models.User{},
+        //&models.MerchantApplication{},
+         //&models.Product{},
+         //&models.Variant{},
+         //&models.Media{},
         // &models.Cart{},
         // &models.Order{},
         // &models.OrderItem{},
         // &models.CartItem{},
-         &models.Category{},
+         //&models.Category{},
         // &models.Inventory{},
         // &models.Promotion{},
         // &models.ReturnRequest{},
@@ -182,7 +182,7 @@ func AutoMigrate() {
     if err != nil {
         log.Fatalf("Failed to auto-migrate: %v", err)
     }
-*/
+
 
     // Get the underlying SQL database connection
     sqlDB, err := DB.DB()
