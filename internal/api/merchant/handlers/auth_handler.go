@@ -26,12 +26,11 @@ func NewMerchantAuthHandler(s *merchant.MerchantService) *MerchantHandler {
 // @Tags Merchant
 // @Accept json
 // @Produce json
-// @Param application body models.MerchantApplication true "Merchant application payload"
+// @Param body body models.MerchantApplication true "Merchant application payload"
 // @Success 201 {object} models.MerchantApplication
 // @Failure 400 {object} map[string]string "Invalid request body"
 // @Failure 500 {object} map[string]string "Failed to submit application"
 // @Router /merchant/apply [post]
-
 func (h *MerchantHandler) Apply(c *gin.Context) {
 	var req struct {
 		models.MerchantBasicInfo
@@ -83,7 +82,6 @@ func (h *MerchantHandler) Apply(c *gin.Context) {
 // @Success 200 {object} models.MerchantApplication
 // @Failure 404 {object} map[string]string "Application not found"
 // @Router /merchant/application/{id} [get]
-
 func (h *MerchantHandler) GetApplication(c *gin.Context) {
 	id := c.Param("id")
 	app, err := h.service.GetApplication(c.Request.Context(), id)
@@ -105,7 +103,6 @@ func (h *MerchantHandler) GetApplication(c *gin.Context) {
 // @Failure 401 {object} map[string]string "Unauthorized"
 // @Failure 404 {object} map[string]string "Merchant not found"
 // @Router /merchant/me [get]
-
 func (h *MerchantHandler) GetMyMerchant(c *gin.Context) {
 	userID, ok := c.Get("id")
 	if !ok {
