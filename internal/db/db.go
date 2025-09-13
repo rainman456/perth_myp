@@ -48,7 +48,7 @@ func Connect() {
 
     var err error
     //DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{DisableForeignKeyConstraintWhenMigrating: true,})
-    DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
+    DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{PrepareStmt: false})
     //DB = DB.Debug()
     if err != nil {
         log.Fatalf("Failed to connect to database: %v", err)
