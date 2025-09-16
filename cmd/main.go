@@ -69,10 +69,11 @@ func main() {
     merchant.RegisterRoutes(r)
 
 	// Swagger endpoint
-	//r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-	r.StaticFile("/swagger.yaml", "./swagger.yaml") // Or "/swagger.json" if using JSON
+	// Serve the OpenAPI spec file
+	//r.StaticFile("/swagger.yaml", "./swagger.yaml") // Or "/swagger.json" if using JSON
+	r.StaticFile("/swagger.json", "./swagger.json")
 	// Configure Swagger UI to load the spec
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.URL("/swagger.yaml")))
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.URL("/swagger.json"))) // Or "/swagger.json"
 
 	// Get port from environment variable or default to 8080
 	port := os.Getenv("PORT")

@@ -119,12 +119,11 @@ func RegisterRoutes(r *gin.Engine) {
     protected.Use(middleware.AuthMiddleware("merchant"))
     protected.GET("/me",  authHandler.GetMyMerchant)
 
-    protected.POST("/create/product", merchhandler.CreateProduct)
+    protected.POST("/products/create", merchhandler.CreateProduct)
 	protected.GET("/products", merchhandler.GetMyProducts)
-	protected.PUT("/:id", merchhandler.UpdateProduct)
-	protected.DELETE("/:id", merchhandler.DeleteProduct)
-	protected.POST("/bulk-upload", merchhandler.BulkUploadProducts)
-
+	protected.PUT("/products/:id", merchhandler.UpdateProduct)
+	protected.DELETE("/products/:id", merchhandler.DeleteProduct)
+	protected.POST("/products/bulk-upload", merchhandler.BulkUploadProducts)
 
     }
 
