@@ -27,6 +27,7 @@ package merchant
 
 import (
 	"api-customer-merchant/internal/api/merchant/handlers"
+	"api-customer-merchant/internal/middleware"
 	//"api-customer-merchant/internal/db"
 	//"api-customer-merchant/internal/db/models"
 	"api-customer-merchant/internal/db/repositories"
@@ -34,6 +35,7 @@ import (
 	//"api-customer-merchant/internal/middleware"
 	"api-customer-merchant/internal/domain/merchant"
 	"api-customer-merchant/internal/domain/product"
+
 	// "api-customer-merchant/internal/domain/order"
 	// "api-customer-merchant/internal/domain/payout"
 	//"api-customer-merchant/internal/domain/product"
@@ -113,12 +115,15 @@ func RegisterRoutes(r *gin.Engine) {
     merchant.GET("/application/:id",  authHandler.GetApplication)
     // Merchant account access (once approved by admin via Express API)
     merchant.GET("/me",  authHandler.GetMyMerchant)
+    protected := merchant.Group("/")
+    protected.Use(middleware.AuthMiddleware("merchant"))
+    protected.GET("/me",  authHandler.GetMyMerchant)
 
-    merchant.POST("/create/product", merchhandler.CreateProduct)
-	merchant.GET("/products", merchhandler.GetMyProducts)
-	merchant.PUT("/:id", merchhandler.UpdateProduct)
-	merchant.DELETE("/:id", merchhandler.DeleteProduct)
-	merchant.POST("/bulk-upload", merchhandler.BulkUploadProducts)
+    protected.POST("/create/product", merchhandler.CreateProduct)
+	protected.GET("/products", merchhandler.GetMyProducts)
+	protected.PUT("/:id", merchhandler.UpdateProduct)
+	protected.DELETE("/:id", merchhandler.DeleteProduct)
+	protected.POST("/bulk-upload", merchhandler.BulkUploadProducts)
 
 
     }
