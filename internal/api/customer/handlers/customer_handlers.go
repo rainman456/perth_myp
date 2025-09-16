@@ -1,5 +1,5 @@
 package handlers
-
+/*
 import (
 	"net/http"
 	//"api-customer-merchant/internal/db/models"
@@ -332,3 +332,5 @@ func (h *CustomerHandlers) GetProductsByCategory(c *gin.Context) {
     }
     c.JSON(http.StatusOK, products)
 }
+
+*/

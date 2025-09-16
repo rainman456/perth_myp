@@ -18,7 +18,7 @@ import (
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
-	_ "api-customer-merchant/docs" // Import generated docs
+	//_ "api-customer-merchant/docs" // Import generated docs
 )
 
 // @title Multivendor API
@@ -69,7 +69,10 @@ func main() {
     merchant.RegisterRoutes(r)
 
 	// Swagger endpoint
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	//r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	r.StaticFile("/swagger.yaml", "./swagger.yaml") // Or "/swagger.json" if using JSON
+	// Configure Swagger UI to load the spec
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.URL("/swagger.yaml")))
 
 	// Get port from environment variable or default to 8080
 	port := os.Getenv("PORT")

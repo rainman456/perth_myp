@@ -1,5 +1,5 @@
 package cart
-
+/*
 import (
 	"errors"
 	"api-customer-merchant/internal/db/models"
@@ -170,3 +170,4 @@ func (s *CartService) GetCartItemByID(cartItemID uint) (*models.CartItem, error)
 	}
 	return s.cartItemRepo.FindByID(cartItemID)
 }
+*/

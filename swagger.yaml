@@ -1,0 +1,2144 @@
+openapi: 3.0.3
+info:
+  title: Customer-Merchant API
+  description:
+    API for customer and merchant interactions, supporting registration,
+    login, product management, cart operations, and order processing. Secured with
+    JWT (BearerAuth) and rate-limited.
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description:
+        JWT token with 'entityType' claim ('user' for customers, 'merchant'
+        for merchants).
+  schemas:
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Error message.
+          example: Invalid request
+    SuccessMessage:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: Success message.
+          example: Operation successful
+    TokenResponse:
+      type: object
+      required:
+        - token
+      properties:
+        token:
+          type: string
+          description: JWT access token.
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+paths:
+  /customer/register:
+    post:
+      summary: Register a new customer
+      description:
+        Creates a new customer account with email, name, password, and
+        optional country.
+      tags:
+        - Customer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - name
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: john@example.com
+                name:
+                  type: string
+                  example: John Doe
+                password:
+                  type: string
+                  writeOnly: true
+                  example: securepass123
+                country:
+                  type: string
+                  example: USA
+      responses:
+        "201":
+          description: Account created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "400":
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /customer/login:
+    post:
+      summary: Customer login
+      description: Authenticates a customer using email and password.
+      tags:
+        - Customer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: john@example.com
+                password:
+                  type: string
+                  writeOnly: true
+                  example: securepass123
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /customer/auth/google:
+    get:
+      summary: Initiate Google OAuth for customer
+      description: Returns Google OAuth authorization URL for customer login/registration.
+      tags:
+        - Customer
+      responses:
+        "200":
+          description: OAuth URL provided
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    format: uri
+                    example: https://accounts.google.com/o/oauth2/v2/auth?...
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /customer/auth/google/callback:
+    get:
+      summary: Handle Google OAuth callback
+      description: Processes Google OAuth callback, returns JWT and user info.
+      tags:
+        - Customer
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OAuth successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        example: 1
+                      email:
+                        type: string
+                        example: john@example.com
+                      name:
+                        type: string
+                        example: John Doe
+                      country:
+                        type: string
+                        example: USA
+                      created_at:
+                        type: string
+                        example: "2025-09-15T21:45:09Z"
+                      updated_at:
+                        type: string
+                        example: "2025-09-15T21:45:09Z"
+        "400":
+          description: Missing code or state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Invalid OAuth
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /customer/logout:
+    post:
+      summary: Customer logout
+      description: Invalidates JWT by adding to Redis blacklist.
+      tags:
+        - Customer
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessMessage"
+        "400":
+          description: Missing authorization header
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /customer/profile:
+    put:
+      summary: Update customer profile
+      description: Updates customer's name, country, and addresses.
+      tags:
+        - Customer
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: John Doe Updated
+                country:
+                  type: string
+                  example: USA
+                addresses:
+                  type: array
+                  items:
+                    type: string
+                  example:
+                    - 123 Main St, New York, NY 10001
+      responses:
+        "200":
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessMessage"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /customer/products/{id}:
+    get:
+      summary: Get product by ID
+      description: Retrieves a product by ID, cached in Redis.
+      tags:
+        - Customer
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Product found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: 550e8400-e29b-41d4-a716-446655440000
+                  name:
+                    type: string
+                    example: Wireless Headphones
+                  sku:
+                    type: string
+                    example: WH-001
+                  description:
+                    type: string
+                    example: High-quality wireless headphones.
+                  price:
+                    type: number
+                    example: 99.99
+                  category_id:
+                    type: integer
+                    example: 1
+                  merchant_id:
+                    type: string
+                    example: merchant-uuid-123
+                  stock_quantity:
+                    type: integer
+                    example: 50
+                  images:
+                    type: array
+                    items:
+                      type: string
+                    example:
+                      - https://example.com/img1.jpg
+                  created_at:
+                    type: string
+                    example: "2025-09-15T21:45:09Z"
+                  updated_at:
+                    type: string
+                    example: "2025-09-15T21:45:09Z"
+        "400":
+          description: Invalid ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /customer/products/sku/{sku}:
+    get:
+      summary: Get product by SKU
+      description: Retrieves a product by its SKU.
+      tags:
+        - Customer
+      parameters:
+        - name: sku
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Product found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: 550e8400-e29b-41d4-a716-446655440000
+                  name:
+                    type: string
+                    example: Wireless Headphones
+                  sku:
+                    type: string
+                    example: WH-001
+                  description:
+                    type: string
+                    example: High-quality wireless headphones.
+                  price:
+                    type: number
+                    example: 99.99
+                  category_id:
+                    type: integer
+                    example: 1
+                  merchant_id:
+                    type: string
+                    example: merchant-uuid-123
+                  stock_quantity:
+                    type: integer
+                    example: 50
+                  images:
+                    type: array
+                    items:
+                      type: string
+                    example:
+                      - https://example.com/img1.jpg
+                  created_at:
+                    type: string
+                    example: "2025-09-15T21:45:09Z"
+                  updated_at:
+                    type: string
+                    example: "2025-09-15T21:45:09Z"
+        "400":
+          description: Invalid SKU
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /customer/products/search:
+    get:
+      summary: Search products by name
+      description: Searches products by partial name match.
+      tags:
+        - Customer
+      parameters:
+        - name: name
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      example: 550e8400-e29b-41d4-a716-446655440000
+                    name:
+                      type: string
+                      example: Wireless Headphones
+                    sku:
+                      type: string
+                      example: WH-001
+                    description:
+                      type: string
+                      example: High-quality wireless headphones.
+                    price:
+                      type: number
+                      example: 99.99
+                    category_id:
+                      type: integer
+                      example: 1
+                    merchant_id:
+                      type: string
+                      example: merchant-uuid-123
+                    stock_quantity:
+                      type: integer
+                      example: 50
+                    images:
+                      type: array
+                      items:
+                        type: string
+                      example:
+                        - https://example.com/img1.jpg
+                    created_at:
+                      type: string
+                      example: "2025-09-15T21:45:09Z"
+                    updated_at:
+                      type: string
+                      example: "2025-09-15T21:45:09Z"
+        "400":
+          description: Invalid search term
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /customer/products/category/{categoryID}:
+    get:
+      summary: Get products by category
+      description: Retrieves products by category ID with pagination.
+      tags:
+        - Customer
+      parameters:
+        - name: categoryID
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            example: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            example: 0
+      responses:
+        "200":
+          description: Products in category
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      example: 550e8400-e29b-41d4-a716-446655440000
+                    name:
+                      type: string
+                      example: Wireless Headphones
+                    sku:
+                      type: string
+                      example: WH-001
+                    description:
+                      type: string
+                      example: High-quality wireless headphones.
+                    price:
+                      type: number
+                      example: 99.99
+                    category_id:
+                      type: integer
+                      example: 1
+                    merchant_id:
+                      type: string
+                      example: merchant-uuid-123
+                    stock_quantity:
+                      type: integer
+                      example: 50
+                    images:
+                      type: array
+                      items:
+                        type: string
+                      example:
+                        - https://example.com/img1.jpg
+                    created_at:
+                      type: string
+                      example: "2025-09-15T21:45:09Z"
+                    updated_at:
+                      type: string
+                      example: "2025-09-15T21:45:09Z"
+        "400":
+          description: Invalid category ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /customer/cart/add:
+    post:
+      summary: Add item to cart
+      description: Adds or updates an item in the user's active cart.
+      tags:
+        - Customer
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - product_id
+                - quantity
+              properties:
+                product_id:
+                  type: integer
+                  example: 1
+                quantity:
+                  type: integer
+                  minimum: 1
+                  example: 2
+      responses:
+        "200":
+          description: Cart updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    example: 1
+                  user_id:
+                    type: integer
+                    example: 1
+                  cart_items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 1
+                        cart_id:
+                          type: integer
+                          example: 1
+                        product_id:
+                          type: integer
+                          example: 1
+                        quantity:
+                          type: integer
+                          example: 2
+                        product:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                              example: 550e8400-e29b-41d4-a716-446655440000
+                            name:
+                              type: string
+                              example: Wireless Headphones
+                            sku:
+                              type: string
+                              example: WH-001
+                            price:
+                              type: number
+                              example: 99.99
+                  created_at:
+                    type: string
+                    example: "2025-09-15T21:45:09Z"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /customer/cart/update/{cartItemID}:
+    put:
+      summary: Update cart item quantity
+      description: Updates the quantity of a cart item, verifying ownership.
+      tags:
+        - Customer
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: cartItemID
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - quantity
+              properties:
+                quantity:
+                  type: integer
+                  minimum: 1
+                  example: 3
+      responses:
+        "200":
+          description: Cart updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    example: 1
+                  user_id:
+                    type: integer
+                    example: 1
+                  cart_items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 1
+                        cart_id:
+                          type: integer
+                          example: 1
+                        product_id:
+                          type: integer
+                          example: 1
+                        quantity:
+                          type: integer
+                          example: 3
+                        product:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                              example: 550e8400-e29b-41d4-a716-446655440000
+                            name:
+                              type: string
+                              example: Wireless Headphones
+                            sku:
+                              type: string
+                              example: WH-001
+                            price:
+                              type: number
+                              example: 99.99
+                  created_at:
+                    type: string
+                    example: "2025-09-15T21:45:09Z"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Cart item not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /customer/cart/remove/{cartItemID}:
+    delete:
+      summary: Remove item from cart
+      description: Removes a cart item, verifying ownership.
+      tags:
+        - Customer
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: cartItemID
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Cart updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    example: 1
+                  user_id:
+                    type: integer
+                    example: 1
+                  cart_items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 1
+                        cart_id:
+                          type: integer
+                          example: 1
+                        product_id:
+                          type: integer
+                          example: 1
+                        quantity:
+                          type: integer
+                          example: 2
+                        product:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                              example: 550e8400-e29b-41d4-a716-446655440000
+                            name:
+                              type: string
+                              example: Wireless Headphones
+                            sku:
+                              type: string
+                              example: WH-001
+                            price:
+                              type: number
+                              example: 99.99
+                  created_at:
+                    type: string
+                    example: "2025-09-15T21:45:09Z"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Cart item not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /customer/orders/create:
+    post:
+      summary: Create order from cart
+      description: Converts the user's active cart to an order.
+      tags:
+        - Customer
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Order created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    example: 1
+                  user_id:
+                    type: integer
+                    example: 1
+                  total_amount:
+                    type: number
+                    example: 199.98
+                  status:
+                    type: string
+                    example: pending
+                  order_items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 1
+                        order_id:
+                          type: integer
+                          example: 1
+                        product_id:
+                          type: integer
+                          example: 1
+                        quantity:
+                          type: integer
+                          example: 2
+                        price:
+                          type: number
+                          example: 99.99
+                        product:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                              example: 550e8400-e29b-41d4-a716-446655440000
+                            name:
+                              type: string
+                              example: Wireless Headphones
+                            sku:
+                              type: string
+                              example: WH-001
+                            price:
+                              type: number
+                              example: 99.99
+                  created_at:
+                    type: string
+                    example: "2025-09-15T21:45:09Z"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /customer/orders/{id}:
+    get:
+      summary: Get order by ID
+      description: Retrieves an order, verifying user ownership.
+      tags:
+        - Customer
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Order found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    example: 1
+                  user_id:
+                    type: integer
+                    example: 1
+                  total_amount:
+                    type: number
+                    example: 199.98
+                  status:
+                    type: string
+                    example: pending
+                  order_items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 1
+                        order_id:
+                          type: integer
+                          example: 1
+                        product_id:
+                          type: integer
+                          example: 1
+                        quantity:
+                          type: integer
+                          example: 2
+                        price:
+                          type: number
+                          example: 99.99
+                        product:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                              example: 550e8400-e29b-41d4-a716-446655440000
+                            name:
+                              type: string
+                              example: Wireless Headphones
+                            sku:
+                              type: string
+                              example: WH-001
+                            price:
+                              type: number
+                              example: 99.99
+                  created_at:
+                    type: string
+                    example: "2025-09-15T21:45:09Z"
+        "400":
+          description: Invalid ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /customer/orders:
+    get:
+      summary: Get user's orders
+      description: Retrieves all orders for the authenticated user.
+      tags:
+        - Customer
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Orders retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                      example: 1
+                    user_id:
+                      type: integer
+                      example: 1
+                    total_amount:
+                      type: number
+                      example: 199.98
+                    status:
+                      type: string
+                      example: pending
+                    order_items:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                            example: 1
+                          order_id:
+                            type: integer
+                            example: 1
+                          product_id:
+                            type: integer
+                            example: 1
+                          quantity:
+                            type: integer
+                            example: 2
+                          price:
+                            type: number
+                            example: 99.99
+                          product:
+                            type: object
+                            properties:
+                              id:
+                                type: string
+                                example: 550e8400-e29b-41d4-a716-446655440000
+                              name:
+                                type: string
+                                example: Wireless Headphones
+                              sku:
+                                type: string
+                                example: WH-001
+                              price:
+                                type: number
+                                example: 99.99
+                    created_at:
+                      type: string
+                      example: "2025-09-15T21:45:09Z"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /customer/payments/process:
+    post:
+      summary: Process payment
+      description: Processes a payment for an order, verifying ownership.
+      tags:
+        - Customer
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - order_id
+                - amount
+              properties:
+                order_id:
+                  type: integer
+                  example: 1
+                amount:
+                  type: number
+                  example: 199.98
+      responses:
+        "200":
+          description: Payment processed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    example: 1
+                  order_id:
+                    type: integer
+                    example: 1
+                  amount:
+                    type: number
+                    example: 199.98
+                  status:
+                    type: string
+                    example: pending
+                  transaction_id:
+                    type: string
+                    example: txn_12345
+                  created_at:
+                    type: string
+                    example: "2025-09-15T21:45:09Z"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /customer/payments/{orderID}:
+    get:
+      summary: Get payment by order ID
+      description: Retrieves payment details for an order, verifying ownership.
+      tags:
+        - Customer
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: orderID
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Payment found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    example: 1
+                  order_id:
+                    type: integer
+                    example: 1
+                  amount:
+                    type: number
+                    example: 199.98
+                  status:
+                    type: string
+                    example: pending
+                  transaction_id:
+                    type: string
+                    example: txn_12345
+                  created_at:
+                    type: string
+                    example: "2025-09-15T21:45:09Z"
+        "400":
+          description: Invalid order ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Payment not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /merchant/apply:
+    post:
+      summary: Submit merchant application
+      description:
+        Submits a merchant application with personal, business, and address
+        details.
+      tags:
+        - Merchant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - merchant_basic_info
+                - personal_address
+                - work_address
+                - merchant_business_info
+                - merchant_documents
+              properties:
+                merchant_basic_info:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                      example: John Doe
+                    store_name:
+                      type: string
+                      example: Doe Store
+                    personal_email:
+                      type: string
+                      example: john@example.com
+                    work_email:
+                      type: string
+                      example: store@example.com
+                    password:
+                      type: string
+                      example: securepass123
+                personal_address:
+                  type: object
+                  properties:
+                    street:
+                      type: string
+                      example: 123 Main St
+                    city:
+                      type: string
+                      example: New York
+                    state:
+                      type: string
+                      example: NY
+                    zip:
+                      type: string
+                      example: "10001"
+                    country:
+                      type: string
+                      example: USA
+                work_address:
+                  type: object
+                  properties:
+                    street:
+                      type: string
+                      example: 456 Business Ave
+                    city:
+                      type: string
+                      example: New York
+                    state:
+                      type: string
+                      example: NY
+                    zip:
+                      type: string
+                      example: "10001"
+                    country:
+                      type: string
+                      example: USA
+                merchant_business_info:
+                  type: object
+                  properties:
+                    business_type:
+                      type: string
+                      example: retail
+                    years_in_business:
+                      type: integer
+                      example: 5
+                    annual_revenue:
+                      type: number
+                      example: 50000.0
+                    tax_id:
+                      type: string
+                      example: 123-45-6789
+                merchant_documents:
+                  type: object
+                  properties:
+                    id_proof:
+                      type: string
+                      example: data:image/jpeg;base64,/9j/4AAQ...
+                    business_license:
+                      type: string
+                      example: data:application/pdf;base64,JVBERi0x...
+                    bank_statement:
+                      type: string
+                      example: data:application/pdf;base64,JVBERi0x...
+      responses:
+        "201":
+          description: Application submitted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: 550e8400-e29b-41d4-a716-446655440000
+                  status:
+                    type: string
+                    example: pending
+                  merchant_basic_info:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                        example: John Doe
+                      store_name:
+                        type: string
+                        example: Doe Store
+                      personal_email:
+                        type: string
+                        example: john@example.com
+                      work_email:
+                        type: string
+                        example: store@example.com
+                  personal_address:
+                    type: object
+                    properties:
+                      street:
+                        type: string
+                        example: 123 Main St
+                      city:
+                        type: string
+                        example: New York
+                      state:
+                        type: string
+                        example: NY
+                      zip:
+                        type: string
+                        example: "10001"
+                      country:
+                        type: string
+                        example: USA
+                  work_address:
+                    type: object
+                    properties:
+                      street:
+                        type: string
+                        example: 456 Business Ave
+                      city:
+                        type: string
+                        example: New York
+                      state:
+                        type: string
+                        example: NY
+                      zip:
+                        type: string
+                        example: "10001"
+                      country:
+                        type: string
+                        example: USA
+                  merchant_business_info:
+                    type: object
+                    properties:
+                      business_type:
+                        type: string
+                        example: retail
+                      years_in_business:
+                        type: integer
+                        example: 5
+                      annual_revenue:
+                        type: number
+                        example: 50000.0
+                      tax_id:
+                        type: string
+                        example: 123-45-6789
+                  merchant_documents:
+                    type: object
+                    properties:
+                      id_proof:
+                        type: string
+                        example: data:image/jpeg;base64,/9j/4AAQ...
+                      business_license:
+                        type: string
+                        example: data:application/pdf;base64,JVBERi0x...
+                      bank_statement:
+                        type: string
+                        example: data:application/pdf;base64,JVBERi0x...
+                  created_at:
+                    type: string
+                    example: "2025-09-15T21:45:09Z"
+                  updated_at:
+                    type: string
+                    example: "2025-09-15T21:45:09Z"
+        "400":
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /merchant/application/{id}:
+    get:
+      summary: Get merchant application
+      description: Retrieves a merchant application by ID.
+      tags:
+        - Merchant
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Application retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: 550e8400-e29b-41d4-a716-446655440000
+                  status:
+                    type: string
+                    example: pending
+                  merchant_basic_info:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                        example: John Doe
+                      store_name:
+                        type: string
+                        example: Doe Store
+                      personal_email:
+                        type: string
+                        example: john@example.com
+                      work_email:
+                        type: string
+                        example: store@example.com
+                  personal_address:
+                    type: object
+                    properties:
+                      street:
+                        type: string
+                        example: 123 Main St
+                      city:
+                        type: string
+                        example: New York
+                      state:
+                        type: string
+                        example: NY
+                      zip:
+                        type: string
+                        example: "10001"
+                      country:
+                        type: string
+                        example: USA
+                  work_address:
+                    type: object
+                    properties:
+                      street:
+                        type: string
+                        example: 456 Business Ave
+                      city:
+                        type: string
+                        example: New York
+                      state:
+                        type: string
+                        example: NY
+                      zip:
+                        type: string
+                        example: "10001"
+                      country:
+                        type: string
+                        example: USA
+                  merchant_business_info:
+                    type: object
+                    properties:
+                      business_type:
+                        type: string
+                        example: retail
+                      years_in_business:
+                        type: integer
+                        example: 5
+                      annual_revenue:
+                        type: number
+                        example: 50000.0
+                      tax_id:
+                        type: string
+                        example: 123-45-6789
+                  merchant_documents:
+                    type: object
+                    properties:
+                      id_proof:
+                        type: string
+                        example: data:image/jpeg;base64,/9j/4AAQ...
+                      business_license:
+                        type: string
+                        example: data:application/pdf;base64,JVBERi0x...
+                      bank_statement:
+                        type: string
+                        example: data:application/pdf;base64,JVBERi0x...
+                  created_at:
+                    type: string
+                    example: "2025-09-15T21:45:09Z"
+                  updated_at:
+                    type: string
+                    example: "2025-09-15T21:45:09Z"
+        "404":
+          description: Application not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /merchant/me:
+    get:
+      summary: Get current merchant account
+      description: Retrieves the authenticated merchant's account details.
+      tags:
+        - Merchant
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Merchant account retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: merchant-uuid-123
+                  user_id:
+                    type: string
+                    example: "1"
+                  business_name:
+                    type: string
+                    example: Doe Store
+                  business_type:
+                    type: string
+                    example: retail
+                  tax_id:
+                    type: string
+                    example: 123-45-6789
+                  personal_address:
+                    type: object
+                    properties:
+                      street:
+                        type: string
+                        example: 123 Main St
+                      city:
+                        type: string
+                        example: New York
+                      state:
+                        type: string
+                        example: NY
+                      zip:
+                        type: string
+                        example: "10001"
+                      country:
+                        type: string
+                        example: USA
+                  work_address:
+                    type: object
+                    properties:
+                      street:
+                        type: string
+                        example: 456 Business Ave
+                      city:
+                        type: string
+                        example: New York
+                      state:
+                        type: string
+                        example: NY
+                      zip:
+                        type: string
+                        example: "10001"
+                      country:
+                        type: string
+                        example: USA
+                  status:
+                    type: string
+                    example: approved
+                  created_at:
+                    type: string
+                    example: "2025-09-15T21:45:09Z"
+                  updated_at:
+                    type: string
+                    example: "2025-09-15T21:45:09Z"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Merchant not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /merchant/create/product:
+    post:
+      summary: Create a new product
+      description: Creates a product listing for the authenticated merchant.
+      tags:
+        - Merchant
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - sku
+                - price
+                - category_id
+              properties:
+                name:
+                  type: string
+                  example: Wireless Headphones
+                sku:
+                  type: string
+                  example: WH-001
+                description:
+                  type: string
+                  example: High-quality wireless headphones.
+                price:
+                  type: number
+                  example: 99.99
+                category_id:
+                  type: integer
+                  example: 1
+                stock_quantity:
+                  type: integer
+                  example: 50
+                images:
+                  type: array
+                  items:
+                    type: string
+                  example:
+                    - https://example.com/img1.jpg
+      responses:
+        "201":
+          description: Product created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: 550e8400-e29b-41d4-a716-446655440000
+                  name:
+                    type: string
+                    example: Wireless Headphones
+                  sku:
+                    type: string
+                    example: WH-001
+                  description:
+                    type: string
+                    example: High-quality wireless headphones.
+                  price:
+                    type: number
+                    example: 99.99
+                  category_id:
+                    type: integer
+                    example: 1
+                  merchant_id:
+                    type: string
+                    example: merchant-uuid-123
+                  stock_quantity:
+                    type: integer
+                    example: 50
+                  images:
+                    type: array
+                    items:
+                      type: string
+                    example:
+                      - https://example.com/img1.jpg
+                  created_at:
+                    type: string
+                    example: "2025-09-15T21:45:09Z"
+                  updated_at:
+                    type: string
+                    example: "2025-09-15T21:45:09Z"
+        "400":
+          description: Invalid fields
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /merchant/{id}:
+    put:
+      summary: Update product
+      description: Updates a product owned by the authenticated merchant.
+      tags:
+        - Merchant
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - sku
+                - price
+                - category_id
+              properties:
+                name:
+                  type: string
+                  example: Wireless Headphones Updated
+                sku:
+                  type: string
+                  example: WH-002
+                description:
+                  type: string
+                  example: Updated high-quality headphones.
+                price:
+                  type: number
+                  example: 109.99
+                category_id:
+                  type: integer
+                  example: 1
+                stock_quantity:
+                  type: integer
+                  example: 40
+                images:
+                  type: array
+                  items:
+                    type: string
+                  example:
+                    - https://example.com/img2.jpg
+      responses:
+        "200":
+          description: Product updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: 550e8400-e29b-41d4-a716-446655440000
+                  name:
+                    type: string
+                    example: Wireless Headphones Updated
+                  sku:
+                    type: string
+                    example: WH-002
+                  description:
+                    type: string
+                    example: Updated high-quality headphones.
+                  price:
+                    type: number
+                    example: 109.99
+                  category_id:
+                    type: integer
+                    example: 1
+                  merchant_id:
+                    type: string
+                    example: merchant-uuid-123
+                  stock_quantity:
+                    type: integer
+                    example: 40
+                  images:
+                    type: array
+                    items:
+                      type: string
+                    example:
+                      - https://example.com/img2.jpg
+                  created_at:
+                    type: string
+                    example: "2025-09-15T21:45:09Z"
+                  updated_at:
+                    type: string
+                    example: "2025-09-15T21:45:09Z"
+        "400":
+          description: Invalid fields
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      summary: Delete product
+      description: Deletes a product owned by the authenticated merchant.
+      tags:
+        - Merchant
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Product deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessMessage"
+        "400":
+          description: Invalid ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /merchant/products:
+    get:
+      summary: Get merchant's products
+      description: Retrieves all products owned by the authenticated merchant.
+      tags:
+        - Merchant
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            example: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            example: 0
+        - name: status
+          in: query
+          schema:
+            type: string
+            example: active
+        - name: category_id
+          in: query
+          schema:
+            type: integer
+            example: 1
+      responses:
+        "200":
+          description: Products retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      example: 550e8400-e29b-41d4-a716-446655440000
+                    name:
+                      type: string
+                      example: Wireless Headphones
+                    sku:
+                      type: string
+                      example: WH-001
+                    description:
+                      type: string
+                      example: High-quality wireless headphones.
+                    price:
+                      type: number
+                      example: 99.99
+                    category_id:
+                      type: integer
+                      example: 1
+                    merchant_id:
+                      type: string
+                      example: merchant-uuid-123
+                    stock_quantity:
+                      type: integer
+                      example: 50
+                    images:
+                      type: array
+                      items:
+                        type: string
+                      example:
+                        - https://example.com/img1.jpg
+                    created_at:
+                      type: string
+                      example: "2025-09-15T21:45:09Z"
+                    updated_at:
+                      type: string
+                      example: "2025-09-15T21:45:09Z"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /merchant/bulk-upload:
+    post:
+      summary: Bulk upload products
+      description: Uploads multiple products via CSV file for the authenticated merchant.
+      tags:
+        - Merchant
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                csv:
+                  type: string
+                  format: binary
+                  description: CSV file with headers [name,sku,price,description,category_id,stock_quantity]
+      responses:
+        "200":
+          description: Products uploaded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessMessage"
+        "400":
+          description: Invalid CSV
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "413":
+          description: File too large
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /merchant/login:
+    post:
+      summary: Merchant login
+      description: Authenticates a merchant using email and password
+      tags:
+        - Merchant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "store@example.com"
+                password:
+                  type: string
+                  writeOnly: true
+                  example: "securepass123"
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Error"

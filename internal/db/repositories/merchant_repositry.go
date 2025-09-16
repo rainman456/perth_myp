@@ -68,3 +68,13 @@ func (r *MerchantRepository) GetByUserID(ctx context.Context, uid string) (*mode
 	}
 	return &m, nil
 }
+
+
+func (r *MerchantRepository)GetByWorkEmail(ctx context.Context, email string) (*models.Merchant, error) {
+	var m models.Merchant
+	if err := db.DB.WithContext(ctx).Where("personal_email = ? OR work_email = ?", email, email).First(&m).Error; err != nil {
+		log.Printf("Failed to get merchant  by email %s: %v", email, err)
+		return nil, err
+	}
+	return &m, nil
+}
