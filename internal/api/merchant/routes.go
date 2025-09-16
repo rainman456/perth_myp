@@ -114,7 +114,7 @@ func RegisterRoutes(r *gin.Engine) {
     merchant.POST("/login",  authHandler.Login)
     merchant.GET("/application/:id",  authHandler.GetApplication)
     // Merchant account access (once approved by admin via Express API)
-    merchant.GET("/me",  authHandler.GetMyMerchant)
+    //merchant.GET("/me",  authHandler.GetMyMerchant)
     protected := merchant.Group("/")
     protected.Use(middleware.AuthMiddleware("merchant"))
     protected.GET("/me",  authHandler.GetMyMerchant)
