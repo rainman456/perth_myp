@@ -1,7 +1,7 @@
 package db
 
 import (
-	"api-customer-merchant/internal/db/models"
+	//"api-customer-merchant/internal/db/models"
 	"log"
 	"os"
 	"time"
@@ -163,7 +163,7 @@ func AutoMigrate() {
     // }
  
     err := DB.AutoMigrate(
-        &models.User{},
+        //&models.User{},
         //&models.MerchantApplication{},
          //&models.Product{},
          //&models.Variant{},

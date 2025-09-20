@@ -56,18 +56,18 @@ func main() {
 		// if secret == "" {
 		// 	log.Fatal("JWT_SECRET not set")
 		// }
-	// Connect to database and migrate
+	
 	db.Connect()
 	db.AutoMigrate()
 	r := gin.Default()
 	r.Use(gin.Recovery())
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"*"}, // Explicitly set to wildcard for all origins
+		AllowOrigins:     []string{"*"}, 
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "Accept"},
 		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: false, // Set to false when using wildcard (*)
-		MaxAge:           12 * time.Hour, // Cache preflight requests for 12 hours
+		AllowCredentials: false, 
+		MaxAge:           12 * time.Hour, 
 	}))
 
 
