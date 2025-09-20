@@ -12,6 +12,7 @@ import (
 	//"api-customer-merchant/internal/middleware"
 	"api-customer-merchant/internal/db"
 	"api-customer-merchant/internal/utils"
+	"github.com/gin-contrib/cors"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -59,6 +60,13 @@ func main() {
 	db.AutoMigrate()
 	r := gin.Default()
 	r.Use(gin.Recovery())
+	r.Use(cors.New(cors.Config{
+		AllowAllOrigins:  true,
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+	}))
 
 
 	// Create single router
