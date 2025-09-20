@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	customer "api-customer-merchant/internal/api/customer"
 	merchant "api-customer-merchant/internal/api/merchant"
@@ -12,13 +13,13 @@ import (
 	//"api-customer-merchant/internal/middleware"
 	"api-customer-merchant/internal/db"
 	"api-customer-merchant/internal/utils"
+
 	"github.com/gin-contrib/cors"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
-
 	//_ "api-customer-merchant/docs" // Import generated docs
 )
 
@@ -61,11 +62,12 @@ func main() {
 	r := gin.Default()
 	r.Use(gin.Recovery())
 	r.Use(cors.New(cors.Config{
-		AllowAllOrigins:  true,
+		AllowOrigins:     []string{"*"}, // Explicitly set to wildcard for all origins
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "Accept"},
 		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: true,
+		AllowCredentials: false, // Set to false when using wildcard (*)
+		MaxAge:           12 * time.Hour, // Cache preflight requests for 12 hours
 	}))
 
 
