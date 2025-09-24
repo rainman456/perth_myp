@@ -21,7 +21,7 @@ import (
 	"github.com/joho/godotenv"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
-	_ "api-customer-merchant/docs" // Import generated docs
+	//"api-customer-merchant/docs" // Import generated docs
 )
 
 // @title Multivendor API
