@@ -30,6 +30,7 @@ type Order struct {
 	TotalAmount float64     `gorm:"type:decimal(10,2);not null" json:"total_amount"`
 	Status      OrderStatus `gorm:"type:varchar(20);not null;default:'Pending'" json:"status"`
 	User        User        `gorm:"foreignKey:UserID"`
+	OrderItems  []OrderItem `gorm:"foreignKey:OrderID"`
 }
 
 // BeforeCreate validates the Status field

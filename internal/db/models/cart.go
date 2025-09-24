@@ -26,10 +26,14 @@ func (s CartStatus) Valid() error {
 
 type Cart struct {
 	gorm.Model
-	UserID uint       `gorm:"not null" json:"user_id"`
-	Status CartStatus `gorm:"type:varchar(20);not null;default:'Active'" json:"status"`
-	User   User       `gorm:"foreignKey:UserID"`
-	CartItems []CartItem `gorm:"foreignKey:CartID"`
+	UserID     uint       `gorm:"not null" json:"user_id"`
+	Status     CartStatus `gorm:"type:varchar(20);not null;default:'Active'" json:"status"`
+	SubTotal   float64    `gorm:"-" json:"subtotal"` // Computed
+	TaxTotal   float64    `gorm:"-" json:"tax_total"`
+	ShipTotal  float64    `gorm:"-" json:"shipping_total"`
+	GrandTotal float64    `gorm:"-" json:"grand_total"`
+	User       User       `gorm:"foreignKey:UserID"`
+	CartItems  []CartItem `gorm:"foreignKey:CartID"`
 }
 
 // BeforeCreate validates the Status field
@@ -46,4 +50,19 @@ func (c *Cart) BeforeUpdate(tx *gorm.DB) error {
 		return err
 	}
 	return nil
+}
+
+func (c *Cart) AfterFind(tx *gorm.DB) error {
+	c.ComputeTotals()
+	return nil
+}
+
+func (c *Cart) ComputeTotals() {
+	c.SubTotal = 0
+	for _, item := range c.CartItems {
+		c.SubTotal += float64(item.Quantity) * (item.Product.BasePrice).InexactFloat64() // Assume BasePrice in Product
+	}
+	// Stub: c.TaxTotal = 0.1 * c.SubTotal // Or call pricing
+	// c.ShipTotal = 10.00
+	c.GrandTotal = c.SubTotal // + c.TaxTotal + c.ShipTotal
 }

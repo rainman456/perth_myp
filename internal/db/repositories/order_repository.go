@@ -3,6 +3,7 @@ package repositories
 import (
 	"api-customer-merchant/internal/db"
 	"api-customer-merchant/internal/db/models"
+	"context"
 
 	"gorm.io/gorm"
 )
@@ -16,14 +17,19 @@ func NewOrderRepository() *OrderRepository {
 }
 
 // Create adds a new order
-func (r *OrderRepository) Create(order *models.Order) error {
-	return r.db.Create(order).Error
+// func (r *OrderRepository) Create(order *models.Order) error {
+// 	return r.db.Create(order).Error
+// }
+
+func (r *OrderRepository) Create(ctx context.Context, order *models.Order) error {
+	return r.db.WithContext(ctx).Create(order).Error
 }
 
 // FindByID retrieves an order by ID with associated User and OrderItems
-func (r *OrderRepository) FindByID(id uint) (*models.Order, error) {
+func (r *OrderRepository) FindByID(ctx context.Context, id uint) (*models.Order, error) {
 	var order models.Order
-	err := r.db.Preload("User").Preload("OrderItems.Product.Merchant").First(&order, id).Error
+	//err := r.db.Preload("User").Preload("OrderItems.Product.Merchant").First(&order, id).Error
+	err := r.db.WithContext(ctx).Preload("User").Preload("OrderItems").Preload("OrderItems.Product").Preload("OrderItems.Merchant").First(&order, id).Error
 	return &order, err
 }
 

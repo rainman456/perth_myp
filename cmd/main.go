@@ -6,9 +6,10 @@ import (
 	"os"
 	"time"
 
-	customer "api-customer-merchant/internal/api/customer"
-	merchant "api-customer-merchant/internal/api/merchant"
+	
+	"api-customer-merchant/internal/api/routes"
 	"api-customer-merchant/internal/config"
+	
 
 	//"api-customer-merchant/internal/middleware"
 	"api-customer-merchant/internal/db"
@@ -20,7 +21,7 @@ import (
 	"github.com/joho/godotenv"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
-	//_ "api-customer-merchant/docs" // Import generated docs
+	_ "api-customer-merchant/docs" // Import generated docs
 )
 
 // @title Multivendor API
@@ -75,8 +76,12 @@ func main() {
 	//r := gin.Default()
 
 	// Customer routes under /customer
-	customer.RegisterRoutes(r)
-    merchant.RegisterRoutes(r)
+	routes.RegisterCustomerRoutes(r)
+	routes.RegisterMerchantRoutes(r)
+	routes.RegisterProductRoutes(r)
+	routes.SetupOrderRoutes(r)
+	routes.SetupCartRoutes(r)
+
 
 	// Swagger endpoint
 	// Serve the OpenAPI spec file
