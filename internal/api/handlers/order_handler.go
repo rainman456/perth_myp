@@ -55,3 +55,68 @@ func (h *OrderHandler) GetOrder(c *gin.Context) {
 
 	c.JSON(http.StatusOK, order)
 }
+
+
+
+
+// CancelOrder handles POST /orders/:id/cancel (user-authenticated)
+func (h *OrderHandler) CancelOrder(c *gin.Context) {
+	ctx := c.Request.Context()
+	userIDStr, exists := c.Get("userID")
+	if !exists {
+		h.logger.Warn("Unauthorized access to CancelOrder")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	userID, err := strconv.ParseUint(userIDStr.(string), 10, 32)
+	if err != nil {
+		h.logger.Error("Invalid user ID", zap.Error(err))
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID"})
+		return
+	}
+
+	orderIDStr := strings.TrimSpace(c.Param("id"))
+	orderID, err := strconv.ParseUint(orderIDStr, 10, 32)
+	if err != nil {
+		h.logger.Error("Invalid order ID", zap.Error(err))
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid order ID"})
+		return
+	}
+
+	var req dto.CancelOrderRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.logger.Error("Bind error", zap.Error(err))
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if err := h.validate.Struct(&req); err != nil {
+		h.logger.Error("Validation error", zap.Error(err))
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	err = h.orderService.CancelOrder(ctx, uint(orderID), uint(userID), req.Reason)
+	if err != nil {
+		h.logger.Error("CancelOrder failed", zap.Uint("order_id", uint(orderID)), zap.Error(err))
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Fetch updated order for response
+	updatedOrder, err := h.orderService.GetOrderByID(ctx, uint(orderID))
+	if err != nil {
+		h.logger.Error("Failed to fetch updated order", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch updated order"})
+		return
+	}
+
+	resp := &dto.OrderResponse{}
+	if err := utils.RespMap(updatedOrder, resp); err != nil {
+		h.logger.Error("Response mapping error", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+		return
+	}
+
+	h.logger.Info("Order cancelled successfully", zap.Uint("order_id", uint(orderID)), zap.Uint("user_id", uint(userID)))
+	c.JSON(http.StatusOK, resp)
+}

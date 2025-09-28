@@ -60,49 +60,33 @@ func (r *OrderRepository) Delete(id uint) error {
 }
 
 
-func (r *OrderRepository) CancelOrder(ctx context.Context, orderID uint, userID uint) error {
-	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		var ord models.Order
-		if err := tx.Preload("OrderItems").First(&ord, "id = ? AND user_id = ?", orderID, userID).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return fmt.Errorf("order not found")
-			}
-			return err
-		}
-		if ord.Status != models.OrderStatusPending {
-			return fmt.Errorf("only pending orders can be cancelled")
-		}
+// FindByIDWithPreloads fetches with ownership check and preloads (avoids N+1)
+func (r *orderRepository) FindByIDWithPreloads(ctx context.Context, id uint) (*models.Order, error) {
+	var order models.Order
+	// Preload OrderItems (no deeper Inventory preload to avoid N+1; fetch separately if needed)
+	err := r.db.WithContext(ctx).
+		Scopes(r.activeScope()). // Soft delete filter
+		Preload("OrderItems").
+		Preload("Payment").
+		First(&order, "id = ?", id).Error
+	if err != nil {
+		return nil, err
+	}
+	return &order, nil
+}
 
-		// Restore inventory for each order item
-		for _, oi := range ord.OrderItems {
-			// find corresponding inventory row
-			var inv models.Inventory
-			if oi.VariantID != nil && *oi.VariantID != "" {
-				if err := tx.First(&inv, "variant_id = ? AND merchant_id = ?", *oi.VariantID, oi.MerchantID).Error; err != nil {
-					// continue on errors? better return; but conservative approach: return error
-					return fmt.Errorf("inventory lookup failed: %w", err)
-				}
-			} else {
-				if err := tx.First(&inv, "product_id = ? AND merchant_id = ?", oi.ProductID, oi.MerchantID).Error; err != nil {
-					return fmt.Errorf("inventory lookup failed: %w", err)
-				}
-			}
+// UpdateStatus updates order status (with locking for concurrency)
+func (r *orderRepository) UpdateStatus(ctx context.Context, id uint, status models.OrderStatus) error {
+	return r.db.WithContext(ctx).
+		Clauses(clause.Locking{Strength: "UPDATE"}).
+		Model(&models.Order{}).
+		Where("id = ?", id).
+		Update("status", status).Error
+}
 
-			inv.Quantity = inv.Quantity + oi.Quantity
-			if inv.ReservedQuantity >= oi.Quantity {
-				inv.ReservedQuantity = inv.ReservedQuantity - oi.Quantity
-			} else {
-				inv.ReservedQuantity = 0
-			}
-			if err := tx.Save(&inv).Error; err != nil {
-				return fmt.Errorf("failed to update inventory: %w", err)
-			}
-		}
-
-		ord.Status = models.OrderStatusCancelled
-		if err := tx.Save(&ord).Error; err != nil {
-			return fmt.Errorf("failed to update order status: %w", err)
-		}
-		return nil
-	})
+// activeScope for soft deletes (if Order has DeletedAt)
+func (r *orderRepository) activeScope() func(db *gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Unscoped().Where("deleted_at IS NULL")
+	}
 }

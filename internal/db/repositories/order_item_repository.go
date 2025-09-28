@@ -43,3 +43,12 @@ func (r *OrderItemRepository) Update(orderItem *models.OrderItem) error {
 func (r *OrderItemRepository) Delete(id uint) error {
 	return r.db.Delete(&models.OrderItem{}, id).Error
 }
+
+
+
+// In orderItemRepository
+func (r *orderItemRepository) FindOrderItemsByOrderID(ctx context.Context, orderID uint) ([]models.OrderItem, error) {
+	var items []models.OrderItem
+	err := r.db.WithContext(ctx).Where("order_id = ?", orderID).Find(&items).Error
+	return items, err
+}

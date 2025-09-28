@@ -19,6 +19,7 @@ func SetupOrderRoutes(r *gin.Engine) {
 	//protected := middleware.AuthMiddleware("user") // Consider adding auth middleware
 	r.POST("/orders", orderHandler.CreateOrder) //create order
 	r.GET("/orders/:id", orderHandler.GetOrder) //get order
+	//orders.POST("/:id/cancel", h.CancelOrder)
 
 	//r.GET("/orders/:id", protected, orderHandler.GetOrder)
 }
