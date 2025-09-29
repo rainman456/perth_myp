@@ -3,6 +3,7 @@ package repositories
 import (
 	"api-customer-merchant/internal/db"
 	"api-customer-merchant/internal/db/models"
+	"context"
 
 	"gorm.io/gorm"
 )
@@ -47,7 +48,7 @@ func (r *OrderItemRepository) Delete(id uint) error {
 
 
 // In orderItemRepository
-func (r *orderItemRepository) FindOrderItemsByOrderID(ctx context.Context, orderID uint) ([]models.OrderItem, error) {
+func (r *OrderItemRepository) FindOrderItemsByOrderID(ctx context.Context, orderID uint) ([]models.OrderItem, error) {
 	var items []models.OrderItem
 	err := r.db.WithContext(ctx).Where("order_id = ?", orderID).Find(&items).Error
 	return items, err

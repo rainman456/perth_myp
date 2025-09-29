@@ -16,6 +16,9 @@ type Config struct {
 	PaystackSecretKey string
 	PaystackPublicKey string
 	PlatformCommission float64
+	CloudinaryCloudName string
+	CloudinaryAPIKey    string
+	CloudinaryAPISecret string
 }
 
 func Load() *Config {
@@ -33,5 +36,8 @@ func Load() *Config {
 		PaystackSecretKey: os.Getenv("PAYSTACK_SECRET_KEY"),
 		PaystackPublicKey: os.Getenv("PAYSTACK_PUBLIC_KEY"),
 		PlatformCommission: commission,
+		CloudinaryCloudName: os.Getenv("CLOUDINARY_CLOUD_NAME"),
+		CloudinaryAPIKey:    os.Getenv("CLOUDINARY_API_KEY"),
+		CloudinaryAPISecret: os.Getenv("CLOUDINARY_API_SECRET"),
 	}
 }

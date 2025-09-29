@@ -24,3 +24,8 @@ type OrderItemResponse struct {
 	Quantity  int     `json:"quantity"`
 	Price     float64 `json:"price"`
 }
+
+
+type CancelOrderRequest struct {
+	Reason string `json:"reason" validate:"omitempty,max=500"` // Optional cancellation reason
+}

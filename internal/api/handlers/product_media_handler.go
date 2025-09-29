@@ -4,8 +4,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"path/filepath"
-	"strconv"
+	//"path/filepath"
+	//"strconv"
 	"strings"
 
 	"api-customer-merchant/internal/api/dto"
@@ -17,12 +17,12 @@ import (
 )
 
 type ProductMediaHandler struct {
-	mediaService *product.ProductMediaService
+	mediaService *product.ProductService
 	logger       *zap.Logger
 	validate     *validator.Validate
 }
 
-func NewProductMediaHandler(mediaService *product.ProductMediaService, logger *zap.Logger) *ProductMediaHandler {
+func NewProductMediaHandler(mediaService *product.ProductService, logger *zap.Logger) *ProductMediaHandler {
 	return &ProductMediaHandler{
 		mediaService: mediaService,
 		logger:       logger,
@@ -116,7 +116,7 @@ func (h *ProductMediaHandler) UpdateMedia(c *gin.Context) {
 	var req dto.MediaUpdateRequest
 	if file, err := c.FormFile("file"); err == nil && file != nil {
 		// Temp file for new upload
-		tmpFile, err := ioutil.TempFile(os.TempDir(), "update-*.tmp")
+		tmpFile, err := os.CreateTemp(os.TempDir(), "update-*.tmp")
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "upload failed"})
 			return

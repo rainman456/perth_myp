@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"api-customer-merchant/internal/api/dto"
 	"api-customer-merchant/internal/db"
@@ -468,4 +469,35 @@ func (r *ProductRepository) UpdateInventoryQuantity(inventoryID string, delta in
 
 func (r *ProductRepository) SoftDeleteProduct(id string) error {
 	return r.db.Where("id = ?", id).Delete(&models.Product{}).Error
+}
+
+
+
+
+
+//For media uploads
+func (r *ProductRepository) CreateMedia(ctx context.Context, media *models.Media) error {
+	return r.db.WithContext(ctx).Create(media).Error
+}
+
+// FindMediaByID fetches media
+func (r *ProductRepository) FindMediaByID(ctx context.Context, id string) (*models.Media, error) {
+	var media models.Media
+	err := r.db.WithContext(ctx).Scopes(r.activeScope()).First(&media, "id = ?", id).Error
+	return &media, err
+}
+
+// UpdateMedia updates fields
+func (r *ProductRepository) UpdateMedia(ctx context.Context, id string, updates map[string]interface{}) error {
+	return r.db.WithContext(ctx).Model(&models.Media{}).Where("id = ?", id).Updates(updates).Error
+}
+
+// DeleteMedia soft-deletes
+func (r *ProductRepository) DeleteMedia(ctx context.Context, id string) error {
+	return r.db.WithContext(ctx).Model(&models.Media{}).Where("id = ?", id).Update("deleted_at", time.Now()).Error
+}
+
+// activeScope (if soft delete)
+func (r *ProductRepository) activeScope() func(db *gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB { return db.Where("deleted_at IS NULL") }
 }

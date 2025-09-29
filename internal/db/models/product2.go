@@ -196,6 +196,7 @@ type Media struct {
 	ProductID string    `gorm:"type:uuid;index" json:"product_id"`
 	URL       string    `gorm:"not null" json:"url"`
 	Type      MediaType `gorm:"not null" json:"type"` // enum: image, video
+	PublicID  string     `gorm:"index" json:"public_id"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 

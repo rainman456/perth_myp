@@ -11,7 +11,9 @@ import (
 	"api-customer-merchant/internal/db/repositories"
 
 	//"go.uber.org/zap"
+	"github.com/go-playground/validator/v10"
 	"github.com/shopspring/decimal"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -22,6 +24,9 @@ type OrderService struct {
 	cartRepo      *repositories.CartRepository
 	cartItemRepo  *repositories.CartItemRepository
 	productRepo   *repositories.ProductRepository
+	inventoryRepo *repositories.InventoryRepository
+	logger      *zap.Logger
+	validator   *validator.Validate
 	db            *gorm.DB
 }
 
@@ -32,6 +37,7 @@ func NewOrderService(
 	cartRepo *repositories.CartRepository,
 	cartItemRepo *repositories.CartItemRepository,
 	productRepo *repositories.ProductRepository,
+	inventoryRepo *repositories.InventoryRepository,
 ) *OrderService {
 	return &OrderService{
 		orderRepo:     orderRepo,
@@ -39,6 +45,7 @@ func NewOrderService(
 		cartRepo:      cartRepo,
 		cartItemRepo:  cartItemRepo,
 		productRepo:   productRepo,
+		inventoryRepo: inventoryRepo,
 		db:            db.DB,
 	}
 }
@@ -393,12 +400,12 @@ func (s *OrderService) CancelOrder(ctx context.Context, orderID uint, userID uin
 		}
 
 		// Initiate refund if paid
-		if order.Payment != nil && order.Payment.Status == "success" {
-			if err := s.paymentService.InitiateRefund(ctx, orderID); err != nil {
-				logger.Error("Refund initiation failed", zap.Error(err))
-				return ErrRefundFailed
-			}
-		}
+		// if order.Payment != nil && order.Payment.Status == "success" {
+		// 	if err := s.paymentService.InitiateRefund(ctx, orderID); err != nil {
+		// 		logger.Error("Refund initiation failed", zap.Error(err))
+		// 		return ErrRefundFailed
+		// 	}
+		// }
 
 		return nil
 	})
@@ -408,16 +415,17 @@ func (s *OrderService) CancelOrder(ctx context.Context, orderID uint, userID uin
 	}
 
 	// Notifications (outside tx, fire-and-forget)
-	if err := s.notificationSvc.NotifyUser(ctx, userID, "Order Cancelled", fmt.Sprintf("Order %d cancelled: %s", orderID, reason)); err != nil {
-		logger.Warn("User notification failed", zap.Error(err)) // Soft fail
-	}
-	// For multi-vendor: Notify per merchant (stub; loop over items if needed)
-	for _, item := range items { // From earlier fetch
-		if err := s.notificationSvc.NotifyMerchant(ctx, item.MerchantID, "Order Item Cancelled", fmt.Sprintf("Item for order %d cancelled", orderID)); err != nil {
-			logger.Warn("Merchant notification failed", zap.Error(err))
-		}
-	}
+	// if err := s.notificationSvc.NotifyUser(ctx, userID, "Order Cancelled", fmt.Sprintf("Order %d cancelled: %s", orderID, reason)); err != nil {
+	// 	logger.Warn("User notification failed", zap.Error(err)) // Soft fail
+	// }
+	// // For multi-vendor: Notify per merchant (stub; loop over items if needed)
+	// for _, item := range items { // From earlier fetch
+	// 	if err := s.notificationSvc.NotifyMerchant(ctx, item.MerchantID, "Order Item Cancelled", fmt.Sprintf("Item for order %d cancelled", orderID)); err != nil {
+	// 		logger.Warn("Merchant notification failed", zap.Error(err))
+	// 	}
+	// }
 
 	logger.Info("Order cancelled successfully")
 	return nil
 }
+

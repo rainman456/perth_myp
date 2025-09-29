@@ -2,6 +2,7 @@ package routes
 
 import (
 	"api-customer-merchant/internal/api/handlers"
+	"api-customer-merchant/internal/config"
 	"api-customer-merchant/internal/db/repositories"
 	"api-customer-merchant/internal/services/product"
 
@@ -26,9 +27,10 @@ func RegisterProductRoutes(r *gin.Engine) {
 
 	// Initialize repository
 	repo := repositories.NewProductRepository()
+	cfg:=config.Load()
 
 	// Initialize service
-	service := product.NewProductService(repo, logger)
+	service := product.NewProductService(repo, cfg, logger)
 
 	// Create product route group
 	productGroup := r.Group("/product")

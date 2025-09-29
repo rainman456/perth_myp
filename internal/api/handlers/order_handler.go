@@ -3,14 +3,22 @@ package handlers
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
+	"api-customer-merchant/internal/api/dto"
 	"api-customer-merchant/internal/services/order"
+	"api-customer-merchant/internal/utils"
+
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
+	"go.uber.org/zap"
 )
 
 // OrderHandler manages order-related API requests.
 type OrderHandler struct {
 	orderService *order.OrderService
+	logger      *zap.Logger
+	validate    *validator.Validate
 }
 
 // NewOrderHandler creates a new OrderHandler instance.
@@ -103,7 +111,7 @@ func (h *OrderHandler) CancelOrder(c *gin.Context) {
 	}
 
 	// Fetch updated order for response
-	updatedOrder, err := h.orderService.GetOrderByID(ctx, uint(orderID))
+	updatedOrder, err := h.orderService.GetOrder(ctx, uint(orderID))
 	if err != nil {
 		h.logger.Error("Failed to fetch updated order", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch updated order"})

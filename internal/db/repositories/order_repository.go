@@ -4,9 +4,11 @@ import (
 	"api-customer-merchant/internal/db"
 	"api-customer-merchant/internal/db/models"
 	"context"
-	"errors"
+
+	//"errors"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type OrderRepository struct {
@@ -61,7 +63,7 @@ func (r *OrderRepository) Delete(id uint) error {
 
 
 // FindByIDWithPreloads fetches with ownership check and preloads (avoids N+1)
-func (r *orderRepository) FindByIDWithPreloads(ctx context.Context, id uint) (*models.Order, error) {
+func (r *OrderRepository) FindByIDWithPreloads(ctx context.Context, id uint) (*models.Order, error) {
 	var order models.Order
 	// Preload OrderItems (no deeper Inventory preload to avoid N+1; fetch separately if needed)
 	err := r.db.WithContext(ctx).
@@ -76,7 +78,7 @@ func (r *orderRepository) FindByIDWithPreloads(ctx context.Context, id uint) (*m
 }
 
 // UpdateStatus updates order status (with locking for concurrency)
-func (r *orderRepository) UpdateStatus(ctx context.Context, id uint, status models.OrderStatus) error {
+func (r *OrderRepository) UpdateStatus(ctx context.Context, id uint, status models.OrderStatus) error {
 	return r.db.WithContext(ctx).
 		Clauses(clause.Locking{Strength: "UPDATE"}).
 		Model(&models.Order{}).
@@ -85,7 +87,7 @@ func (r *orderRepository) UpdateStatus(ctx context.Context, id uint, status mode
 }
 
 // activeScope for soft deletes (if Order has DeletedAt)
-func (r *orderRepository) activeScope() func(db *gorm.DB) *gorm.DB {
+func (r *OrderRepository) activeScope() func(db *gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
 		return db.Unscoped().Where("deleted_at IS NULL")
 	}

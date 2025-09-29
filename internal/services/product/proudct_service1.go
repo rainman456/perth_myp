@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	//"os"
+	"path/filepath"
+
 	//"regexp"
 	"strings"
 
@@ -12,8 +15,12 @@ import (
 	"go.uber.org/zap"
 
 	"api-customer-merchant/internal/api/dto"
+	"api-customer-merchant/internal/config"
 	"api-customer-merchant/internal/db/models"
 	"api-customer-merchant/internal/db/repositories"
+
+	"github.com/cloudinary/cloudinary-go/v2"
+	"github.com/cloudinary/cloudinary-go/v2/api/uploader"
 )
 
 var (
@@ -22,6 +29,10 @@ var (
 	ErrInvalidMediaURL   = errors.New("invalid media URL")
 	ErrInvalidAttributes = errors.New("invalid variant attributes")
 	ErrUnauthorized      = errors.New("unauthorized operation")
+	ErrUploadFailed     = errors.New("upload to Cloudinary failed")
+	ErrUpdateFailed     = errors.New("update failed")
+	ErrDeleteFailed     = errors.New("delete failed")
+	ErrUnauthorizedMedia = errors.New("unauthorized for this media")
 )
 
 // SKU validation regex: alphanumeric, hyphens, underscores, max 100 chars
@@ -31,13 +42,22 @@ type ProductService struct {
 	productRepo *repositories.ProductRepository
 	logger      *zap.Logger
 	validator   *validator.Validate
+	cld         *cloudinary.Cloudinary
+	config  *config.Config
+	
 }
 
-func NewProductService(productRepo *repositories.ProductRepository, logger *zap.Logger) *ProductService {
+func NewProductService(productRepo *repositories.ProductRepository,  cfg *config.Config,logger *zap.Logger) *ProductService {
+	cld, err := cloudinary.NewFromParams(cfg.CloudinaryCloudName, cfg.CloudinaryAPIKey, cfg.CloudinaryAPISecret)
+	if err != nil {
+		logger.Fatal("Cloudinary init failed", zap.Error(err))
+	}
+
 	return &ProductService{
 		productRepo: productRepo,
 		logger:      logger,
 		validator:   validator.New(),
+		cld:         cld,
 	}
 }
 
@@ -537,4 +557,130 @@ func (s *ProductService) DeleteProduct(ctx context.Context, id string) error {
 	}
 	logger.Info("Product deleted successfully")
 	return nil
+}
+
+
+
+
+
+
+
+//Media service
+
+
+// UploadMedia uploads file to Cloudinary, saves to DB
+func (s *ProductService) UploadMedia(ctx context.Context, productID, merchantID, filePath, mediaType string) (*models.Media, error) {
+	logger := s.logger.With(zap.String("operation", "UploadMedia"), zap.String("product_id", productID))
+
+	// Validate merchant owns product
+	product, err := s.productRepo.FindByID(ctx, productID)
+	if err != nil || product.MerchantID != merchantID {
+		return nil, ErrUnauthorizedMedia
+	}
+
+	// Upload to Cloudinary
+	params := uploader.UploadParams{
+		Folder:     "merchant_media", // Organized folder
+		ResourceType: mediaType, // image/video
+		PublicID:    fmt.Sprintf("%s_%s", productID, filepath.Base(filePath)), // Unique ID
+	}
+	resp, err := s.cld.Upload.Upload(ctx, filePath, params)
+	if err != nil {
+		logger.Error("Cloudinary upload failed", zap.Error(err))
+		return nil, ErrUploadFailed
+	}
+
+	// Save to DB
+	//mediaType models.Media
+	media := &models.Media{
+		ProductID: productID,
+		URL:       resp.SecureURL,
+		Type:      models.MediaType(mediaType),
+		PublicID:  resp.PublicID, // Store for delete/update (add to model if missing)
+	}
+	if err := s.productRepo.CreateMedia(ctx, media); err != nil {
+		// Cleanup on failure
+		s.cld.Upload.Destroy(ctx, uploader.DestroyParams(media.PublicID))
+		return nil, err
+	}
+
+	logger.Info("Media uploaded", zap.String("public_id", resp.PublicID))
+	return media, nil
+}
+
+// UpdateMedia re-uploads or updates URL
+func (s *ProductService) UpdateMedia(ctx context.Context, mediaID, productID, merchantID string, req *dto.MediaUpdateRequest) (*models.Media, error) {
+	logger := s.logger.With(zap.String("operation", "UpdateMedia"), zap.String("media_id", mediaID))
+
+	media, err := s.productRepo.FindMediaByID(ctx, mediaID)
+	if err != nil || media.ProductID != productID || !s.merchantOwnsProduct(ctx, productID, merchantID) {
+		return nil, ErrUnauthorizedMedia
+	}
+
+	var newURL string
+	var newPublicID string
+	if req.File != nil {
+		// Re-upload
+		resp, err := s.cld.Upload.Upload(ctx, *req.File, uploader.UploadParams{
+			PublicID:    media.PublicID, // Overwrite existing
+			ResourceType: string(media.Type),
+		})
+		if err != nil {
+			logger.Error("Cloudinary re-upload failed", zap.Error(err))
+			return nil, ErrUpdateFailed
+		}
+		newURL = resp.SecureURL
+		newPublicID = resp.PublicID
+	} else if req.URL != nil {
+		newURL = *req.URL
+	}
+
+	// Update DB
+	updates := map[string]interface{}{"url": newURL}
+	if req.Type != nil {
+		updates["type"] = *req.Type
+	}
+	if newPublicID != "" {
+		updates["public_id"] = newPublicID
+	}
+	if err := s.productRepo.UpdateMedia(ctx, mediaID, updates); err != nil {
+		return nil, err
+	}
+
+	media.URL = newURL
+	if req.Type != nil {
+		media.Type = models.MediaType(*req.Type)
+	}
+	return media, nil
+}
+
+// DeleteMedia destroys on Cloudinary, deletes from DB
+func (s *ProductService) DeleteMedia(ctx context.Context, mediaID, productID, merchantID, reason string) error {
+	logger := s.logger.With(zap.String("operation", "DeleteMedia"), zap.String("media_id", mediaID))
+
+	media, err := s.productRepo.FindMediaByID(ctx, mediaID)
+	if err != nil || media.ProductID != productID || !s.merchantOwnsProduct(ctx, productID, merchantID) {
+		return ErrUnauthorizedMedia
+	}
+
+	// Destroy on Cloudinary
+	_, err = s.cld.Upload.Destroy(ctx,  uploader.DestroyParams(media.PublicID))
+	if err != nil {
+		logger.Error("Cloudinary destroy failed", zap.Error(err))
+		return ErrDeleteFailed
+	}
+
+	// Soft delete from DB
+	if err := s.productRepo.DeleteMedia(ctx, mediaID); err != nil {
+		return err
+	}
+
+	logger.Info("Media deleted", zap.String("public_id", media.PublicID), zap.String("reason", reason))
+	return nil
+}
+
+// Helper: Check merchant owns product
+func (s *ProductService) merchantOwnsProduct(ctx context.Context, productID, merchantID string) bool {
+	product, err := s.productRepo.FindByID(ctx, productID)
+	return err == nil && product.MerchantID == merchantID
 }
