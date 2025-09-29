@@ -14,7 +14,8 @@ func SetupOrderRoutes(r *gin.Engine) {
 	cartRepo := repositories.NewCartRepository()
 	cartitemRepo := repositories.NewCartItemRepository()
 	productRepo := repositories.NewProductRepository()
-	orderService := order.NewOrderService(orderRepo, orderitemRepo, cartRepo, cartitemRepo, productRepo)
+inventoryRepo := repositories.NewInventoryRepository() // Fixed: Added "New"	
+ orderService := order.NewOrderService(orderRepo, orderitemRepo, cartRepo, cartitemRepo, productRepo,inventoryRepo)
 	orderHandler := handlers.NewOrderHandler(orderService)
 	//protected := middleware.AuthMiddleware("user") // Consider adding auth middleware
 	r.POST("/orders", orderHandler.CreateOrder) //create order

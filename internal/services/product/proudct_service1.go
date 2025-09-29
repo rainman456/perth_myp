@@ -600,7 +600,7 @@ func (s *ProductService) UploadMedia(ctx context.Context, productID, merchantID,
 	}
 	if err := s.productRepo.CreateMedia(ctx, media); err != nil {
 		// Cleanup on failure
-		s.cld.Upload.Destroy(ctx, uploader.DestroyParams(media.PublicID))
+		s.cld.Upload.Destroy(ctx, uploader.DestroyParams{PublicID: media.PublicID})
 		return nil, err
 	}
 
@@ -664,7 +664,7 @@ func (s *ProductService) DeleteMedia(ctx context.Context, mediaID, productID, me
 	}
 
 	// Destroy on Cloudinary
-	_, err = s.cld.Upload.Destroy(ctx,  uploader.DestroyParams(media.PublicID))
+	_, err = s.cld.Upload.Destroy(ctx, uploader.DestroyParams{PublicID: media.PublicID})
 	if err != nil {
 		logger.Error("Cloudinary destroy failed", zap.Error(err))
 		return ErrDeleteFailed

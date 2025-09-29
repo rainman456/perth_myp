@@ -395,7 +395,7 @@ func (s *OrderService) CancelOrder(ctx context.Context, orderID uint, userID uin
 				inventory.ReservedQuantity = 0
 			}
 			if err := s.inventoryRepo.UpdateInventory(ctx, inventory.ID, item.Quantity); err != nil { // Assume repo method for update
-				return fmt.Errorf("failed to update inventory %d: %w", inventory.ID, err)
+				return fmt.Errorf("failed to update inventory %s: %w", inventory.ID, err)
 			}
 		}
 

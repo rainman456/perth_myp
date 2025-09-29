@@ -126,7 +126,8 @@ func (h *ProductMediaHandler) UpdateMedia(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "upload failed"})
 			return
 		}
-		req.File = &tmpFile.Name() // Pass temp path
+		//req.File = &tmpFile.Name() // Pass temp path
+		//path := tmpFile.Name()
 	}
 	req.URL = parseOptionalString(c.PostForm("url"))
 	req.Type = parseOptionalString(c.PostForm("type"))
