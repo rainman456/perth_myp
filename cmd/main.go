@@ -7,7 +7,9 @@ import (
 
 	//"api-customer-merchant/internal/api/handlers"
 	"api-customer-merchant/internal/api/routes"
+	"api-customer-merchant/internal/bank"
 	"api-customer-merchant/internal/config"
+
 	//"api-customer-merchant/internal/services/cart"
 	//"api-customer-merchant/internal/services/order"
 
@@ -47,6 +49,10 @@ func main() {
 	if secret == "" {
 		log.Fatal("JWT_SECRET not set")
 	}
+	 bankSvc := bank.GetBankService()
+   if err := bankSvc.LoadBanks(); err != nil {
+       log.Fatal(err)
+   }
 
 	//  if err := godotenv.Load(); err != nil {
 	// 	log.Fatal("Error loading .env file")

@@ -4,11 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"time"
 
 	"api-customer-merchant/internal/api/dto"
-//"api-customer-merchant/internal/db"
+	"api-customer-merchant/internal/bank"
+
+	//"api-customer-merchant/internal/db"
 	"api-customer-merchant/internal/db/models"
 	"api-customer-merchant/internal/db/repositories"
 
@@ -251,6 +254,29 @@ func (s *MerchantService) GenerateJWT(entity interface{}) (string, error) {
 //     return db.DB.Create(&details).Error
 // }
 
+
+func (s *MerchantService) AddBankDetails(ctx context.Context, merchantID string, details dto.BankDetailsRequest) error {
+	// Validate bank name
+	bankSvc := bank.GetBankService()
+	if err := bankSvc.LoadBanks(); err != nil {
+		return fmt.Errorf("failed to load banks: %w", err)
+	}
+
+	bankCode, err := bankSvc.GetBankCode(details.BankName)
+	if err != nil {
+		return fmt.Errorf("invalid bank name: %w", err)
+	}
+
+	// Override with validated code
+	details.BankCode = bankCode
+
+	// Persist via repository
+	if err := s.repo.UpdateBankDetails(ctx, merchantID, details); err != nil {
+		return fmt.Errorf("failed to save bank details: %w", err)
+	}
+
+	return nil
+}
 
 
 func (s *MerchantService) UpdateBankDetails(ctx context.Context, merchantID string ,details  dto.BankDetailsRequest) error {

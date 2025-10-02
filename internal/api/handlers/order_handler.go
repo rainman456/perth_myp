@@ -27,6 +27,17 @@ func NewOrderHandler(orderService *order.OrderService) *OrderHandler {
 }
 
 // CreateOrder handles the creation of a new order.
+// CreateOrder handles the creation of a new order
+// @Summary Create order from cart
+// @Description Converts user's active cart into an order
+// @Tags Orders
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param user_id query string true "User ID (for testing)"
+// @Success 200 {object} dto.OrderResponse
+// @Failure 400 {object} object{error=string}
+// @Router /orders [post]
 func (h *OrderHandler) CreateOrder(c *gin.Context) {
 	userIDStr := c.Query("user_id") // For testing, get from query/body
 	userID, _ := strconv.ParseUint(userIDStr, 10, 32)
@@ -68,6 +79,19 @@ func (h *OrderHandler) GetOrder(c *gin.Context) {
 
 
 // CancelOrder handles POST /orders/:id/cancel (user-authenticated)
+// CancelOrder handles POST /orders/:id/cancel
+// @Summary Cancel an order
+// @Description Customer cancels their pending order
+// @Tags Orders
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "Order ID"
+// @Param body body dto.CancelOrderRequest true "Cancellation reason"
+// @Success 200 {object} dto.OrderResponse
+// @Failure 400 {object} object{error=string}
+// @Failure 401 {object} object{error=string}
+// @Router /orders/{id}/cancel [post]
 func (h *OrderHandler) CancelOrder(c *gin.Context) {
 	ctx := c.Request.Context()
 	userIDStr, exists := c.Get("userID")

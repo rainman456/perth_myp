@@ -201,7 +201,18 @@ func NewCartHandler(cartService *cart.CartService, logger *zap.Logger) *CartHand
 
 
 
-
+// AddToCart handles adding an item to the cart
+// @Summary Add item to cart
+// @Description Adds a product (with optional variant) to user's active cart
+// @Tags Cart
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param body body dto.AddItemRequest true "Item details"
+// @Success 200 {object} dto.CartResponse
+// @Failure 400 {object} object{error=string}
+// @Failure 401 {object} object{error=string}
+// @Router /cart/items [post]
 func (h *CartHandler) AddToCart(c *gin.Context) {
 	ctx := c.Request.Context()
 	userIDStr := c.Query("user_id") // For testing

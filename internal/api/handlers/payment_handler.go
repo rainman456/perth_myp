@@ -18,6 +18,17 @@ func NewPaymentHandler(s *payment.PaymentService) *PaymentHandler {
 	return &PaymentHandler{service: s}
 }
 
+
+// Initialize payment
+// @Summary Initialize payment
+// @Description Starts Paystack checkout for an order
+// @Tags Payments
+// @Accept json
+// @Produce json
+// @Param body body dto.InitializePaymentRequest true "Payment initialization"
+// @Success 201 {object} dto.PaymentResponse
+// @Failure 400 {object} object{error=string}
+// @Router /payments/initialize [post]
 func (h *PaymentHandler) Initialize(c *gin.Context) {
 	var req dto.InitializePaymentRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -32,6 +43,15 @@ func (h *PaymentHandler) Initialize(c *gin.Context) {
 	c.JSON(http.StatusCreated, resp)
 }
 
+// Verify payment
+// @Summary Verify payment
+// @Description Verifies Paystack transaction by reference
+// @Tags Payments
+// @Produce json
+// @Param reference path string true "Transaction reference"
+// @Success 200 {object} dto.PaymentResponse
+// @Failure 400 {object} object{error=string}
+// @Router /payments/verify/{reference} [get]
 func (h *PaymentHandler) Verify(c *gin.Context) {
 	reference := c.Param("reference")
 	resp, err := h.service.VerifyPayment(c.Request.Context(), reference)

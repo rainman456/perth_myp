@@ -11,6 +11,7 @@ import (
 	//"api-customer-merchant/internal/db/models"
 	//"api-customer-merchant/internal/db/repositories"
 	services "api-customer-merchant/internal/services/user"
+	"api-customer-merchant/internal/api/dto"
 	"api-customer-merchant/internal/utils"
 
 	"github.com/gin-gonic/gin"
@@ -40,12 +41,13 @@ func NewAuthHandler(s *services.AuthService) *AuthHandler {
 // @Failure 500 {object} object{error=string} "Server error"
 // @Router /customer/register [post]
 func (h *AuthHandler) Register(c *gin.Context) {
-	var req struct {
-		Email    string `json:"email" binding:"required,email"`
-		Name     string `json:"name" binding:"required"`
-		Password string `json:"password" binding:"required,min=6"`
-		Country  string `json:"country"`
-	}
+	// var req struct {
+	// 	Email    string `json:"email" binding:"required,email"`
+	// 	Name     string `json:"name" binding:"required"`
+	// 	Password string `json:"password" binding:"required,min=6"`
+	// 	Country  string `json:"country"`
+	// }
+	var req dto.RegisterRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -81,10 +83,11 @@ func (h *AuthHandler) Register(c *gin.Context) {
 // @Failure 500 {object} object{error=string} "Server error"
 // @Router /customer/login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
-	var req struct {
-		Email    string `json:"email" binding:"required,email"`
-		Password string `json:"password" binding:"required"`
-	}
+	// var req struct {
+	// 	Email    string `json:"email" binding:"required,email"`
+	// 	Password string `json:"password" binding:"required"`
+	// }
+	var req dto.LoginRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -178,13 +181,24 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Logout successful"})
 }
 
+
+// Logout godoc
+// @Summary Customer logout
+// @Description Invalidates the customer's JWT token
+// @Tags Customer
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {object} object{message=string} "Logout successful"
+// @Failure 400 {object} object{error=string} "Authorization header required"
+// @Router /customer/logout [patch]
 func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 	userID, _ := c.Get("userID")
-	var req struct {
-		Name      string
-		Country   string
-		Addresses []string
-	}
+	// var req struct {
+	// 	Name      string
+	// 	Country   string
+	// 	Addresses []string
+	// }
+	var req dto.UserUpdateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -195,3 +209,4 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "updated"})
 }
+

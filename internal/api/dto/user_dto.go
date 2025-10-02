@@ -5,6 +5,7 @@ type RegisterRequest struct {
     Email      string                 `json:"email" validate:"required,email"`
     Password   string                 `json:"password" validate:"required,min=6"`
     Name       string                 `json:"name" validate:"required"`
+	Country  string                    `json:"country"`
     Phone      string                 `json:"phone_number" validate:"omitempty"`
     Address    map[string]string      `json:"address" validate:"omitempty"`
 }
@@ -14,6 +15,8 @@ type LoginResponse struct {
     UserID   string `json:"user_id"`
     Email    string `json:"email"`
 }
+
+
 
 
 type LoginRequest struct {

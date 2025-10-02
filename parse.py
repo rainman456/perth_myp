@@ -1,5 +1,4 @@
 import os
-import uuid
 from pathlib import Path
 from datetime import datetime
 import mimetypes
@@ -21,7 +20,13 @@ IGNORE_DIRS = {
     "dist",
     "build",
     "test-ledger",
-   
+    "public",
+    "api",
+    "bank",
+    "config",
+    "middleware",
+    "tests",
+    "utils"
 }
 IGNORE_FILES = {
     ".DS_Store",
@@ -30,19 +35,24 @@ IGNORE_FILES = {
     ".prettierignore",
     "cargo.bak",
     "Cargo.lock",
-   # "tsconfig.json",
     "yarn.lock",
     "README.md",
     "Dockerfile",
     "parse.py",
-    "Dockerfile",
     "package-lock.json",
     "go.sum",
     "go.mod",
     "swagger.yaml",
     "internal.md",
     "setup.sh",
-    "start-validator.sh"
+    "start-validator.sh",
+    "CONTRIBUTING.md",
+    "DEPLOYMENT.md",
+    "LICENSE",
+    "pnpm-lock.yaml",
+    "SETUP.md",
+    "update.txt",
+    "banks.json"
 }
 
 
@@ -74,39 +84,39 @@ def generate_tree(root: Path, prefix="", depth=0, max_depth=5):
 def detect_content_type(file_path: Path):
     """Enhanced content type detection using both extension and mimetypes."""
     extension_mapping = {
-        ".rs": "text/rust",
-        ".go": "text/go",
-        ".py": "text/python",
-        ".js": "text/javascript",
-        ".ts": "text/typescript",
-        ".java": "text/java",
-        ".c": "text/c",
-        ".cpp": "text/cpp",
-        ".cs": "text/csharp",
-        ".rb": "text/ruby",
-        ".php": "text/php",
-        ".html": "text/html",
-        ".css": "text/css",
-        ".scss": "text/x-scss",
-        ".toml": "text/toml",
-        ".json": "application/json",
-        ".md": "text/markdown",
-        ".txt": "text/plain",
-        ".sh": "text/x-shellscript",
-        ".yml": "text/yaml",
-        ".yaml": "text/yaml",
-        ".sql": "text/sql",
-        ".xml": "text/xml",
-        ".dockerfile": "text/x-dockerfile",
-        ".ipynb": "application/x-ipynb+json",
+        ".rs": "rust",
+        ".go": "go",
+        ".py": "python",
+        ".js": "javascript",
+        ".ts": "typescript",
+        ".java": "java",
+        ".c": "c",
+        ".cpp": "cpp",
+        ".cs": "csharp",
+        ".rb": "ruby",
+        ".php": "php",
+        ".html": "html",
+        ".css": "css",
+        ".scss": "scss",
+        ".toml": "toml",
+        ".json": "json",
+        ".md": "markdown",
+        ".txt": "plaintext",
+        ".sh": "shell",
+        ".yml": "yaml",
+        ".yaml": "yaml",
+        ".sql": "sql",
+        ".xml": "xml",
+        ".dockerfile": "dockerfile",
+        ".ipynb": "json",
     }
 
-    content_type = extension_mapping.get(file_path.suffix.lower())
-    if content_type:
-        return content_type
+    language = extension_mapping.get(file_path.suffix.lower())
+    if language:
+        return language
 
     mime_type, _ = mimetypes.guess_type(file_path)
-    return mime_type or "text/plain"
+    return mime_type.split('/')[-1] if mime_type else "plaintext"
 
 
 def get_file_stats(file_path: Path):
@@ -125,7 +135,7 @@ def get_file_stats(file_path: Path):
 
 
 def parse_codebase(root_folder: str, output_file: str = OUTPUT_FILE):
-    """Parse codebase and generate markdown with xaiArtifact tags."""
+    """Parse codebase and generate markdown with clean code blocks."""
     try:
         root = Path(root_folder).resolve()
         if not root.exists():
@@ -160,7 +170,7 @@ def parse_codebase(root_folder: str, output_file: str = OUTPUT_FILE):
             if file_path.is_file():
                 try:
                     content = file_path.read_text(encoding="utf-8", errors="ignore")
-                    content_type = detect_content_type(file_path)
+                    language = detect_content_type(file_path)
                     file_stats = get_file_stats(file_path)
 
                     file_count += 1
@@ -168,8 +178,6 @@ def parse_codebase(root_folder: str, output_file: str = OUTPUT_FILE):
                     if file_stats:
                         total_size += float(file_stats["size"].split()[0])
 
-                    artifact_id = str(uuid.uuid4())
-                    artifact_version_id = str(uuid.uuid4())
                     relative_path = file_path.relative_to(root)
 
                     file_info = f"### {relative_path}\n"
@@ -180,14 +188,9 @@ def parse_codebase(root_folder: str, output_file: str = OUTPUT_FILE):
 
                     md_parts.append(
                         f"{file_info}\n"
-                        f'<xaiArtifact artifact_id="{artifact_id}" '
-                        f'artifact_version_id="{artifact_version_id}" '
-                        f'title="{relative_path}" '
-                        f'contentType="{content_type}">\n'
-                        f"```{content_type.split('/')[-1] or file_path.suffix.lstrip('.')}\n"
+                        f"```{language}\n"
                         f"{content}\n"
-                        f"```\n"
-                        f"</xaiArtifact>\n\n---\n"
+                        f"```\n\n---\n"
                     )
                 except Exception as e:
                     print(f"⚠️ Skipping file {file_path}: {e}", file=sys.stderr)
@@ -212,7 +215,7 @@ def parse_codebase(root_folder: str, output_file: str = OUTPUT_FILE):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Export codebase to Markdown with <xaiArtifact> tags"
+        description="Export codebase to Markdown with clean code blocks"
     )
     parser.add_argument("folder", help="Path to the codebase folder")
     parser.add_argument(

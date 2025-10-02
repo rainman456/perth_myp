@@ -24,6 +24,11 @@ func NewOrderRepository() *OrderRepository {
 // 	return r.db.Create(order).Error
 // }
 
+type OrderInterface interface {
+	FindByID(ctx context.Context, id uint) (*models.Order, error)
+	// Add other methods as needed
+}
+
 func (r *OrderRepository) Create(ctx context.Context, order *models.Order) error {
 	return r.db.WithContext(ctx).Create(order).Error
 }
