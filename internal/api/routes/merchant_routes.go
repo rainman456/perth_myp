@@ -143,6 +143,50 @@ import (
 	"go.uber.org/zap"
 )
 
+// func SetupMerchantRoutes(r *gin.Engine) {
+// 	cfg := config.Load()
+// 	logger, _ := zap.NewProduction()
+
+// 	appRepo := repositories.NewMerchantApplicationRepository()
+// 	merchantRepo := repositories.NewMerchantRepository()
+// 	merchantService := merchant.NewMerchantService(appRepo, merchantRepo)
+
+// 	productRepo := repositories.NewProductRepository()
+// 	//inventoryRepo := repositories.NewInventoryRepository()
+// 	productService := product.NewProductService(productRepo, cfg, logger)
+
+// 	merchantAuthHandler := handlers.NewMerchantAuthHandler(merchantService)
+// 	//merchantHandler := handlers.NewMerchantHandlers(productService)
+// 	mediaHandler := handlers.NewProductMediaHandler(productService, logger)
+// 	merchantproductHandler := handlers.NewProductHandlers(productService, logger)
+
+// 	merchantGroup := r.Group("/merchant")
+// 	{
+// 		merchantGroup.POST("/apply", merchantAuthHandler.Apply)
+// 		merchantGroup.GET("/application/:id", merchantAuthHandler.GetApplication)
+// 		merchantGroup.POST("/login", merchantAuthHandler.Login)
+
+// 		protected := merchantGroup.Group("")
+// 		protected.Use(middleware.AuthMiddleware("merchant"))
+// 		protected.GET("/me", merchantAuthHandler.GetMyMerchant)
+// 		protected.POST("/products", merchantproductHandler.CreateProduct) // Use productHandler for consistency
+// 		protected.GET("/products", func(c *gin.Context) {
+// 			// Override to use merchantID from context
+// 			merchantID, _ := c.Get("merchantID")
+// 			c.Set("id", merchantID.(string)) // Set param for handler
+// 			merchantproductHandler.ListProductsByMerchant(c)
+// 		})
+// 		//protected.PUT("/products/:id", merchantproductHandler.UpdateProduct)
+// 		protected.DELETE("/products/:id", merchantproductHandler.DeleteProduct)
+// 		// protected.POST("/products/bulk-upload", merchantHandler.BulkUploadProducts) // If implemented
+
+// 		protected.POST("/products/:product_id/media", mediaHandler.UploadMedia)
+// 		protected.PUT("/products/:product_id/media/:media_id", mediaHandler.UpdateMedia)
+// 		protected.DELETE("/products/:product_id/media/:media_id", mediaHandler.DeleteMedia)
+// 		protected.PUT("/products/inventory/:id", merchantproductHandler.UpdateInventory)
+// 	}
+// }
+
 func SetupMerchantRoutes(r *gin.Engine) {
 	cfg := config.Load()
 	logger, _ := zap.NewProduction()
@@ -152,11 +196,9 @@ func SetupMerchantRoutes(r *gin.Engine) {
 	merchantService := merchant.NewMerchantService(appRepo, merchantRepo)
 
 	productRepo := repositories.NewProductRepository()
-	//inventoryRepo := repositories.NewInventoryRepository()
 	productService := product.NewProductService(productRepo, cfg, logger)
 
 	merchantAuthHandler := handlers.NewMerchantAuthHandler(merchantService)
-	//merchantHandler := handlers.NewMerchantHandlers(productService)
 	mediaHandler := handlers.NewProductMediaHandler(productService, logger)
 	merchantproductHandler := handlers.NewProductHandlers(productService, logger)
 
@@ -168,21 +210,36 @@ func SetupMerchantRoutes(r *gin.Engine) {
 
 		protected := merchantGroup.Group("")
 		protected.Use(middleware.AuthMiddleware("merchant"))
-		protected.GET("/me", merchantAuthHandler.GetMyMerchant)
-		protected.POST("/products", merchantproductHandler.CreateProduct) // Use productHandler for consistency
-		protected.GET("/products", func(c *gin.Context) {
-			// Override to use merchantID from context
-			merchantID, _ := c.Get("merchantID")
-			c.Set("id", merchantID.(string)) // Set param for handler
-			merchantproductHandler.ListProductsByMerchant(c)
-		})
-		//protected.PUT("/products/:id", merchantproductHandler.UpdateProduct)
-		protected.DELETE("/products/:id", merchantproductHandler.DeleteProduct)
-		// protected.POST("/products/bulk-upload", merchantHandler.BulkUploadProducts) // If implemented
+		{
+			protected.GET("/me", merchantAuthHandler.GetMyMerchant)
 
-		protected.POST("/products/:product_id/media", mediaHandler.UploadMedia)
-		protected.PUT("/products/:product_id/media/:media_id", mediaHandler.UpdateMedia)
-		protected.DELETE("/products/:product_id/media/:media_id", mediaHandler.DeleteMedia)
-		protected.PUT("/products/inventory/:id", merchantproductHandler.UpdateInventory)
+			productsGroup := protected.Group("/products")
+			{
+				productsGroup.POST("", merchantproductHandler.CreateProduct)
+				productsGroup.GET("", func(c *gin.Context) {
+					// Override to use merchantID from context for list
+					merchantID, _ := c.Get("merchantID")
+					c.Set("id", merchantID.(string)) // Temporary set for handler compatibility
+					merchantproductHandler.ListProductsByMerchant(c)
+				})
+
+				// All :id actions (delete, media) under /:id subgroup
+				singleProductGroup := productsGroup.Group("/:id")
+				{
+					singleProductGroup.DELETE("", merchantproductHandler.DeleteProduct)
+
+					// Media nested under /:id/media
+					mediaSubGroup := singleProductGroup.Group("/media")
+					{
+						mediaSubGroup.POST("", mediaHandler.UploadMedia)
+						mediaSubGroup.PUT("/:media_id", mediaHandler.UpdateMedia)
+						mediaSubGroup.DELETE("/:media_id", mediaHandler.DeleteMedia)
+					}
+				}
+
+				// Inventory separate (not under /:id to avoid nesting issues)
+				productsGroup.PUT("/inventory/:id", merchantproductHandler.UpdateInventory)
+			}
+		}
 	}
 }

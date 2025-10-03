@@ -21,7 +21,7 @@ inventoryRepo := repositories.NewInventoryRepository() // Fixed: Added "New"
 	protected := middleware.AuthMiddleware("user") // Consider adding auth middleware
 	r.POST("/orders",protected, orderHandler.CreateOrder) //create order
 	r.GET("/orders/:id", protected,orderHandler.GetOrder) //get order
-	r.POST("/:id/cancel", protected,orderHandler.CancelOrder)
+	r.POST("orders/:id/cancel", protected,orderHandler.CancelOrder)
 
 	//r.GET("/orders/:id", protected, orderHandler.GetOrder)
 }

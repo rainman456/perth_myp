@@ -35,7 +35,7 @@ func GetBankService() *BankService {
 func (bs *BankService) LoadBanks() error {
 	var loadErr error
 	bs.once.Do(func() {
-		file, err := os.ReadFile("bank.json")
+		file, err := os.ReadFile("banks.json")
 		if err != nil {
 			loadErr = ErrBankFileNotFound
 			return

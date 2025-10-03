@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -50,7 +51,8 @@ func AuthMiddleware(entityType string) gin.HandlerFunc {
 		}
 
 		//c.Set("entityId", claims["id"])
-		id := claims["id"].(string)
+		idInterface := claims["id"]
+		id := fmt.Sprintf("%v", idInterface) // Convert to string regardless of type (handles float64, string, etc.)
 		switch entityType {
 		case "user":
 			c.Set("userID", id)

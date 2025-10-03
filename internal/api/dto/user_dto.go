@@ -7,7 +7,7 @@ type RegisterRequest struct {
     Name       string                 `json:"name" validate:"required"`
 	Country  string                    `json:"country"`
     Phone      string                 `json:"phone_number" validate:"omitempty"`
-    Address    map[string]string      `json:"address" validate:"omitempty"`
+    Address    string      `json:"address" validate:"omitempty"`
 }
 
 type LoginResponse struct {

@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"gorm.io/gorm"
+	//"github.com/shopspring/decimal"
 )
 
 // CartStatus defines possible cart status values
@@ -66,3 +67,5 @@ func (c *Cart) ComputeTotals() {
 	// c.ShipTotal = 10.00
 	c.GrandTotal = c.SubTotal // + c.TaxTotal + c.ShipTotal
 }
+
+

@@ -149,8 +149,8 @@ import (
 	"strings"
 
 	"api-customer-merchant/internal/api/dto"
-	"api-customer-merchant/internal/utils"
 	"api-customer-merchant/internal/services/cart" // Assuming service import
+	"api-customer-merchant/internal/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"go.uber.org/zap"
@@ -163,7 +163,6 @@ import (
 // func NewCartHandler(cartService *cart.CartService) *CartHandler {
 // 	return &CartHandler{cartService: cartService}
 // }
-
 
 type CartHandler struct {
 	cartService *cart.CartService
@@ -178,7 +177,6 @@ func NewCartHandler(cartService *cart.CartService, logger *zap.Logger) *CartHand
 		validate:    validator.New(),
 	}
 }
-
 
 // AddToCart handles adding an item to the cart
 // @Summary Add item to cart
@@ -195,11 +193,11 @@ func NewCartHandler(cartService *cart.CartService, logger *zap.Logger) *CartHand
 func (h *CartHandler) AddToCart(c *gin.Context) {
 	ctx := c.Request.Context()
 	//userIDStr := c.Query("user_id") // For testing
-	 userID, exists := c.Get("userID")
-	 if !exists {
-	 	c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-	 	return
-	 }
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
 	//userID, _ := strconv.ParseUint(userIDStr, 10, 32)  // Helper to parse, assume implemented
 
 	var req dto.AddItemRequest
@@ -212,22 +210,32 @@ func (h *CartHandler) AddToCart(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	userIDStr, ok := userID.(string)
+	if !ok {
+		h.logger.Error("Invalid userID type in context")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user session"})
+		return
+	}
+	userIDUint, err := strconv.ParseUint(userIDStr, 10, 32)
+	if err != nil {
+		h.logger.Error("Failed to parse userID", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user ID"})
+		return
+	}
 
-	updatedCart, err := h.cartService.AddItemToCart(ctx, userID.(uint), req.Quantity, req.ProductID, req.VariantID)
+	updatedCart, err := h.cartService.AddItemToCart(ctx, uint(userIDUint), req.Quantity, req.ProductID, req.VariantID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	
-	 // Helper to map model to DTO, assume implemented
-	 resp := &dto.CartResponse{}
-if err := utils.RespMap(updatedCart, resp); err != nil {
-  h.logger.Error(" error", zap.Error(err))
-}
+	// Helper to map model to DTO, assume implemented
+	resp := &dto.CartResponse{}
+	if err := utils.RespMap(updatedCart, resp); err != nil {
+		h.logger.Error(" error", zap.Error(err))
+	}
 	c.JSON(http.StatusOK, resp)
 }
-
 
 // GetCartItem handles getting a cart item
 // GetCartItem godoc
@@ -242,11 +250,11 @@ if err := utils.RespMap(updatedCart, resp); err != nil {
 // @Failure 404 {object} object{error=string}
 // @Router /cart/items/{id} [get]
 func (h *CartHandler) GetCartItem(c *gin.Context) {
-	 _, exists := c.Get("userID")
-	 if !exists {
-	 	c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-	 	return
-	 }
+	_, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
 	ctx := c.Request.Context()
 	itemIDStr := c.Param("id")
 	itemID, _ := strconv.ParseUint(itemIDStr, 10, 32)
@@ -273,21 +281,31 @@ func (h *CartHandler) GetCart(c *gin.Context) {
 	ctx := c.Request.Context()
 	//userIDStr := c.Query("user_id")
 	//userID, _ := strconv.ParseUint(userIDStr, 10, 32)
-	 userID, exists := c.Get("userID")
-	 if !exists {
-	 	c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-	 	return
-	 }
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	userIDStr, ok := userID.(string)
+	if !ok {
+		h.logger.Error("Invalid userID type in context")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user session"})
+		return
+	}
+	userIDUint, err := strconv.ParseUint(userIDStr, 10, 32)
+	if err != nil {
+		h.logger.Error("Failed to parse userID", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user ID"})
+		return
+	}
 
-	cart, err := h.cartService.GetActiveCart(ctx, userID.(uint))
+	cart, err := h.cartService.GetActiveCart(ctx,uint(userIDUint))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, cart)
 }
-
-
 
 // UpdateCartItemQuantity godoc
 // @Summary Update cart item quantity
@@ -304,11 +322,11 @@ func (h *CartHandler) GetCart(c *gin.Context) {
 // @Failure 403 {object} object{error=string}
 // @Router /cart/items/{id} [put]
 func (h *CartHandler) UpdateCartItemQuantity(c *gin.Context) {
-	 _, exists := c.Get("userID")
-	 if !exists {
-	 	c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-	 	return
-	 }
+	_, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
 	ctx := c.Request.Context()
 	itemIDstr := strings.TrimSpace(c.Param("id"))
 	itemID, _ := strconv.ParseUint(itemIDstr, 10, 32)
@@ -322,6 +340,7 @@ func (h *CartHandler) UpdateCartItemQuantity(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	
 
 	updatedCart, err := h.cartService.UpdateCartItemQuantity(ctx, uint(itemID), req.Quantity)
 	if err != nil {
@@ -329,10 +348,10 @@ func (h *CartHandler) UpdateCartItemQuantity(c *gin.Context) {
 		return
 	}
 
-	 resp := &dto.CartResponse{}
-if err := utils.RespMap(updatedCart, resp); err != nil {
-  h.logger.Error(" error", zap.Error(err))
-}
+	resp := &dto.CartResponse{}
+	if err := utils.RespMap(updatedCart, resp); err != nil {
+		h.logger.Error(" error", zap.Error(err))
+	}
 	c.JSON(http.StatusOK, resp)
 
 }
@@ -352,11 +371,11 @@ if err := utils.RespMap(updatedCart, resp); err != nil {
 // @Failure 404 {object} object{error=string}
 // @Router /cart/items/{id} [delete]
 func (h *CartHandler) RemoveCartItem(c *gin.Context) {
-	 _, exists := c.Get("userID")
-	 if !exists {
-	 	c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-	 	return
-	 }
+	_, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
 	ctx := c.Request.Context()
 	itemIDStr := c.Param("id")
 	itemID, _ := strconv.ParseUint(itemIDStr, 10, 32)
@@ -368,12 +387,6 @@ func (h *CartHandler) RemoveCartItem(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, updatedCart)
 }
-
-
-
-
-
-
 
 // ClearCart handles DELETE /cart or POST /cart/clear
 // @Summary Clear the cart
@@ -393,10 +406,22 @@ func (h *CartHandler) ClearCart(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
-
-	err := h.cartService.ClearCart(ctx, userID.(uint))
+	userIDStr, ok := userID.(string)
+	if !ok {
+		h.logger.Error("Invalid userID type in context")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user session"})
+		return
+	}
+	userIDUint, err := strconv.ParseUint(userIDStr, 10, 32)
 	if err != nil {
-		h.logger.Error("ClearCart failed", zap.Uint("user_id", userID.(uint)), zap.Error(err))
+		h.logger.Error("Failed to parse userID", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user ID"})
+		return
+	}
+
+	perr := h.cartService.ClearCart(ctx, uint(userIDUint))
+	if err != nil {
+		h.logger.Error("ClearCart failed", zap.Uint("user_id", userID.(uint)), zap.Error(perr))
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -437,7 +462,20 @@ func (h *CartHandler) BulkAddItems(c *gin.Context) {
 		return
 	}
 
-	updatedCart, err := h.cartService.BulkAddItems(ctx, userID.(uint), req)
+	userIDStr, ok := userID.(string)
+	if !ok {
+		h.logger.Error("Invalid userID type in context")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user session"})
+		return
+	}
+	userIDUint, err := strconv.ParseUint(userIDStr, 10, 32)
+	if err != nil {
+		h.logger.Error("Failed to parse userID", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user ID"})
+		return
+	}
+
+	updatedCart, err := h.cartService.BulkAddItems(ctx, uint(userIDUint), req)
 	if err != nil {
 		h.logger.Error("BulkAddItems failed", zap.Uint("user_id", userID.(uint)), zap.Error(err))
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
