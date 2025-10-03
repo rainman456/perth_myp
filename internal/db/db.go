@@ -4,6 +4,7 @@ import (
 	//"api-customer-merchant/internal/db/models"
 	//"api-customer-merchant/internal/db/models"
 	//"api-customer-merchant/internal/db/models"
+	"api-customer-merchant/internal/db/models"
 	"log"
 	"os"
 	"time"
@@ -166,6 +167,9 @@ func AutoMigrate() {
 	// }
 
 	err := DB.AutoMigrate(
+	&models.Dispute{},
+	&models.OrderMerchantSplit{},
+	&models.ReturnRequest{},
 	//&models.User{},
 	//&models.MerchantApplication{},
 	//&models.Product{},
