@@ -72,10 +72,13 @@ func main() {
 
 	// Customer routes under /customer
 	routes.RegisterCustomerRoutes(r)
-	//routes.RegisterMerchantRoutes(r)
-	routes.RegisterProductRoutes(r)
+	routes.SetupMerchantRoutes(r)
+	routes.SetupProductRoutes(r)
 	routes.SetupOrderRoutes(r)
 	routes.SetupCartRoutes(r)
+	routes.SetupDisputeRoutes(r)
+	routes.SetupReturnRequestRoutes(r)
+	
 
 	// Swagger endpoint
 	// Serve the OpenAPI spec file

@@ -53,6 +53,18 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 }
 
 // GetOrder handles the request to retrieve a specific order by ID.
+// GetOrder godoc
+// @Summary Get order by ID
+// @Description Retrieves a specific order with items
+// @Tags Orders
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "Order ID"
+// @Success 200 {object} dto.OrderResponse
+// @Failure 400 {object} object{error=string}
+// @Failure 404 {object} object{error=string}
+// @Failure 500 {object} object{error=string}
+// @Router /orders/{id} [get]
 func (h *OrderHandler) GetOrder(c *gin.Context) {
 	orderIDStr := c.Param("id")
 	orderID, err := strconv.ParseUint(orderIDStr, 10, 32)

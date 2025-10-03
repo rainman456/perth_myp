@@ -180,27 +180,6 @@ func NewCartHandler(cartService *cart.CartService, logger *zap.Logger) *CartHand
 }
 
 
-
-// AddToCart handles adding an item to the cart
-// func (h *CartHandler) AddToCart(c *gin.Context) {
-// 	ctx := c.Request.Context()
-// 	userIDStr := c.Query("user_id") // For testing, get from query/body
-// 	userID, _ := strconv.ParseUint(userIDStr, 10, 32)
-// 	productID := c.Query("product_id")
-// 	quantityStr := c.Query("quantity")
-// 	quantity, _ := strconv.ParseUint(quantityStr, 10, 32)
-
-// 	updatedCart, err := h.cartService.AddItemToCart(ctx, uint(userID), uint(quantity), productID)
-// 	if err != nil {
-// 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-// 		return
-// 	}
-// 	c.JSON(http.StatusOK, updatedCart)
-// }
-
-
-
-
 // AddToCart handles adding an item to the cart
 // @Summary Add item to cart
 // @Description Adds a product (with optional variant) to user's active cart
@@ -215,8 +194,13 @@ func NewCartHandler(cartService *cart.CartService, logger *zap.Logger) *CartHand
 // @Router /cart/items [post]
 func (h *CartHandler) AddToCart(c *gin.Context) {
 	ctx := c.Request.Context()
-	userIDStr := c.Query("user_id") // For testing
-	userID, _ := strconv.ParseUint(userIDStr, 10, 32)  // Helper to parse, assume implemented
+	//userIDStr := c.Query("user_id") // For testing
+	 userID, exists := c.Get("userID")
+	 if !exists {
+	 	c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+	 	return
+	 }
+	//userID, _ := strconv.ParseUint(userIDStr, 10, 32)  // Helper to parse, assume implemented
 
 	var req dto.AddItemRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -229,7 +213,7 @@ func (h *CartHandler) AddToCart(c *gin.Context) {
 		return
 	}
 
-	updatedCart, err := h.cartService.AddItemToCart(ctx, uint(userID), req.Quantity, req.ProductID, req.VariantID)
+	updatedCart, err := h.cartService.AddItemToCart(ctx, userID.(uint), req.Quantity, req.ProductID, req.VariantID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -246,7 +230,23 @@ if err := utils.RespMap(updatedCart, resp); err != nil {
 
 
 // GetCartItem handles getting a cart item
+// GetCartItem godoc
+// @Summary Get cart item by ID
+// @Description Retrieves a specific cart item
+// @Tags Cart
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "Cart Item ID"
+// @Success 200 {object} dto.CartItemResponse
+// @Failure 401 {object} object{error=string}
+// @Failure 404 {object} object{error=string}
+// @Router /cart/items/{id} [get]
 func (h *CartHandler) GetCartItem(c *gin.Context) {
+	 _, exists := c.Get("userID")
+	 if !exists {
+	 	c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+	 	return
+	 }
 	ctx := c.Request.Context()
 	itemIDStr := c.Param("id")
 	itemID, _ := strconv.ParseUint(itemIDStr, 10, 32)
@@ -260,12 +260,26 @@ func (h *CartHandler) GetCartItem(c *gin.Context) {
 }
 
 // GetCart handles getting the active cart
+// GetCart godoc
+// @Summary Get active cart
+// @Description Retrieves the user's active cart with items
+// @Tags Cart
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} dto.CartResponse
+// @Failure 401 {object} object{error=string}
+// @Router /cart [get]
 func (h *CartHandler) GetCart(c *gin.Context) {
 	ctx := c.Request.Context()
-	userIDStr := c.Query("user_id")
-	userID, _ := strconv.ParseUint(userIDStr, 10, 32)
+	//userIDStr := c.Query("user_id")
+	//userID, _ := strconv.ParseUint(userIDStr, 10, 32)
+	 userID, exists := c.Get("userID")
+	 if !exists {
+	 	c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+	 	return
+	 }
 
-	cart, err := h.cartService.GetActiveCart(ctx, uint(userID))
+	cart, err := h.cartService.GetActiveCart(ctx, userID.(uint))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
@@ -273,25 +287,28 @@ func (h *CartHandler) GetCart(c *gin.Context) {
 	c.JSON(http.StatusOK, cart)
 }
 
-// UpdateCartItemQuantity handles updating quantity
-// func (h *CartHandler) UpdateCartItemQuantity(c *gin.Context) {
-// 	ctx := c.Request.Context()
-// 	itemIDStr := c.Param("id")
-// 	itemID, _ := strconv.ParseUint(itemIDStr, 10, 32)
-// 	quantityStr := c.Query("quantity")
-// 	quantity, _ := strconv.Atoi(quantityStr)
-
-// 	updatedCart, err := h.cartService.UpdateCartItemQuantity(ctx, uint(itemID), quantity)
-// 	if err != nil {
-// 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-// 		return
-// 	}
-// 	c.JSON(http.StatusOK, updatedCart)
-// }
 
 
-
+// UpdateCartItemQuantity godoc
+// @Summary Update cart item quantity
+// @Description Updates the quantity of a cart item
+// @Tags Cart
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "Cart Item ID"
+// @Param body body dto.UpdateItemRequest true "New quantity"
+// @Success 200 {object} dto.CartResponse
+// @Failure 400 {object} object{error=string}
+// @Failure 401 {object} object{error=string}
+// @Failure 403 {object} object{error=string}
+// @Router /cart/items/{id} [put]
 func (h *CartHandler) UpdateCartItemQuantity(c *gin.Context) {
+	 _, exists := c.Get("userID")
+	 if !exists {
+	 	c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+	 	return
+	 }
 	ctx := c.Request.Context()
 	itemIDstr := strings.TrimSpace(c.Param("id"))
 	itemID, _ := strconv.ParseUint(itemIDstr, 10, 32)
@@ -321,7 +338,25 @@ if err := utils.RespMap(updatedCart, resp); err != nil {
 }
 
 // RemoveCartItem handles removing an item
+// RemoveCartItem godoc
+// @Summary Remove cart item
+// @Description Removes a cart item by ID
+// @Tags Cart
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "Cart Item ID"
+// @Success 200 {object} dto.CartResponse
+// @Failure 400 {object} object{error=string}
+// @Failure 401 {object} object{error=string}
+// @Failure 403 {object} object{error=string}
+// @Failure 404 {object} object{error=string}
+// @Router /cart/items/{id} [delete]
 func (h *CartHandler) RemoveCartItem(c *gin.Context) {
+	 _, exists := c.Get("userID")
+	 if !exists {
+	 	c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+	 	return
+	 }
 	ctx := c.Request.Context()
 	itemIDStr := c.Param("id")
 	itemID, _ := strconv.ParseUint(itemIDStr, 10, 32)
@@ -332,4 +367,90 @@ func (h *CartHandler) RemoveCartItem(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, updatedCart)
+}
+
+
+
+
+
+
+
+// ClearCart handles DELETE /cart or POST /cart/clear
+// @Summary Clear the cart
+// @Description Clears all items from the user's active cart
+// @Tags Cart
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} object{message=string}
+// @Failure 400 {object} object{error=string}
+// @Failure 401 {object} object{error=string}
+// @Router /cart/clear [post]
+func (h *CartHandler) ClearCart(c *gin.Context) {
+	ctx := c.Request.Context()
+	userID, exists := c.Get("userID")
+	if !exists {
+		h.logger.Warn("Unauthorized access to ClearCart")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	err := h.cartService.ClearCart(ctx, userID.(uint))
+	if err != nil {
+		h.logger.Error("ClearCart failed", zap.Uint("user_id", userID.(uint)), zap.Error(err))
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	h.logger.Info("Cart cleared successfully", zap.Uint("user_id", userID.(uint)))
+	c.JSON(http.StatusOK, gin.H{"message": "cart cleared"})
+}
+
+// BulkAddItems handles POST /cart/bulk
+// @Summary Bulk add items to cart
+// @Description Adds multiple items to the user's active cart in one request
+// @Tags Cart
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param body body dto.BulkUpdateRequest true "Bulk items details"
+// @Success 200 {object} dto.CartResponse
+// @Failure 400 {object} object{error=string}
+// @Failure 401 {object} object{error=string}
+// @Router /cart/bulk [post]
+func (h *CartHandler) BulkAddItems(c *gin.Context) {
+	ctx := c.Request.Context()
+	userID, exists := c.Get("userID")
+	if !exists {
+		h.logger.Warn("Unauthorized access to BulkAddItems")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	var req dto.BulkUpdateRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.logger.Error("Bind error", zap.Error(err))
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if err := h.validate.Struct(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	updatedCart, err := h.cartService.BulkAddItems(ctx, userID.(uint), req)
+	if err != nil {
+		h.logger.Error("BulkAddItems failed", zap.Uint("user_id", userID.(uint)), zap.Error(err))
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	resp := &dto.CartResponse{}
+	if err := utils.RespMap(updatedCart, resp); err != nil {
+		h.logger.Error("Response mapping error", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+		return
+	}
+
+	h.logger.Info("Bulk items added successfully", zap.Uint("user_id", userID.(uint)), zap.Int("item_count", len(req.Items)))
+	c.JSON(http.StatusOK, resp)
 }

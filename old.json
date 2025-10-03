@@ -15,37 +15,6 @@
     },
     "basePath": "/",
     "paths": {
-        "/banks": {
-            "get": {
-                "description": "Returns list of all supported banks with codes",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Banks"
-                ],
-                "summary": "List all banks",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/dto.BankListResponseDTO"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "error": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/cart": {
             "get": {
                 "security": [
@@ -53,7 +22,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Retrieves the user's active cart with items",
+                "description": "Retrieves the user's active cart",
                 "produces": [
                     "application/json"
                 ],
@@ -61,65 +30,23 @@
                     "Cart"
                 ],
                 "summary": "Get active cart",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/dto.CartResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "error": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/cart/bulk": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Adds multiple items to the user's active cart in one request",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Cart"
-                ],
-                "summary": "Bulk add items to cart",
                 "parameters": [
                     {
-                        "description": "Bulk items details",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dto.BulkUpdateRequest"
-                        }
+                        "type": "integer",
+                        "description": "User ID (for testing)",
+                        "name": "user_id",
+                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Cart retrieved successfully",
                         "schema": {
                             "$ref": "#/definitions/dto.CartResponse"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Invalid user ID",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -129,49 +56,8 @@
                             }
                         }
                     },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "error": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/cart/clear": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Clears all items from the user's active cart",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Cart"
-                ],
-                "summary": "Clear the cart",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "message": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
+                    "404": {
+                        "description": "Cart not found",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -181,8 +67,8 @@
                             }
                         }
                     },
-                    "401": {
-                        "description": "Unauthorized",
+                    "500": {
+                        "description": "Failed to fetch cart",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -202,7 +88,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Adds a product (with optional variant) to user's active cart",
+                "description": "Adds a product variant to the user's cart or increments quantity if exists",
                 "consumes": [
                     "application/json"
                 ],
@@ -215,24 +101,30 @@
                 "summary": "Add item to cart",
                 "parameters": [
                     {
-                        "description": "Item details",
+                        "description": "Item to add",
                         "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
                             "$ref": "#/definitions/dto.AddItemRequest"
                         }
+                    },
+                    {
+                        "type": "integer",
+                        "description": "User ID (for testing)",
+                        "name": "user_id",
+                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Item added successfully",
                         "schema": {
                             "$ref": "#/definitions/dto.CartResponse"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Invalid request or validation failed",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -242,8 +134,8 @@
                             }
                         }
                     },
-                    "401": {
-                        "description": "Unauthorized",
+                    "500": {
+                        "description": "Failed to add item",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -258,11 +150,6 @@
         },
         "/cart/items/{id}": {
             "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Retrieves a specific cart item",
                 "produces": [
                     "application/json"
@@ -273,8 +160,8 @@
                 "summary": "Get cart item by ID",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Cart Item ID",
+                        "type": "integer",
+                        "description": "Cart item ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -282,13 +169,13 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Cart item retrieved successfully",
                         "schema": {
                             "$ref": "#/definitions/dto.CartItemResponse"
                         }
                     },
-                    "401": {
-                        "description": "Unauthorized",
+                    "400": {
+                        "description": "Invalid cart item ID",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -299,7 +186,18 @@
                         }
                     },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Cart item not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to fetch cart item",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -317,7 +215,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Updates the quantity of a cart item",
+                "description": "Updates the quantity of a specific cart item",
                 "consumes": [
                     "application/json"
                 ],
@@ -330,14 +228,14 @@
                 "summary": "Update cart item quantity",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Cart Item ID",
+                        "type": "integer",
+                        "description": "Cart item ID",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "New quantity",
+                        "description": "Updated quantity",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -348,13 +246,13 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Cart item updated successfully",
                         "schema": {
                             "$ref": "#/definitions/dto.CartResponse"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Invalid request or validation failed",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -364,8 +262,8 @@
                             }
                         }
                     },
-                    "401": {
-                        "description": "Unauthorized",
+                    "404": {
+                        "description": "Cart item not found",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -375,8 +273,8 @@
                             }
                         }
                     },
-                    "403": {
-                        "description": "Forbidden",
+                    "500": {
+                        "description": "Failed to update cart item",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -394,7 +292,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Removes a cart item by ID",
+                "description": "Removes a specific item from the cart",
                 "produces": [
                     "application/json"
                 ],
@@ -404,8 +302,8 @@
                 "summary": "Remove cart item",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Cart Item ID",
+                        "type": "integer",
+                        "description": "Cart item ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -413,35 +311,13 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Cart item removed successfully",
                         "schema": {
                             "$ref": "#/definitions/dto.CartResponse"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "error": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "error": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
+                        "description": "Invalid cart item ID",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -452,7 +328,18 @@
                         }
                     },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Cart item not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to remove cart item",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -671,45 +558,6 @@
                         }
                     }
                 }
-            },
-            "patch": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Invalidates the customer's JWT token",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Customer"
-                ],
-                "summary": "Customer logout",
-                "responses": {
-                    "200": {
-                        "description": "Logout successful",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "message": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Authorization header required",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "error": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
-                }
             }
         },
         "/customer/register": {
@@ -775,112 +623,6 @@
                     },
                     "500": {
                         "description": "Server error",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "error": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/disputes": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Customer creates a dispute for an order",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Disputes"
-                ],
-                "summary": "Create a dispute",
-                "parameters": [
-                    {
-                        "description": "Dispute details",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dto.CreateDisputeDTO"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/dto.DisputeResponseDTO"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "error": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "error": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/disputes/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Retrieve a specific dispute by ID",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Disputes"
-                ],
-                "summary": "Get dispute details",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Dispute ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/dto.DisputeResponseDTO"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -1262,62 +1004,6 @@
                 }
             }
         },
-        "/merchant/login": {
-            "post": {
-                "description": "Authenticates a merchant using work email and password",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Merchant"
-                ],
-                "summary": "Merchant login",
-                "parameters": [
-                    {
-                        "description": "Login credentials",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dto.MerchantLogin"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/dto.LoginResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "error": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "error": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/merchant/me": {
             "get": {
                 "security": [
@@ -1431,44 +1117,330 @@
                 }
             }
         },
-        "/merchant/products": {
+        "/orders": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates an order from the user's active cart",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Order"
+                ],
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User ID (for testing)",
+                        "name": "user_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Order created successfully",
+                        "schema": {
+                            "$ref": "#/definitions/dto.OrderResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid user ID or failed to create order",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/orders/{id}": {
             "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Fetches paginated list of products for authenticated merchant",
+                "description": "Retrieves a specific order by its ID",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Products"
+                    "Order"
                 ],
-                "summary": "List merchant's products",
+                "summary": "Get order by ID",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Limit (default 20)",
+                        "description": "Order ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Order retrieved successfully",
+                        "schema": {
+                            "$ref": "#/definitions/dto.OrderResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid order ID",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Order not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to fetch order",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/product/create": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Allows a merchant to create a new product with variants and media",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Product"
+                ],
+                "summary": "Create a new product",
+                "parameters": [
+                    {
+                        "description": "Product creation details",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.ProductInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Product created successfully",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ProductResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request payload or validation failed",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized access",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to create product",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/product/delete/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Soft-deletes a product by ID (requires merchant authorization)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Product"
+                ],
+                "summary": "Delete a product",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Product ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Product deleted successfully",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Product ID required",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized access",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Product not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to delete product",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/product/merchant/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves a paginated list of products for a specific merchant, optionally active only",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Product"
+                ],
+                "summary": "List products by merchant",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Merchant ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Number of products per page (default 20, max 100)",
                         "name": "limit",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "Offset (default 0)",
+                        "default": 0,
+                        "description": "Offset for pagination (default 0)",
                         "name": "offset",
                         "in": "query"
                     },
                     {
                         "type": "boolean",
-                        "description": "Active only (default false)",
+                        "default": false,
+                        "description": "Filter active products only (default false)",
                         "name": "active_only",
                         "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Products listed successfully",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -1491,7 +1463,7 @@
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Invalid pagination parameters",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -1502,7 +1474,7 @@
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "Unauthorized access",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -1513,66 +1485,7 @@
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "error": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Creates a product with variants and media for authenticated merchant",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Products"
-                ],
-                "summary": "Create a new product",
-                "parameters": [
-                    {
-                        "description": "Product details",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dto.ProductInput"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ProductResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "error": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
+                        "description": "Failed to list products",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -1585,746 +1498,41 @@
                 }
             }
         },
-        "/merchant/products/inventory/{id}": {
-            "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Adjusts stock delta for a given inventory ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Products"
-                ],
-                "summary": "Update product inventory",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Inventory ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Stock adjustment",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "delta": {
-                                    "type": "integer"
-                                }
-                            }
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "message": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "error": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "error": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "error": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "error": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/merchant/products/{id}": {
-            "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Soft-deletes a product by ID for authenticated merchant",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Products"
-                ],
-                "summary": "Delete a product",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Product ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "message": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "error": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "error": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "error": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "error": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/merchant/products/{product_id}/media": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Uploads image/video for a product",
-                "consumes": [
-                    "multipart/form-data"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Products"
-                ],
-                "summary": "Upload product media",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Product ID",
-                        "name": "product_id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "file",
-                        "description": "Media file",
-                        "name": "file",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Media type (image/video)",
-                        "name": "type",
-                        "in": "formData",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/dto.MediaUploadResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "error": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "error": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "error": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/merchant/products/{product_id}/media/{media_id}": {
-            "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Updates existing media for a product",
-                "consumes": [
-                    "multipart/form-data"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Products"
-                ],
-                "summary": "Update product media",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Product ID",
-                        "name": "product_id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Media ID",
-                        "name": "media_id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "file",
-                        "description": "New media file",
-                        "name": "file",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "description": "New URL",
-                        "name": "url",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "description": "New type (image/video)",
-                        "name": "type",
-                        "in": "formData"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/dto.MediaUploadResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "error": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "error": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "error": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Deletes media for a product",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Products"
-                ],
-                "summary": "Delete product media",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Product ID",
-                        "name": "product_id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Media ID",
-                        "name": "media_id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Deletion reason",
-                        "name": "body",
-                        "in": "body",
-                        "schema": {
-                            "$ref": "#/definitions/dto.MediaDeleteRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "message": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "error": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "error": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/orders": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Converts user's active cart into an order",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Orders"
-                ],
-                "summary": "Create order from cart",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "User ID (for testing)",
-                        "name": "user_id",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/dto.OrderResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "error": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/orders/{id}": {
+        "/product/products": {
             "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Retrieves a specific order with items",
+                "description": "Retrieves a paginated list of products, optionally filtered by category for the landing page",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Orders"
+                    "Product"
                 ],
-                "summary": "Get order by ID",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Order ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/dto.OrderResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "error": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "error": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "error": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/orders/{id}/cancel": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Customer cancels their pending order",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Orders"
-                ],
-                "summary": "Cancel an order",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Order ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Cancellation reason",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dto.CancelOrderRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/dto.OrderResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "error": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "error": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/payments/initialize": {
-            "post": {
-                "description": "Starts Paystack checkout for an order",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Payments"
-                ],
-                "summary": "Initialize payment",
-                "parameters": [
-                    {
-                        "description": "Payment initialization",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dto.InitializePaymentRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/dto.PaymentResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "error": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/payments/verify/{reference}": {
-            "get": {
-                "description": "Verifies Paystack transaction by reference",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Payments"
-                ],
-                "summary": "Verify payment",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Transaction reference",
-                        "name": "reference",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/dto.PaymentResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "error": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/products": {
-            "get": {
-                "description": "Fetches paginated list of products, optionally filtered by category",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Products"
-                ],
-                "summary": "Get all products",
+                "summary": "Fetch all products with pagination",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Limit (default 20)",
+                        "default": 20,
+                        "description": "Number of products per page (default 20, max 100)",
                         "name": "limit",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "Offset (default 0)",
+                        "default": 0,
+                        "description": "Offset for pagination (default 0)",
                         "name": "offset",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "Category ID",
+                        "description": "Filter by category ID",
                         "name": "category_id",
                         "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Products fetched successfully",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -2348,7 +1556,7 @@
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Invalid category ID or pagination parameters",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -2359,7 +1567,7 @@
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Failed to fetch products",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -2372,16 +1580,116 @@
                 }
             }
         },
-        "/products/{id}": {
-            "get": {
-                "description": "Fetches a single product with media and variants",
+        "/product/products/inventory": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Adjusts the stock quantity for a specific inventory by delta (positive for add, negative for subtract)",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Products"
+                    "Product"
                 ],
-                "summary": "Get product by ID",
+                "summary": "Update inventory stock",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Inventory ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Delta adjustment (required)",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "delta": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Inventory updated successfully",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Inventory ID required or invalid request payload",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized access",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Inventory not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to update inventory",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/product/{id}": {
+            "get": {
+                "description": "Retrieves detailed product information including media, variants, and inventory",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Product"
+                ],
+                "summary": "Fetch a single product by ID",
                 "parameters": [
                     {
                         "type": "string",
@@ -2393,13 +1701,13 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Product fetched successfully",
                         "schema": {
                             "$ref": "#/definitions/dto.ProductResponse"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Product ID required",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -2410,7 +1718,7 @@
                         }
                     },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Product not found",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -2421,150 +1729,7 @@
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "error": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/return-requests": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Retrieve all return requests for the authenticated customer",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Return Requests"
-                ],
-                "summary": "List customer's return requests",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/dto.ReturnRequestResponseDTO"
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "error": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Customer creates a return request for an order item",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Return Requests"
-                ],
-                "summary": "Create a return request",
-                "parameters": [
-                    {
-                        "description": "Return request details",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dto.CreateReturnRequestDTO"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ReturnRequestResponseDTO"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "error": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "error": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/return-requests/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Retrieve a specific return request by ID",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Return Requests"
-                ],
-                "summary": "Get return request details",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Return Request ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ReturnRequestResponseDTO"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
+                        "description": "Failed to fetch product",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -2598,76 +1763,14 @@
                 }
             }
         },
-        "dto.BankListItemDTO": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
-        "dto.BankListResponseDTO": {
-            "type": "object",
-            "properties": {
-                "banks": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/dto.BankListItemDTO"
-                    }
-                },
-                "total": {
-                    "type": "integer"
-                }
-            }
-        },
-        "dto.BulkUpdateRequest": {
-            "type": "object",
-            "properties": {
-                "items": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "required": [
-                            "product_id",
-                            "quantity"
-                        ],
-                        "properties": {
-                            "product_id": {
-                                "type": "string"
-                            },
-                            "quantity": {
-                                "type": "integer"
-                            },
-                            "variant_id": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                },
-                "userID": {
-                    "type": "integer"
-                }
-            }
-        },
-        "dto.CancelOrderRequest": {
-            "type": "object",
-            "properties": {
-                "reason": {
-                    "description": "Optional cancellation reason",
-                    "type": "string",
-                    "maxLength": 500
-                }
-            }
-        },
         "dto.CartItemResponse": {
             "type": "object",
             "properties": {
                 "attributes": {
                     "type": "object",
-                    "additionalProperties": {}
+                    "additionalProperties": {
+                        "type": "string"
+                    }
                 },
                 "id": {
                     "type": "integer"
@@ -2728,103 +1831,6 @@
                 }
             }
         },
-        "dto.CreateDisputeDTO": {
-            "type": "object",
-            "required": [
-                "description",
-                "order_id",
-                "reason"
-            ],
-            "properties": {
-                "description": {
-                    "type": "string",
-                    "maxLength": 1000
-                },
-                "order_id": {
-                    "type": "string"
-                },
-                "reason": {
-                    "type": "string",
-                    "maxLength": 100
-                }
-            }
-        },
-        "dto.CreateReturnRequestDTO": {
-            "type": "object",
-            "required": [
-                "order_item_id",
-                "reason"
-            ],
-            "properties": {
-                "order_item_id": {
-                    "type": "string"
-                },
-                "reason": {
-                    "type": "string",
-                    "maxLength": 500
-                }
-            }
-        },
-        "dto.DisputeResponseDTO": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "customer_id": {
-                    "type": "integer"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "merchant_id": {
-                    "type": "string"
-                },
-                "order_id": {
-                    "type": "string"
-                },
-                "reason": {
-                    "type": "string"
-                },
-                "resolution": {
-                    "type": "string"
-                },
-                "resolved_at": {
-                    "type": "string"
-                },
-                "status": {
-                    "type": "string"
-                }
-            }
-        },
-        "dto.InitializePaymentRequest": {
-            "type": "object",
-            "required": [
-                "amount",
-                "currency",
-                "email",
-                "order_id"
-            ],
-            "properties": {
-                "amount": {
-                    "description": "In kobo for Paystack",
-                    "type": "number"
-                },
-                "currency": {
-                    "description": "e.g., \"NGN\"",
-                    "type": "string"
-                },
-                "email": {
-                    "type": "string"
-                },
-                "order_id": {
-                    "type": "integer"
-                }
-            }
-        },
         "dto.InventoryResponse": {
             "type": "object",
             "properties": {
@@ -2842,29 +1848,6 @@
                 },
                 "reserved_quantity": {
                     "type": "integer"
-                }
-            }
-        },
-        "dto.LoginResponse": {
-            "type": "object",
-            "properties": {
-                "email": {
-                    "type": "string"
-                },
-                "token": {
-                    "type": "string"
-                },
-                "user_id": {
-                    "type": "string"
-                }
-            }
-        },
-        "dto.MediaDeleteRequest": {
-            "type": "object",
-            "properties": {
-                "reason": {
-                    "type": "string",
-                    "maxLength": 500
                 }
             }
         },
@@ -2911,49 +1894,6 @@
                 }
             }
         },
-        "dto.MediaUploadResponse": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "product_id": {
-                    "type": "string"
-                },
-                "public_id": {
-                    "description": "For delete/update",
-                    "type": "string"
-                },
-                "type": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
-                },
-                "url": {
-                    "description": "Secure Cloudinary URL",
-                    "type": "string"
-                }
-            }
-        },
-        "dto.MerchantLogin": {
-            "type": "object",
-            "required": [
-                "password",
-                "work_email"
-            ],
-            "properties": {
-                "password": {
-                    "type": "string"
-                },
-                "work_email": {
-                    "type": "string"
-                }
-            }
-        },
         "dto.OrderItemResponse": {
             "type": "object",
             "properties": {
@@ -2980,53 +1920,12 @@
                         "$ref": "#/definitions/dto.OrderItemResponse"
                     }
                 },
-                "payment_status": {
-                    "type": "string"
-                },
                 "status": {
                     "description": "Consider using the models.OrderStatus type directly",
                     "type": "string"
                 },
-                "total_amount": {
-                    "type": "number"
-                },
                 "user_id": {
                     "type": "integer"
-                }
-            }
-        },
-        "dto.PaymentResponse": {
-            "type": "object",
-            "properties": {
-                "amount": {
-                    "type": "number"
-                },
-                "authorization_url": {
-                    "description": "For checkout redirect",
-                    "type": "string"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "currency": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "order_id": {
-                    "type": "integer"
-                },
-                "status": {
-                    "description": "e.g., \"success\", \"pending\"",
-                    "type": "string"
-                },
-                "transaction_id": {
-                    "description": "Paystack ref",
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
                 }
             }
         },
@@ -3126,32 +2025,6 @@
                     "items": {
                         "$ref": "#/definitions/dto.VariantResponse"
                     }
-                }
-            }
-        },
-        "dto.ReturnRequestResponseDTO": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "customer_id": {
-                    "type": "integer"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "order_item_id": {
-                    "type": "string"
-                },
-                "reason": {
-                    "type": "string"
-                },
-                "status": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
                 }
             }
         },

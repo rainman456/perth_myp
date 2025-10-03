@@ -3,6 +3,7 @@ package routes
 import (
 	"api-customer-merchant/internal/api/handlers"
 	"api-customer-merchant/internal/db/repositories"
+	"api-customer-merchant/internal/middleware"
 
 	//"api-customer-merchant/internal/middleware"
 	"api-customer-merchant/internal/services/cart"
@@ -23,11 +24,11 @@ func SetupCartRoutes(r *gin.Engine) {
 	productRepo := repositories.NewProductRepository()
 	cartService := cart.NewCartService(cartRepo, cartitemRepo, productRepo, inventoryRepo, logger)
 	cartHandlers := handlers.NewCartHandler(cartService,logger)
-	//protected := middleware.AuthMiddleware("user")
-	r.GET("/cart", cartHandlers.GetCart)
-	r.POST("/cart/items", cartHandlers.AddToCart)
-	r.GET("/cart/items/:id", cartHandlers.GetCartItem)
-	r.PUT("/cart/items/:id", cartHandlers.UpdateCartItemQuantity)
-	r.DELETE("/cart/items/:id", cartHandlers.RemoveCartItem)
+	protected := middleware.AuthMiddleware("user")
+	r.GET("/cart", protected, cartHandlers.GetCart)
+	r.POST("/cart/items", protected, cartHandlers.AddToCart)
+	r.GET("/cart/items/:id", protected, cartHandlers.GetCartItem)
+	r.PUT("/cart/items/:id",protected, cartHandlers.UpdateCartItemQuantity)
+	r.DELETE("/cart/items/:id", protected, cartHandlers.RemoveCartItem)
 	//r.POST("/cart/clear", protected, customerHandlers.ClearCart)
 }

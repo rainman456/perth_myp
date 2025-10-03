@@ -1,11 +1,16 @@
 package handlers
 
 import (
+	//"encoding/csv"
 	"errors"
+	//"fmt"
+	//"io"
 	"net/http"
 	"strconv"
 
 	"api-customer-merchant/internal/api/dto" // Assuming this exists for VariantInput
+	//"api-customer-merchant/internal/db/models"
+
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"go.uber.org/zap"
@@ -28,22 +33,34 @@ func NewProductHandlers(productService *product.ProductService, logger *zap.Logg
 }
 
 // CreateProduct handles product creation for a merchant
+// CreateProduct godoc
+// @Summary Create a new product
+// @Description Creates a product with variants and media for authenticated merchant
+// @Tags Products
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param body body dto.ProductInput true "Product details"
+// @Success 201 {object} dto.ProductResponse
+// @Failure 400 {object} object{error=string}
+// @Failure 401 {object} object{error=string}
+// @Router /merchant/products [post]
 func (h *ProductHandler) CreateProduct(c *gin.Context) {
 	logger := h.logger.With(zap.String("operation", "CreateProduct"))
 
 	// Check merchant authorization
-	// merchantID, exists := c.Get("merchantID")
-	// if !exists {
-	// 	logger.Warn("Unauthorized access attempt")
-	// 	c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-	// 	return
-	// }
-	// merchantIDStr, ok := merchantID.(string)
-	// if !ok || merchantIDStr == "" {
-	// 	logger.Warn("Invalid merchant ID in context")
-	// 	c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid merchant ID"})
-	// 	return
-	// }
+	merchantID, exists := c.Get("merchantID")
+	if !exists {
+		logger.Warn("Unauthorized access attempt")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	merchantIDStr, ok := merchantID.(string)
+	if !ok || merchantIDStr == "" {
+		logger.Warn("Invalid merchant ID in context")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid merchant ID"})
+		return
+	}
 
 	// Bind and validate input
 	var input dto.ProductInput
@@ -59,8 +76,8 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 	}
 
 	// Set merchant ID from context
-	//input.MerchantID := merchantIDStr
-	//merchantIDStr := input.MerchantID
+	input.MerchantID = merchantIDStr
+	//merchantIDStr = input.MerchantID
 
 	// Call service
 	response, err := h.productService.CreateProductWithVariants(c.Request.Context(), &input)
@@ -80,6 +97,18 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 }
 
 // GetAllProducts handles fetching paginated products for the landing page
+// GetAllProducts godoc
+// @Summary Get all products
+// @Description Fetches paginated list of products, optionally filtered by category
+// @Tags Products
+// @Produce json
+// @Param limit query int false "Limit (default 20)"
+// @Param offset query int false "Offset (default 0)"
+// @Param category_id query int false "Category ID"
+// @Success 200 {object} object{products=[]dto.ProductResponse,total=int64,limit=int,offset=int}
+// @Failure 400 {object} object{error=string}
+// @Failure 500 {object} object{error=string}
+// @Router /products [get]
 func (h *ProductHandler) GetAllProducts(c *gin.Context) {
 	logger := h.logger.With(zap.String("operation", "GetAllProducts"))
 
@@ -123,6 +152,17 @@ func (h *ProductHandler) GetAllProducts(c *gin.Context) {
 }
 
 // GetProductByID fetches a single product by ID
+// GetProductByID godoc
+// @Summary Get product by ID
+// @Description Fetches a single product with media and variants
+// @Tags Products
+// @Produce json
+// @Param id path string true "Product ID"
+// @Success 200 {object} dto.ProductResponse
+// @Failure 400 {object} object{error=string}
+// @Failure 404 {object} object{error=string}
+// @Failure 500 {object} object{error=string}
+// @Router /products/{id} [get]
 func (h *ProductHandler) GetProductByID(c *gin.Context) {
 	logger := h.logger.With(zap.String("operation", "GetProductByID"))
 	productID := c.Param("id")
@@ -149,22 +189,36 @@ func (h *ProductHandler) GetProductByID(c *gin.Context) {
 }
 
 // ListProductsByMerchant lists a merchant's products with pagination
+// ListProductsByMerchant godoc
+// @Summary List merchant's products
+// @Description Fetches paginated list of products for authenticated merchant
+// @Tags Products
+// @Produce json
+// @Security BearerAuth
+// @Param limit query int false "Limit (default 20)"
+// @Param offset query int false "Offset (default 0)"
+// @Param active_only query boolean false "Active only (default false)"
+// @Success 200 {object} object{products=[]dto.ProductResponse,total=int,limit=int,offset=int}
+// @Failure 400 {object} object{error=string}
+// @Failure 401 {object} object{error=string}
+// @Failure 500 {object} object{error=string}
+// @Router /merchant/products [get]
 func (h *ProductHandler) ListProductsByMerchant(c *gin.Context) {
 	logger := h.logger.With(zap.String("operation", "ListProductsByMerchant"))
 
 	// Check merchant authorization
-	merchantID := c.Param("id")
-	if merchantID == "" {
+	merchantID, exists := c.Get("merchantID")
+	if !exists {
 		logger.Warn("Unauthorized access attempt")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
-	// merchantIDStr, ok := merchantID.(string)
-	// if !ok || merchantIDStr == "" {
-	// 	logger.Warn("Invalid merchant ID in context")
-	// 	c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid merchant ID"})
-	// 	return
-	// }
+	merchantIDStr, ok := merchantID.(string)
+	if !ok || merchantIDStr == "" {
+		logger.Warn("Invalid merchant ID in context")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid merchant ID"})
+		return
+	}
 
 	// Parse query parameters
 	limit, err := strconv.Atoi(c.DefaultQuery("limit", "20"))
@@ -178,7 +232,7 @@ func (h *ProductHandler) ListProductsByMerchant(c *gin.Context) {
 	activeOnly := c.Query("active_only") == "true"
 
 	// Call service
-	products, err := h.productService.ListProductsByMerchant(c.Request.Context(), merchantID, limit, offset, activeOnly)
+	products, err := h.productService.ListProductsByMerchant(c.Request.Context(), merchantIDStr, limit, offset, activeOnly)
 	if err != nil {
 		logger.Error("Failed to list products", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list products"})
@@ -195,6 +249,21 @@ func (h *ProductHandler) ListProductsByMerchant(c *gin.Context) {
 }
 
 // UpdateInventory adjusts stock for a given inventory ID
+// UpdateInventory godoc
+// @Summary Update product inventory
+// @Description Adjusts stock delta for a given inventory ID
+// @Tags Products
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "Inventory ID"
+// @Param body body object{delta=int} true "Stock adjustment"
+// @Success 200 {object} object{message=string}
+// @Failure 400 {object} object{error=string}
+// @Failure 401 {object} object{error=string}
+// @Failure 404 {object} object{error=string}
+// @Failure 500 {object} object{error=string}
+// @Router /merchant/products/inventory/{id} [put]
 func (h *ProductHandler) UpdateInventory(c *gin.Context) {
 	logger := h.logger.With(zap.String("operation", "UpdateInventory"))
 	inventoryID := c.Param("id")
@@ -205,18 +274,18 @@ func (h *ProductHandler) UpdateInventory(c *gin.Context) {
 	}
 
 	// Check merchant authorization
-	// merchantID, exists := c.Get("merchantID")
-	// if !exists {
-	// 	logger.Warn("Unauthorized access attempt")
-	// 	c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-	// 	return
-	// }
-	// merchantIDStr, ok := merchantID.(string)
-	// if !ok || merchantIDStr == "" {
-	// 	logger.Warn("Invalid merchant ID in context")
-	// 	c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid merchant ID"})
-	// 	return
-	// }
+	merchantID, exists := c.Get("merchantID")
+	if !exists {
+		logger.Warn("Unauthorized access attempt")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	merchantIDStr, ok := merchantID.(string)
+	if !ok || merchantIDStr == "" {
+		logger.Warn("Invalid merchant ID in context")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid merchant ID"})
+		return
+	}
 
 	// Bind input
 	var input struct {
@@ -250,6 +319,19 @@ func (h *ProductHandler) UpdateInventory(c *gin.Context) {
 }
 
 // DeleteProduct soft-deletes a product
+// DeleteProduct godoc
+// @Summary Delete a product
+// @Description Soft-deletes a product by ID for authenticated merchant
+// @Tags Products
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "Product ID"
+// @Success 200 {object} object{message=string}
+// @Failure 400 {object} object{error=string}
+// @Failure 401 {object} object{error=string}
+// @Failure 404 {object} object{error=string}
+// @Failure 500 {object} object{error=string}
+// @Router /merchant/products/{id} [delete]
 func (h *ProductHandler) DeleteProduct(c *gin.Context) {
 	logger := h.logger.With(zap.String("operation", "DeleteProduct"))
 	productID := c.Param("id")
@@ -260,18 +342,18 @@ func (h *ProductHandler) DeleteProduct(c *gin.Context) {
 	}
 
 	// Check merchant authorization
-	// merchantID, exists := c.Get("merchantID")
-	// if !exists {
-	// 	logger.Warn("Unauthorized access attempt")
-	// 	c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-	// 	return
-	// }
-	// merchantIDStr, ok := merchantID.(string)
-	// if !ok || merchantIDStr == "" {
-	// 	logger.Warn("Invalid merchant ID in context")
-	// 	c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid merchant ID"})
-	// 	return
-	// }
+	 merchantID, exists := c.Get("merchantID")
+	 if !exists {
+	 	logger.Warn("Unauthorized access attempt")
+	 	c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+	 	return
+	 }
+	 merchantIDStr, ok := merchantID.(string)
+	 if !ok || merchantIDStr == "" {
+	 	logger.Warn("Invalid merchant ID in context")
+	 	c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid merchant ID"})
+	 	return
+	 }
 
 	// Call service
 	err := h.productService.DeleteProduct(c.Request.Context(), productID)
@@ -288,3 +370,6 @@ func (h *ProductHandler) DeleteProduct(c *gin.Context) {
 	logger.Info("Product deleted successfully", zap.String("product_id", productID))
 	c.JSON(http.StatusOK, gin.H{"message": "product deleted"})
 }
+
+
+

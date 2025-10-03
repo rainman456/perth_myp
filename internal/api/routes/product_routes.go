@@ -1,5 +1,5 @@
 package routes
-
+/*
 import (
 	"api-customer-merchant/internal/api/handlers"
 	"api-customer-merchant/internal/config"
@@ -48,4 +48,29 @@ func RegisterProductRoutes(r *gin.Engine) {
 		productGroup.PUT("/products/inventory", ProductHandler.UpdateInventory)
 
 	}
+}
+*/
+
+
+
+import (
+	"api-customer-merchant/internal/api/handlers"
+	"api-customer-merchant/internal/config"
+	"api-customer-merchant/internal/db/repositories"
+	"api-customer-merchant/internal/services/product"
+
+	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
+)
+
+func SetupProductRoutes(r *gin.Engine) {
+	logger, _ := zap.NewProduction()
+	repo := repositories.NewProductRepository()
+	cfg := config.Load()
+	service := product.NewProductService(repo, cfg, logger)
+	productHandler := handlers.NewProductHandlers(service, logger)
+
+	r.GET("/products", productHandler.GetAllProducts)
+	r.GET("/products/:id", productHandler.GetProductByID)
+	// Merchant-specific moved to merchant_routes
 }

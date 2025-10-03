@@ -31,6 +31,21 @@ func NewProductMediaHandler(mediaService *product.ProductService, logger *zap.Lo
 }
 
 // UploadMedia handles POST /merchant/products/:product_id/media
+// UploadMedia godoc
+// @Summary Upload product media
+// @Description Uploads image/video for a product
+// @Tags Products
+// @Accept multipart/form-data
+// @Produce json
+// @Security BearerAuth
+// @Param product_id path string true "Product ID"
+// @Param file formData file true "Media file"
+// @Param type formData string true "Media type (image/video)"
+// @Success 201 {object} dto.MediaUploadResponse
+// @Failure 400 {object} object{error=string}
+// @Failure 401 {object} object{error=string}
+// @Failure 500 {object} object{error=string}
+// @Router /merchant/products/{product_id}/media [post]
 func (h *ProductMediaHandler) UploadMedia(c *gin.Context) {
 	ctx := c.Request.Context()
 	merchantIDStr, exists := c.Get("merchantID")
@@ -97,6 +112,23 @@ func (h *ProductMediaHandler) UploadMedia(c *gin.Context) {
 }
 
 // UpdateMedia handles PUT /merchant/products/:product_id/media/:media_id
+// UpdateMedia godoc
+// @Summary Update product media
+// @Description Updates existing media for a product
+// @Tags Products
+// @Accept multipart/form-data
+// @Produce json
+// @Security BearerAuth
+// @Param product_id path string true "Product ID"
+// @Param media_id path string true "Media ID"
+// @Param file formData file false "New media file"
+// @Param url formData string false "New URL"
+// @Param type formData string false "New type (image/video)"
+// @Success 200 {object} dto.MediaUploadResponse
+// @Failure 400 {object} object{error=string}
+// @Failure 401 {object} object{error=string}
+// @Failure 500 {object} object{error=string}
+// @Router /merchant/products/{product_id}/media/{media_id} [put]
 func (h *ProductMediaHandler) UpdateMedia(c *gin.Context) {
 	ctx := c.Request.Context()
 	merchantIDStr, exists := c.Get("merchantID")
@@ -154,6 +186,20 @@ func (h *ProductMediaHandler) UpdateMedia(c *gin.Context) {
 }
 
 // DeleteMedia handles DELETE /merchant/products/:product_id/media/:media_id
+// DeleteMedia godoc
+// @Summary Delete product media
+// @Description Deletes media for a product
+// @Tags Products
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param product_id path string true "Product ID"
+// @Param media_id path string true "Media ID"
+// @Param body body dto.MediaDeleteRequest false "Deletion reason"
+// @Success 200 {object} object{message=string}
+// @Failure 400 {object} object{error=string}
+// @Failure 401 {object} object{error=string}
+// @Router /merchant/products/{product_id}/media/{media_id} [delete]
 func (h *ProductMediaHandler) DeleteMedia(c *gin.Context) {
 	ctx := c.Request.Context()
 	merchantIDStr, exists := c.Get("merchantID")

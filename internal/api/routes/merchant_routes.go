@@ -131,3 +131,58 @@ func RegisterMerchantRoutes(r *gin.Engine) {
 
 }
 */
+import (
+	"api-customer-merchant/internal/api/handlers"
+	"api-customer-merchant/internal/config"
+	"api-customer-merchant/internal/db/repositories"
+	"api-customer-merchant/internal/middleware"
+	"api-customer-merchant/internal/services/merchant"
+	"api-customer-merchant/internal/services/product"
+
+	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
+)
+
+func SetupMerchantRoutes(r *gin.Engine) {
+	cfg := config.Load()
+	logger, _ := zap.NewProduction()
+
+	appRepo := repositories.NewMerchantApplicationRepository()
+	merchantRepo := repositories.NewMerchantRepository()
+	merchantService := merchant.NewMerchantService(appRepo, merchantRepo)
+
+	productRepo := repositories.NewProductRepository()
+	//inventoryRepo := repositories.NewInventoryRepository()
+	productService := product.NewProductService(productRepo, cfg, logger)
+
+	merchantAuthHandler := handlers.NewMerchantAuthHandler(merchantService)
+	//merchantHandler := handlers.NewMerchantHandlers(productService)
+	mediaHandler := handlers.NewProductMediaHandler(productService, logger)
+	merchantproductHandler := handlers.NewProductHandlers(productService, logger)
+
+	merchantGroup := r.Group("/merchant")
+	{
+		merchantGroup.POST("/apply", merchantAuthHandler.Apply)
+		merchantGroup.GET("/application/:id", merchantAuthHandler.GetApplication)
+		merchantGroup.POST("/login", merchantAuthHandler.Login)
+
+		protected := merchantGroup.Group("")
+		protected.Use(middleware.AuthMiddleware("merchant"))
+		protected.GET("/me", merchantAuthHandler.GetMyMerchant)
+		protected.POST("/products", merchantproductHandler.CreateProduct) // Use productHandler for consistency
+		protected.GET("/products", func(c *gin.Context) {
+			// Override to use merchantID from context
+			merchantID, _ := c.Get("merchantID")
+			c.Set("id", merchantID.(string)) // Set param for handler
+			merchantproductHandler.ListProductsByMerchant(c)
+		})
+		//protected.PUT("/products/:id", merchantproductHandler.UpdateProduct)
+		protected.DELETE("/products/:id", merchantproductHandler.DeleteProduct)
+		// protected.POST("/products/bulk-upload", merchantHandler.BulkUploadProducts) // If implemented
+
+		protected.POST("/products/:product_id/media", mediaHandler.UploadMedia)
+		protected.PUT("/products/:product_id/media/:media_id", mediaHandler.UpdateMedia)
+		protected.DELETE("/products/:product_id/media/:media_id", mediaHandler.DeleteMedia)
+		protected.PUT("/products/inventory/:id", merchantproductHandler.UpdateInventory)
+	}
+}

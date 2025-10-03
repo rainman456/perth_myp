@@ -30,12 +30,18 @@ func NewPaymentHandler(s *payment.PaymentService) *PaymentHandler {
 // @Failure 400 {object} object{error=string}
 // @Router /payments/initialize [post]
 func (h *PaymentHandler) Initialize(c *gin.Context) {
+	ctx := c.Request.Context()
+	 _, exists := c.Get("userID")
+	 if !exists {
+	 	c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+	 	return
+	 }
 	var req dto.InitializePaymentRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	resp, err := h.service.InitializeCheckout(c.Request.Context(), req)
+	resp, err := h.service.InitializeCheckout(ctx, req)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -53,8 +59,14 @@ func (h *PaymentHandler) Initialize(c *gin.Context) {
 // @Failure 400 {object} object{error=string}
 // @Router /payments/verify/{reference} [get]
 func (h *PaymentHandler) Verify(c *gin.Context) {
+	ctx := c.Request.Context()
+	 _, exists := c.Get("userID")
+	 if !exists {
+	 	c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+	 	return
+	 }
 	reference := c.Param("reference")
-	resp, err := h.service.VerifyPayment(c.Request.Context(), reference)
+	resp, err := h.service.VerifyPayment(ctx, reference)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
