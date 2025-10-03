@@ -14,6 +14,8 @@ type OrderResponse struct {
 	UserID     uint                `json:"user_id"`
 	Status     string              `json:"status"` // Consider using the models.OrderStatus type directly
 	OrderItems []OrderItemResponse `json:"order_items"`
+	TotalAmount   float64 `json:"total_amount"`
+	PaymentStatus string  `json:"payment_status"`
 }
 
 // OrderItemResponse defines the structure for individual items in an order.
@@ -21,4 +23,9 @@ type OrderItemResponse struct {
 	ProductID string  `json:"product_id"`
 	Quantity  int     `json:"quantity"`
 	Price     float64 `json:"price"`
+}
+
+
+type CancelOrderRequest struct {
+	Reason string `json:"reason" validate:"omitempty,max=500"` // Optional cancellation reason
 }

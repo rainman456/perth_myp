@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 
+	"api-customer-merchant/internal/api/dto"
 	"api-customer-merchant/internal/db"
 	"api-customer-merchant/internal/db/models"
 	//"gorm.io/gorm"
@@ -60,9 +61,9 @@ func (r *MerchantRepository) GetByID(ctx context.Context, id string) (*models.Me
 	return &m, nil
 }
 
-func (r *MerchantRepository) GetByUserID(ctx context.Context, uid string) (*models.Merchant, error) {
+func (r *MerchantRepository) GetByMerchantID(ctx context.Context, uid string) (*models.Merchant, error) {
 	var m models.Merchant
-	if err := db.DB.WithContext(ctx).Where("user_id = ?", uid).First(&m).Error; err != nil {
+	if err := db.DB.WithContext(ctx).Where("merchant_id = ?", uid).First(&m).Error; err != nil {
 		log.Printf("Failed to get merchant by user ID %s: %v", uid, err)
 		return nil, err
 	}
@@ -76,4 +77,19 @@ func (r *MerchantRepository) GetByWorkEmail(ctx context.Context, email string) (
 		return nil, err
 	}
 	return &m, nil
+}
+
+
+
+func (r *MerchantRepository) UpdateBankDetails(ctx context.Context, merchantID string, details dto.BankDetailsRequest) error {
+	// Use WithContext so DB operations respect request lifecycle
+	if err := db.DB.WithContext(ctx).
+		Model(&models.MerchantBankDetails{}).
+		Where("merchant_id = ?", merchantID).
+		Save(details).Error; err != nil {
+		
+		log.Printf("Failed to update bank details for merchant %s: %v", merchantID, err)
+		return err
+	}
+	return nil
 }

@@ -4,24 +4,24 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"time"
 
-	
+	//"api-customer-merchant/internal/api/handlers"
 	"api-customer-merchant/internal/api/routes"
+	"api-customer-merchant/internal/bank"
 	"api-customer-merchant/internal/config"
-	
+
+	//"api-customer-merchant/internal/services/cart"
+	//"api-customer-merchant/internal/services/order"
 
 	//"api-customer-merchant/internal/middleware"
 	"api-customer-merchant/internal/db"
 	"api-customer-merchant/internal/utils"
 
-	"github.com/gin-contrib/cors"
-
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
-	//"api-customer-merchant/docs" // Import generated docs
+	//_ "api-customer-merchant/docs" // Import generated docs
 )
 
 // @title Multivendor API
@@ -38,8 +38,8 @@ import (
 func main() {
 
 	// if err := godotenv.Load(); err != nil {
-    //          log.Println("No .env file found, relying on environment variables")
-    //      }
+	//          log.Println("No .env file found, relying on environment variables")
+	//      }
 	if err := godotenv.Load(); err != nil {
 		log.Fatal("Error loading .env file")
 	}
@@ -49,39 +49,33 @@ func main() {
 	if secret == "" {
 		log.Fatal("JWT_SECRET not set")
 	}
+	 bankSvc := bank.GetBankService()
+   if err := bankSvc.LoadBanks(); err != nil {
+       log.Fatal(err)
+   }
 
-		//  if err := godotenv.Load(); err != nil {
-		// 	log.Fatal("Error loading .env file")
-		// }
-		// secret := os.Getenv("JWT_SECRET")
-		// if secret == "" {
-		// 	log.Fatal("JWT_SECRET not set")
-		// }
-	
+	//  if err := godotenv.Load(); err != nil {
+	// 	log.Fatal("Error loading .env file")
+	// }
+	// secret := os.Getenv("JWT_SECRET")
+	// if secret == "" {
+	// 	log.Fatal("JWT_SECRET not set")
+	// }
+	// Connect to database and migrate
 	db.Connect()
 	db.AutoMigrate()
 	r := gin.Default()
 	r.Use(gin.Recovery())
-	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"*"}, 
-		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "Accept"},
-		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: false, 
-		MaxAge:           12 * time.Hour, 
-	}))
-
 
 	// Create single router
 	//r := gin.Default()
 
 	// Customer routes under /customer
 	routes.RegisterCustomerRoutes(r)
-	routes.RegisterMerchantRoutes(r)
+	//routes.RegisterMerchantRoutes(r)
 	routes.RegisterProductRoutes(r)
 	routes.SetupOrderRoutes(r)
 	routes.SetupCartRoutes(r)
-
 
 	// Swagger endpoint
 	// Serve the OpenAPI spec file

@@ -75,3 +75,33 @@ type InventoryResponse struct {
 	LowStockThreshold int    `json:"low_stock_threshold"`
 	BackorderAllowed  bool   `json:"backorder_allowed"`
 }
+
+
+type MediaUploadRequest struct {
+	File  string `form:"file" validate:"required"` // Multipart file key
+	Type  string `form:"type" validate:"required,oneof=image video"`
+	// Optional: Position or other metadata
+}
+
+// MediaUploadResponse
+type MediaUploadResponse struct {
+	ID        string    `json:"id"`
+	ProductID string    `json:"product_id"`
+	URL       string    `json:"url"` // Secure Cloudinary URL
+	PublicID  string    `json:"public_id"` // For delete/update
+	Type      string    `json:"type"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// MediaUpdateRequest for PUT /merchant/products/:media_id
+type MediaUpdateRequest struct {
+	File *string `form:"file" validate:"omitempty"` // Optional new file
+	URL  *string `form:"url" validate:"omitempty,url"` // Or new URL (e.g., external)
+	Type *string `form:"type" validate:"omitempty,oneof=image video"`
+}
+
+// MediaDeleteRequest (empty body, if needed for reason)
+type MediaDeleteRequest struct {
+	Reason string `json:"reason" validate:"omitempty,max=500"`
+}

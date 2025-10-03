@@ -14,6 +14,7 @@ import (
 	"github.com/shopspring/decimal"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
+	//"gorm.io/gorm/logger"
 )
 
 var (
@@ -46,14 +47,14 @@ func NewCartService(cartRepo *repositories.CartRepository, cartItemRepo *reposit
 }
 
 // GetActiveCart retrieves or creates an active cart for a user
-func (s *CartService) GetActiveCart(ctx context.Context, userID uint) (*models.Cart, error) {
+func (s *CartService) GetActiveCart(ctx context.Context, userID uint) (*dto.CartResponse, error) {
 	if userID == 0 {
 		return nil, ErrInvalidUserID
 	}
 	cart, err := s.cartRepo.FindActiveCart(ctx, userID)
-	if err == nil {
-		return cart, nil
-	}
+	// if err == nil {
+	// 	return cart, nil
+	// }
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		s.logger.Error("Failed to find active cart", zap.Uint("user_id", userID), zap.Error(err))
 		return nil, fmt.Errorf("db error: %w", err)
@@ -64,19 +65,44 @@ func (s *CartService) GetActiveCart(ctx context.Context, userID uint) (*models.C
 		s.logger.Error("Failed to create cart", zap.Error(err))
 		return nil, fmt.Errorf("create failed: %w", err)
 	}
-	return s.cartRepo.FindByID(ctx, cart.ID)
+	//return s.cartRepo.FindByID(ctx, cart.ID)
+	cart, err = s.cartRepo.FindByID(ctx, cart.ID)
+	if err != nil {
+		s.logger.Error("Failed to get active cart", zap.Error(err))
+		return nil, fmt.Errorf("failed to get active cart: %w", err)
+	}
+	response := &dto.CartResponse{
+	ID:        cart.ID,
+	UserID:    cart.UserID,
+	Status:    cart.Status,
+	Items:     make([]dto.CartItemResponse, len(cart.CartItems)),
+	Total:     cart.GrandTotal, // Assuming decimal.Decimal
+	CreatedAt: cart.CreatedAt,
+	UpdatedAt: cart.UpdatedAt,
+}
+for i, item := range cart.CartItems {
+	response.Items[i] = dto.CartItemResponse{
+			ID:        item.ID,
+		ProductID: item.ProductID,
+		VariantID: item.VariantID, // Fixed from m.URL
+		Quantity:  item.Quantity,
+		Subtotal:  item.Cart.SubTotal,
+	}
+}
+return response, nil
+
 }
 
-func (s *CartService) GetCart(ctx context.Context, userID uint) (*models.Cart, error) {
-	cart, err := s.GetActiveCart(ctx, userID)
-	if err != nil {
-		return nil, err
-	}
-	// Fixed: Use model method
-	cart.ComputeTotals()
-	s.logger.Info("Cart fetched", zap.Uint("user_id", userID), zap.Float64("total", cart.GrandTotal))
-	return cart, nil
-}
+// func (s *CartService) GetCart(ctx context.Context, userID uint) (*models.Cart, error) {
+// 	cart, err := s.GetActiveCart(ctx, userID)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	// Fixed: Use model method
+// 	cart.ComputeTotals()
+// 	s.logger.Info("Cart fetched", zap.Uint("user_id", userID), zap.Float64("total", cart.GrandTotal))
+// 	return cart, nil
+// }
 
 // AddItemToCart adds a product to the user's active cart
 /*
@@ -349,7 +375,7 @@ func (s *CartService) AddItemToCart(ctx context.Context, userID uint, quantity u
 
 
 
-func (s *CartService) AddItemToCart(ctx context.Context, userID uint, quantity int, productID string, variantID *string) (*models.Cart, error) {
+func (s *CartService) AddItemToCart(ctx context.Context, userID uint, quantity int, productID string, variantID *string) (*dto.CartResponse, error) {
 	if userID == 0 {
 		return nil, ErrInvalidUserID
 	}
@@ -460,60 +486,28 @@ func (s *CartService) AddItemToCart(ctx context.Context, userID uint, quantity i
         s.logger.Error("Failed to preload cart items", zap.Error(err))
         return nil, err
     }
-    return updatedCart, nil
+   // return updatedCart, nil
+	response := &dto.CartResponse{
+		ID: updatedCart.ID,
+		UserID: updatedCart.UserID,
+		Status: updatedCart.Status,
+		Items: make([]dto.CartItemResponse, len(updatedCart.CartItems)),
+		Total: updatedCart.GrandTotal,
+		CreatedAt: updatedCart.CreatedAt,
+		UpdatedAt: updatedCart.UpdatedAt,
+	}
+	for i, item := range updatedCart.CartItems {
+	response.Items[i] = dto.CartItemResponse{
+		ID:        item.ID,
+		ProductID: item.ProductID,
+		VariantID: item.VariantID, // Fixed from m.URL
+		Quantity:  item.Quantity,
+		Subtotal:  item.Cart.SubTotal,
+
+	}
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+return response, nil
+}
 
 
 
@@ -622,7 +616,7 @@ func (s *CartService) GetCartItemByID(ctx context.Context, cartItemID uint) (*mo
 
 // ClearCart, BulkAddItems ... (add ctx to all calls; stub Bulk if not used)
 func (s *CartService) ClearCart(ctx context.Context, userID uint) error {
-	cart, err := s.GetActiveCart(ctx, userID)
+	cart, err := s.cartRepo.FindActiveCart(ctx, userID)
 	if err != nil {
 		return err
 	}

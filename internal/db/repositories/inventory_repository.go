@@ -8,6 +8,7 @@ import (
 	"context"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 /*
@@ -128,4 +129,28 @@ func (r *InventoryRepository) UpdateInventoryQuantity(ctx context.Context, inven
 		inv.Quantity = newQ
 		return tx.Save(&inv).Error
 	})
+}
+
+
+
+
+// Add method for lookup by product and merchant (no VariantID)
+func (r *InventoryRepository) FindByProductAndMerchant(ctx context.Context, productID, merchantID string) (*models.Inventory, error) {
+	var inv models.Inventory
+	err := r.db.WithContext(ctx).
+		Clauses(clause.Locking{Strength: "UPDATE"}). // Lock for update
+		Where("product_id = ? AND merchant_id = ?", productID, merchantID).
+		First(&inv).Error
+	return &inv, err
+}
+
+// UpdateInventory updates quantity/reserved (delta positive for unreserve)
+func (r *InventoryRepository) UpdateInventory(ctx context.Context, id string, delta int) error {
+	return r.db.WithContext(ctx).
+		Model(&models.Inventory{}).
+		Where("id = ?", id).
+		Updates(map[string]interface{}{
+			"quantity":        gorm.Expr("quantity + ?", delta),
+			"reserved_quantity": gorm.Expr("GREATEST(reserved_quantity - ?, 0)", delta),
+		}).Error
 }

@@ -3,7 +3,9 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
+	"api-customer-merchant/internal/api/dto"
 	"api-customer-merchant/internal/db/models"
 	"api-customer-merchant/internal/services/merchant"
 
@@ -135,43 +137,65 @@ func NewMerchantAuthHandler(s *merchant.MerchantService) *MerchantHandler {
 // @Failure 500 {object} object{error=string} "Failed to submit application"
 // @Router /merchant/apply [post]
 func (h *MerchantHandler) Apply(c *gin.Context) {
-	var req struct {
-		models.MerchantBasicInfo
-		PersonalAddress map[string]any `json:"personal_address" validate:"required"`
-		WorkAddress     map[string]any `json:"work_address" validate:"required"`
-		models.MerchantBusinessInfo
-		models.MerchantDocuments
-	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body: " + err.Error()})
-		return
-	}
-
-	// Convert personal_address and work_address to JSONB
-	personalAddressJSON, err := json.Marshal(req.PersonalAddress)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid personal_address JSON: " + err.Error()})
-		return
-	}
-	workAddressJSON, err := json.Marshal(req.WorkAddress)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid work_address JSON: " + err.Error()})
-		return
-	}
-
-	app := &models.MerchantApplication{
-		MerchantBasicInfo:    req.MerchantBasicInfo,
-		MerchantAddress:      models.MerchantAddress{PersonalAddress: personalAddressJSON, WorkAddress: workAddressJSON},
-		MerchantBusinessInfo: req.MerchantBusinessInfo,
-		MerchantDocuments:    req.MerchantDocuments,
-	}
-
-	app, err = h.service.SubmitApplication(c.Request.Context(), app)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to submit application: " + err.Error()})
-		return
-	}
-	c.JSON(http.StatusCreated, app)
+    var req dto.MerchantApplyDTO
+    if err := c.ShouldBindJSON(&req); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body: " + err.Error()})
+        return
+    }
+    // Convert DTO to model
+    personalAddressJSON, _ := json.Marshal(req.PersonalAddress)
+    workAddressJSON, _ := json.Marshal(req.WorkAddress)
+    app := &models.MerchantApplication{
+        MerchantBasicInfo: models.MerchantBasicInfo{
+            StoreName: req.StoreName,
+            Name: req.Name,
+            PersonalEmail: req.PersonalEmail,
+            WorkEmail: req.WorkEmail,
+            PhoneNumber: req.PhoneNumber,
+        },
+        MerchantAddress: models.MerchantAddress{
+            PersonalAddress: personalAddressJSON,
+            WorkAddress: workAddressJSON,
+        },
+        MerchantBusinessInfo: models.MerchantBusinessInfo{
+            BusinessType: req.BusinessType,
+            Website: req.Website,
+            BusinessDescription: req.BusinessDescription,
+            BusinessRegistrationNumber: req.BusinessRegistrationNumber,
+        },
+        MerchantDocuments: models.MerchantDocuments{
+            StoreLogoURL: req.StoreLogoURL,
+            BusinessRegistrationCertificate: req.BusinessRegistrationCertificate,
+        },
+    }
+    // Service call, response mapping
+    app, err := h.service.SubmitApplication(c.Request.Context(), app)
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to submit application: " + err.Error()})
+        return
+    }
+    // Build response
+	//resp := dto.MerchantApplyResponse
+    resp := dto.MerchantApplyResponse{
+        ID: app.ID,
+        StoreName: app.StoreName,
+        Name: app.Name,
+        PersonalEmail: app.PersonalEmail,
+        WorkEmail: app.WorkEmail,
+        PhoneNumber: app.PhoneNumber,
+        PersonalAddress: req.PersonalAddress,
+        WorkAddress: req.WorkAddress,
+        BusinessType: app.BusinessType,
+        Website: app.Website,
+        BusinessDescription: app.BusinessDescription,
+        BusinessRegistrationNumber: app.BusinessRegistrationNumber,
+        StoreLogoURL: app.StoreLogoURL,
+        BusinessRegistrationCertificate: app.BusinessRegistrationCertificate,
+        Status: app.Status,
+        CreatedAt: app.CreatedAt.Format(time.RFC3339),
+        UpdatedAt: app.UpdatedAt.Format(time.RFC3339),
+    }
+    c.JSON(http.StatusCreated, resp)
 }
 
 func (h *MerchantHandler) Login(c *gin.Context) {

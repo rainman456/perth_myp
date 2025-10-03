@@ -43,20 +43,20 @@ func AuthMiddleware(entityType string) gin.HandlerFunc {
 		}
 
 		claims, ok := token.Claims.(jwt.MapClaims)
-			if !ok || claims["entityType"] != entityType {
-				c.JSON(http.StatusForbidden, gin.H{"error": "Invalid entity type"})
-				c.Abort()
-				return
-			}
+		if !ok || claims["entityType"] != entityType {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Invalid entity type"})
+			c.Abort()
+			return
+		}
 
-			//c.Set("entityId", claims["id"])
-			id := claims["id"].(string)
-        switch entityType {
-case "user":
-            c.Set("userID", id)
-        case "merchant":
-            c.Set("merchantID", id)
-        }
-        c.Next()
-    }
+		//c.Set("entityId", claims["id"])
+		id := claims["id"].(string)
+		switch entityType {
+		case "user":
+			c.Set("userID", id)
+		case "merchant":
+			c.Set("merchantID", id)
+		}
+		c.Next()
 	}
+}

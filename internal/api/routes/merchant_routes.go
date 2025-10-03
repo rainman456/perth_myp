@@ -26,14 +26,14 @@ package routes
 */
 
 import (
- "api-customer-merchant/internal/api/handlers"
+// "api-customer-merchant/internal/api/handlers"
 // "api-customer-merchant/internal/middleware"
 //"api-customer-merchant/internal/db"
 //"api-customer-merchant/internal/db/models"
-"api-customer-merchant/internal/db/repositories"
+//"api-customer-merchant/internal/db/repositories"
 
 //"api-customer-merchant/internal/middleware"
- "api-customer-merchant/internal/services/merchant"
+// "api-customer-merchant/internal/services/merchant"
 // "api-customer-merchant/internal/services/product"
 
 // "api-customer-merchant/internal/domain/order"
@@ -41,7 +41,7 @@ import (
 //"api-customer-merchant/internal/domain/product"
 //"api-customer-merchant/internal/domain/invent"
 
-"github.com/gin-gonic/gin"
+//"github.com/gin-gonic/gin"
 )
 
 /*
@@ -78,14 +78,14 @@ import (
    }
 */
 
-
+/*
 func RegisterMerchantRoutes(r *gin.Engine) {
     appRepo := repositories.NewMerchantApplicationRepository()
     repo := repositories.NewMerchantRepository()
     service := merchant.NewMerchantService(appRepo, repo)
-    //productRepo := repositories.NewProductRepository()
-    //inventoryRepo:= repositories.NewInventoryRepository()
-	//productService := product.NewProductService(productRepo,inventoryRepo)
+    productRepo := repositories.NewProductRepository()
+    inventoryRepo:= repositories.NewInventoryRepository()
+	productService := product.NewProductService(productRepo,inventoryRepo)
     //productRepo := repositories.NewProductRepository()
     //inventoryRepo:= repositories.NewInventoryRepository()
 	//productService := product.NewProductService(productRepo,inventoryRepo)
@@ -97,7 +97,7 @@ func RegisterMerchantRoutes(r *gin.Engine) {
     //h := handlers.NewMerchantAuthHandler(service)
 
     authHandler := handlers.NewMerchantAuthHandler(service)
-    //merchhandler:=handlers.NewMerchantHandlers(productService)
+    merchhandler:=handlers.NewMerchantHandlers(productService)
     merchant := r.Group("/merchant")
     {
     // Application submission and status
@@ -116,18 +116,18 @@ func RegisterMerchantRoutes(r *gin.Engine) {
     merchant.GET("/application/:id",  authHandler.GetApplication)
     // Merchant account access (once approved by admin via Express API)
     //merchant.GET("/me",  authHandler.GetMyMerchant)
-    // protected := merchant.Group("/")
-    // protected.Use(middleware.AuthMiddleware("merchant"))
-    // protected.GET("/me",  authHandler.GetMyMerchant)
+    protected := merchant.Group("/")
+    protected.Use(middleware.AuthMiddleware("merchant"))
+    protected.GET("/me",  authHandler.GetMyMerchant)
 
-    // protected.POST("/products/create", merchhandler.CreateProduct)
-	// protected.GET("/products", merchhandler.GetMyProducts)
-	// protected.PUT("/products/:id", merchhandler.UpdateProduct)
-	// protected.DELETE("/products/:id", merchhandler.DeleteProduct)
-	// protected.POST("/products/bulk-upload", merchhandler.BulkUploadProducts)
+    protected.POST("/products/create", merchhandler.CreateProduct)
+	protected.GET("/products", merchhandler.GetMyProducts)
+	protected.PUT("/products/:id", merchhandler.UpdateProduct)
+	protected.DELETE("/products/:id", merchhandler.DeleteProduct)
+	protected.POST("/products/bulk-upload", merchhandler.BulkUploadProducts)
 
     }
 
 
 }
-
+*/

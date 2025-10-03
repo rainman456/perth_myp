@@ -529,3 +529,4 @@ func (h *MerchantHandler) BulkUploadProducts(c *gin.Context) {
 //     if err != nil { /* handle */ }
 //     c.JSON(200, gin.H{"message": "Bank details added"})
 // }
+

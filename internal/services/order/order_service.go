@@ -1,5 +1,3 @@
-
-
 package order
 
 import (
@@ -13,6 +11,9 @@ import (
 	"api-customer-merchant/internal/db/repositories"
 
 	//"go.uber.org/zap"
+	"github.com/go-playground/validator/v10"
+	"github.com/shopspring/decimal"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -23,6 +24,9 @@ type OrderService struct {
 	cartRepo      *repositories.CartRepository
 	cartItemRepo  *repositories.CartItemRepository
 	productRepo   *repositories.ProductRepository
+	inventoryRepo *repositories.InventoryRepository
+	logger      *zap.Logger
+	validator   *validator.Validate
 	db            *gorm.DB
 }
 
@@ -33,6 +37,7 @@ func NewOrderService(
 	cartRepo *repositories.CartRepository,
 	cartItemRepo *repositories.CartItemRepository,
 	productRepo *repositories.ProductRepository,
+	inventoryRepo *repositories.InventoryRepository,
 ) *OrderService {
 	return &OrderService{
 		orderRepo:     orderRepo,
@@ -40,9 +45,18 @@ func NewOrderService(
 		cartRepo:      cartRepo,
 		cartItemRepo:  cartItemRepo,
 		productRepo:   productRepo,
+		inventoryRepo: inventoryRepo,
 		db:            db.DB,
 	}
 }
+
+var (
+	ErrOrderNotFound      = errors.New("order not found")
+	ErrInvalidOrderStatus = errors.New("order cannot be cancelled")
+	ErrUnauthorizedOrder  = errors.New("unauthorized to cancel this order")
+	ErrRefundFailed       = errors.New("failed to initiate refund")
+	ErrNotificationFailed = errors.New("failed to send notification")
+)
 
 // CreateOrder converts a user's active cart into an order.
 // It performs several actions within a single database transaction:
@@ -219,7 +233,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID uint) (*dto.Order
         // Create the order
         newOrder = &models.Order{
             UserID:      userID,
-            TotalAmount: totalAmount,
+            TotalAmount: decimal.NewFromFloat(totalAmount),
             Status:      models.OrderStatusPending,
             OrderItems:  orderItems,
         }
@@ -293,3 +307,125 @@ func (s *OrderService) GetOrder(ctx context.Context, id uint) (*models.Order, er
 	return s.orderRepo.FindByID(ctx, id)
 	//return s.orderRepo.FindByID(id)
 }
+
+
+
+
+// GetOrdersByUserID retrieves all orders for a user
+func (s *OrderService) GetOrdersByUserID(userID uint) ([]models.Order, error) {
+	if userID == 0 {
+		return nil, errors.New("invalid user ID")
+	}
+	return s.orderRepo.FindByUserID(userID)
+}
+
+// GetOrdersByMerchantID retrieves orders containing a merchant's products
+func (s *OrderService) GetOrdersByMerchantID(merchantID uint) ([]models.Order, error) {
+	if merchantID == 0 {
+		return nil, errors.New("invalid merchant ID")
+	}
+	return s.orderRepo.FindByMerchantID(merchantID)
+}
+
+// UpdateOrderStatus updates the status of an order
+func (s *OrderService) UpdateOrderStatus(ctx context.Context, orderID uint, status string) (*models.Order, error) {
+	if orderID == 0 {
+		return nil, errors.New("invalid order ID")
+	}
+	if err := models.OrderStatus(status).Valid(); err != nil {
+		return nil, err
+	}
+
+	order, err := s.orderRepo.FindByID(ctx,orderID)
+	if err != nil {
+		return nil, err
+	}
+
+	order.Status = models.OrderStatus(status)
+	if err := s.orderRepo.Update(ctx ,order); err != nil {
+		return nil, err
+	}
+
+	return s.orderRepo.FindByID(ctx ,orderID)
+}
+
+
+
+// CancelOrder orchestrates cancellation (business logic here)
+func (s *OrderService) CancelOrder(ctx context.Context, orderID uint, userID uint, reason string) error {
+	logger := s.logger.With(zap.String("operation", "CancelOrder"), zap.Uint("order_id", orderID), zap.Uint("user_id", userID))
+
+	// Fetch order (ownership checked in repo for efficiency)
+	order, err := s.orderRepo.FindByIDWithPreloads(ctx, orderID)
+	if err != nil {
+		logger.Error("Failed to fetch order", zap.Error(err))
+		return err
+	}
+	if order.UserID != userID {
+		logger.Warn("Unauthorized cancellation attempt")
+		return ErrUnauthorizedOrder
+	}
+	if order.Status != models.OrderStatusPending { // Adjust enum as per model
+		logger.Warn("Invalid status for cancellation", zap.String("status", string(order.Status)))
+		return ErrInvalidOrderStatus
+	}
+
+	// Transaction for atomicity
+	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Update order status
+		if err := s.orderRepo.UpdateStatus(ctx, orderID, models.OrderStatusCancelled); err != nil {
+			return err
+		}
+
+		// Unreserve inventory for items (no VariantID, so use ProductID + MerchantID)
+		items, err := s.orderItemRepo.FindOrderItemsByOrderID(ctx, orderID)
+		if err != nil {
+			return err
+		}
+		for _, item := range items {
+			inventory, err := s.inventoryRepo.FindByProductAndMerchant(ctx, item.ProductID, item.MerchantID)
+			if err != nil {
+				return fmt.Errorf("inventory lookup failed for product %s: %w", item.ProductID, err)
+			}
+			// Unreserve: Add back to Quantity, subtract from ReservedQuantity
+			inventory.Quantity += item.Quantity
+			if inventory.ReservedQuantity >= item.Quantity {
+				inventory.ReservedQuantity -= item.Quantity
+			} else {
+				inventory.ReservedQuantity = 0
+			}
+			if err := s.inventoryRepo.UpdateInventory(ctx, inventory.ID, item.Quantity); err != nil { // Assume repo method for update
+				return fmt.Errorf("failed to update inventory %s: %w", inventory.ID, err)
+			}
+		}
+
+		// Initiate refund if paid
+		// if order.Payment != nil && order.Payment.Status == "success" {
+		// 	if err := s.paymentService.InitiateRefund(ctx, orderID); err != nil {
+		// 		logger.Error("Refund initiation failed", zap.Error(err))
+		// 		return ErrRefundFailed
+		// 	}
+		// }
+
+		return nil
+	})
+	if err != nil {
+		logger.Error("Transaction failed", zap.Error(err))
+		return err
+	}
+
+	// Notifications (outside tx, fire-and-forget)
+	// if err := s.notificationSvc.NotifyUser(ctx, userID, "Order Cancelled", fmt.Sprintf("Order %d cancelled: %s", orderID, reason)); err != nil {
+	// 	logger.Warn("User notification failed", zap.Error(err)) // Soft fail
+	// }
+	// // For multi-vendor: Notify per merchant (stub; loop over items if needed)
+	// for _, item := range items { // From earlier fetch
+	// 	if err := s.notificationSvc.NotifyMerchant(ctx, item.MerchantID, "Order Item Cancelled", fmt.Sprintf("Item for order %d cancelled", orderID)); err != nil {
+	// 		logger.Warn("Merchant notification failed", zap.Error(err))
+	// 	}
+	// }
+
+	logger.Info("Order cancelled successfully")
+	return nil
+}
+

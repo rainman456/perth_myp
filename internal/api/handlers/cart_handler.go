@@ -201,18 +201,17 @@ func NewCartHandler(cartService *cart.CartService, logger *zap.Logger) *CartHand
 
 
 
-// AddToCart godoc
+// AddToCart handles adding an item to the cart
 // @Summary Add item to cart
-// @Description Adds a product variant to the user's cart or increments quantity if exists
+// @Description Adds a product (with optional variant) to user's active cart
 // @Tags Cart
 // @Accept json
 // @Produce json
-// @Param body body dto.AddItemRequest true "Item to add"
-// @Param user_id query uint false "User ID (for testing)"
 // @Security BearerAuth
-// @Success 200 {object} dto.CartResponse "Item added successfully"
-// @Failure 400 {object} object{error=string} "Invalid request or validation failed"
-// @Failure 500 {object} object{error=string} "Failed to add item"
+// @Param body body dto.AddItemRequest true "Item details"
+// @Success 200 {object} dto.CartResponse
+// @Failure 400 {object} object{error=string}
+// @Failure 401 {object} object{error=string}
 // @Router /cart/items [post]
 func (h *CartHandler) AddToCart(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -247,17 +246,6 @@ if err := utils.RespMap(updatedCart, resp); err != nil {
 
 
 // GetCartItem handles getting a cart item
-// GetCartItem godoc
-// @Summary Get cart item by ID
-// @Description Retrieves a specific cart item
-// @Tags Cart
-// @Produce json
-// @Param id path uint true "Cart item ID"
-// @Success 200 {object} dto.CartItemResponse "Cart item retrieved successfully"
-// @Failure 400 {object} object{error=string} "Invalid cart item ID"
-// @Failure 404 {object} object{error=string} "Cart item not found"
-// @Failure 500 {object} object{error=string} "Failed to fetch cart item"
-// @Router /cart/items/{id} [get]
 func (h *CartHandler) GetCartItem(c *gin.Context) {
 	ctx := c.Request.Context()
 	itemIDStr := c.Param("id")
@@ -272,18 +260,6 @@ func (h *CartHandler) GetCartItem(c *gin.Context) {
 }
 
 // GetCart handles getting the active cart
-// GetCart godoc
-// @Summary Get active cart
-// @Description Retrieves the user's active cart
-// @Tags Cart
-// @Produce json
-// @Param user_id query uint false "User ID (for testing)"
-// @Security BearerAuth
-// @Success 200 {object} dto.CartResponse "Cart retrieved successfully"
-// @Failure 400 {object} object{error=string} "Invalid user ID"
-// @Failure 404 {object} object{error=string} "Cart not found"
-// @Failure 500 {object} object{error=string} "Failed to fetch cart"
-// @Router /cart [get]
 func (h *CartHandler) GetCart(c *gin.Context) {
 	ctx := c.Request.Context()
 	userIDStr := c.Query("user_id")
@@ -314,20 +290,7 @@ func (h *CartHandler) GetCart(c *gin.Context) {
 // }
 
 
-// UpdateCartItemQuantity godoc
-// @Summary Update cart item quantity
-// @Description Updates the quantity of a specific cart item
-// @Tags Cart
-// @Accept json
-// @Produce json
-// @Param id path uint true "Cart item ID"
-// @Param body body dto.UpdateItemRequest true "Updated quantity"
-// @Security BearerAuth
-// @Success 200 {object} dto.CartResponse "Cart item updated successfully"
-// @Failure 400 {object} object{error=string} "Invalid request or validation failed"
-// @Failure 404 {object} object{error=string} "Cart item not found"
-// @Failure 500 {object} object{error=string} "Failed to update cart item"
-// @Router /cart/items/{id} [put]
+
 func (h *CartHandler) UpdateCartItemQuantity(c *gin.Context) {
 	ctx := c.Request.Context()
 	itemIDstr := strings.TrimSpace(c.Param("id"))
@@ -358,18 +321,6 @@ if err := utils.RespMap(updatedCart, resp); err != nil {
 }
 
 // RemoveCartItem handles removing an item
-// RemoveCartItem godoc
-// @Summary Remove cart item
-// @Description Removes a specific item from the cart
-// @Tags Cart
-// @Produce json
-// @Param id path uint true "Cart item ID"
-// @Security BearerAuth
-// @Success 200 {object} dto.CartResponse "Cart item removed successfully"
-// @Failure 400 {object} object{error=string} "Invalid cart item ID"
-// @Failure 404 {object} object{error=string} "Cart item not found"
-// @Failure 500 {object} object{error=string} "Failed to remove cart item"
-// @Router /cart/items/{id} [delete]
 func (h *CartHandler) RemoveCartItem(c *gin.Context) {
 	ctx := c.Request.Context()
 	itemIDStr := c.Param("id")

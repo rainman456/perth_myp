@@ -3,7 +3,10 @@ package payout
 import (
 	"api-customer-merchant/internal/db/models"
 	"api-customer-merchant/internal/db/repositories"
+	"context"
 	"errors"
+
+	"github.com/shopspring/decimal"
 )
 
 type PayoutService struct {
@@ -85,5 +88,4 @@ func (s *PayoutService) RequestPayout(ctx context.Context, merchantID string) (*
         Update("status", "payout_requested")
     return payout, nil
 }
-
 */

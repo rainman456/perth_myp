@@ -4,14 +4,21 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"time"
 
+	"api-customer-merchant/internal/api/dto"
+	"api-customer-merchant/internal/bank"
+
+	//"api-customer-merchant/internal/db"
 	"api-customer-merchant/internal/db/models"
 	"api-customer-merchant/internal/db/repositories"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/golang-jwt/jwt/v5"
+
+	//"github.com/gray-adeyi/paystack"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -153,7 +160,7 @@ func (s *MerchantService) GetMerchantByUserID(ctx context.Context, uid string) (
 	if uid == "" {
 		return nil, errors.New("user ID cannot be empty")
 	}
-	return s.repo.GetByUserID(ctx, uid)
+	return s.repo.GetByMerchantID(ctx, uid)
 }
 
 // GetMerchantByID returns an active merchant by ID.
@@ -216,42 +223,21 @@ func (s *MerchantService) GenerateJWT(entity interface{}) (string, error) {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// func (s *MerchantService) AddBankDetails(merchantID string, details MerchantBankDetails) error {
-//     // Validate inputs (e.g., bank code format)
-//     details.MerchantID = merchantID
+ //func (s *MerchantService) AddBankDetails(merchantID string, details MerchantBankDetails) error {
+     // Validate inputs (e.g., bank code format)
+   //  details.MerchantID = merchantID
 //     details.Status = "pending"
 
 //     // Create Paystack recipient
-//     paystack := paystack.NewClient(config.PaystackSecretKey)  // Assume injected
-//     recipientReq := &paystack.RecipientRequest{
+//     verify_client := paystack.VerificationClient(config.PaystackSecretKey)  // Assume injected
+// 	var response models.Response[models.BankAccountInfo]
+// 	if err := client.Verification.ResolveAccount(context.TODO(), &response,p.WithQuery("account_number","0022728151"),p.WithQuery("bank_code","063")); err != nil {
+// 		panic(err)
+// 	}
+
+// 	fmt.Println(response)
+// }
+//     recipientReq := &verifyclient. {
 //         Type:          "nuban",
 //         Name:          details.AccountName,
 //         AccountNumber: details.AccountNumber,
@@ -268,7 +254,53 @@ func (s *MerchantService) GenerateJWT(entity interface{}) (string, error) {
 //     return db.DB.Create(&details).Error
 // }
 
-// func (s *MerchantService) UpdateBankDetails(merchantID string, details MerchantBankDetails) error {
-//     // Similar, but use Save or Update
-//     return db.DB.Model(&MerchantBankDetails{}).Where("merchant_id = ?", merchantID).Updates(details).Error
-// }
+
+func (s *MerchantService) AddBankDetails(ctx context.Context, merchantID string, details dto.BankDetailsRequest) error {
+	// Validate bank name
+	bankSvc := bank.GetBankService()
+	if err := bankSvc.LoadBanks(); err != nil {
+		return fmt.Errorf("failed to load banks: %w", err)
+	}
+
+	bankCode, err := bankSvc.GetBankCode(details.BankName)
+	if err != nil {
+		return fmt.Errorf("invalid bank name: %w", err)
+	}
+
+	// Override with validated code
+	details.BankCode = bankCode
+
+	// Persist via repository
+	if err := s.repo.UpdateBankDetails(ctx, merchantID, details); err != nil {
+		return fmt.Errorf("failed to save bank details: %w", err)
+	}
+
+	return nil
+}
+
+
+func (s *MerchantService) UpdateBankDetails(ctx context.Context, merchantID string ,details  dto.BankDetailsRequest) error {
+     // Similar, but use Save or Update
+	 if details.BankName == "" {
+		return errors.New("empty bank name")
+	}
+
+	if details.AccountNumber == "" {
+		return errors.New("empty bank name")
+	}
+	
+
+	
+
+	err := s.repo.UpdateBankDetails(ctx ,merchantID, details)
+	if err != nil {
+		return  err
+	}
+
+	//payment.Status = models.PaymentStatus(status)
+	
+
+	return nil
+
+  
+ }

@@ -17,7 +17,7 @@ RUN go mod download
 COPY . .
 
 # Generate Swagger documentation and verify output
-#RUN swag init --generalInfo cmd/main.go
+RUN swag init --generalInfo cmd/main.go
 
 # Build the application
 RUN go build -o bin/api cmd/main.go

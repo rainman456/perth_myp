@@ -5,7 +5,10 @@ import (
 	"api-customer-merchant/internal/db/models"
 	"context"
 
+	//"errors"
+
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type OrderRepository struct {
@@ -20,6 +23,11 @@ func NewOrderRepository() *OrderRepository {
 // func (r *OrderRepository) Create(order *models.Order) error {
 // 	return r.db.Create(order).Error
 // }
+
+type OrderInterface interface {
+	FindByID(ctx context.Context, id uint) (*models.Order, error)
+	// Add other methods as needed
+}
 
 func (r *OrderRepository) Create(ctx context.Context, order *models.Order) error {
 	return r.db.WithContext(ctx).Create(order).Error
@@ -49,11 +57,43 @@ func (r *OrderRepository) FindByMerchantID(merchantID uint) ([]models.Order, err
 }
 
 // Update modifies an existing order
-func (r *OrderRepository) Update(order *models.Order) error {
-	return r.db.Save(order).Error
+func (r *OrderRepository) Update(ctx context.Context,order *models.Order) error {
+	return r.db.WithContext(ctx).Save(order).Error
 }
 
 // Delete removes an order by ID
 func (r *OrderRepository) Delete(id uint) error {
 	return r.db.Delete(&models.Order{}, id).Error
+}
+
+
+// FindByIDWithPreloads fetches with ownership check and preloads (avoids N+1)
+func (r *OrderRepository) FindByIDWithPreloads(ctx context.Context, id uint) (*models.Order, error) {
+	var order models.Order
+	// Preload OrderItems (no deeper Inventory preload to avoid N+1; fetch separately if needed)
+	err := r.db.WithContext(ctx).
+		Scopes(r.activeScope()). // Soft delete filter
+		Preload("OrderItems").
+		Preload("Payment").
+		First(&order, "id = ?", id).Error
+	if err != nil {
+		return nil, err
+	}
+	return &order, nil
+}
+
+// UpdateStatus updates order status (with locking for concurrency)
+func (r *OrderRepository) UpdateStatus(ctx context.Context, id uint, status models.OrderStatus) error {
+	return r.db.WithContext(ctx).
+		Clauses(clause.Locking{Strength: "UPDATE"}).
+		Model(&models.Order{}).
+		Where("id = ?", id).
+		Update("status", status).Error
+}
+
+// activeScope for soft deletes (if Order has DeletedAt)
+func (r *OrderRepository) activeScope() func(db *gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Unscoped().Where("deleted_at IS NULL")
+	}
 }
