@@ -276,8 +276,13 @@ func (h *AuthHandler) GetProfile(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	resp := &dto.ProfileResponse{}
+	if err := utils.RespMap(user, resp); err != nil {
+		
+	}
+	c.JSON(http.StatusOK, resp)
 
-	c.JSON(http.StatusOK, user)
+	//c.JSON(http.StatusOK, user)
 }
 
 // ResetPassword godoc
