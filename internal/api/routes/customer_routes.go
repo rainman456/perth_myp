@@ -24,5 +24,6 @@ func RegisterCustomerRoutes(r *gin.Engine) {
 		protected.Use(middleware.AuthMiddleware("customer"))
 		protected.PATCH("/update",authHandler.UpdateProfile)
 		protected.POST("/logout", authHandler.Logout)
+		protected.GET("/profile",authHandler.GetProfile)
 	}
 }

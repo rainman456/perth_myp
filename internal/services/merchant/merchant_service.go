@@ -168,7 +168,7 @@ func (s *MerchantService) GetMerchantByID(ctx context.Context, id string) (*mode
 	if id == "" {
 		return nil, errors.New("merchant ID cannot be empty")
 	}
-	return s.repo.GetByID(ctx, id)
+	return s.repo.GetByMerchantID(ctx, id)
 }
 
 func (s *MerchantService) LoginMerchant(ctx context.Context, work_email, password string) (*models.Merchant, error) {
@@ -190,7 +190,7 @@ func (s *MerchantService) GenerateJWT(entity interface{}) (string, error) {
 
 	switch e := entity.(type) {
 	case *models.Merchant:
-		id = e.ID
+		id = e.MerchantID
 		entityType = "merchant"
 
 	default:

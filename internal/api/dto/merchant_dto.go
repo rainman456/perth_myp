@@ -41,10 +41,9 @@ type MerchantApplyResponse struct {
 
 
 type MerchantLogin struct {
-	WorkEmail string `json:"work_email" binding:"required,email"`
-	Password  string `json:"password" binding:"required"`
+	Work_Email string `json:"work_email" binding:"required,email"`
+	Password   string `json:"password" binding:"required"`
 }
-
 
 type BankDetailsRequest struct{
 	BankName    string               `json:"bank_name,omitempty"`

@@ -106,10 +106,11 @@ func (h *MerchantHandler) Apply(c *gin.Context) {
 // @Failure 401 {object} object{error=string}
 // @Router /merchant/login [post]
 func (h *MerchantHandler) Login(c *gin.Context) {
-	var req struct {
-		Work_Email string `json:"email" binding:"required,email"`
-		Password   string `json:"password" binding:"required"`
-	}
+	// var req struct {
+	// 	Work_Email string `json:"email" binding:"required,email"`
+	// 	Password   string `json:"password" binding:"required"`
+	// }
+    var req dto.MerchantLogin
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -162,7 +163,7 @@ func (h *MerchantHandler) GetApplication(c *gin.Context) {
 // @Failure 404 {object} object{error=string} "Merchant account not found"
 // @Router /merchant/me [get]
 func (h *MerchantHandler) GetMyMerchant(c *gin.Context) {
-	userID, ok := c.Get("id")
+	userID, ok := c.Get("merchantID")
 	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return

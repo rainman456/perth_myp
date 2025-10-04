@@ -96,8 +96,8 @@ func (Merchant) TableName() string {
 type MerchantBasicInfo struct {
 	StoreName     string `gorm:"column:store_name;size:255;not null" json:"store_name" validate:"required"`
 	Name          string `gorm:"column:name;size:255;not null" json:"name" validate:"required"`
-	PersonalEmail string `gorm:"column:personal_email;size:255;not null;unique" json:"personal_email" validate:"required,email"`
-	WorkEmail     string `gorm:"column:work_email;size:255;not null;unique" json:"work_email" validate:"required,email"`
+	PersonalEmail string `gorm:"column:personal_email;size:255;not null;unique" json:"personal_email" validate:"required"`
+	WorkEmail     string `gorm:"column:work_email;size:255;not null;unique" json:"work_email" validate:"required"`
 	PhoneNumber   string `gorm:"column:phone_number;size:50" json:"phone_number"`
 }
 
@@ -149,7 +149,7 @@ const (
 type Merchant struct {
 	ID                   string `gorm:"primaryKey;column:id;type:uuid;default:uuid_generate_v4()" json:"id,omitempty"`
 	ApplicationID        string `gorm:"column:application_id;type:uuid;not null;unique" json:"application_id"`
-	MerchantID           string `gorm:"column:merchant_id;type:uuid;not null;unique" json:"user_id"`
+	MerchantID           string `gorm:"column:merchant_id;type:uuid;not null;unique" json:"merchant_id"`
 	MerchantBasicInfo    `gorm:"embedded"`
 	MerchantAddress      `gorm:"embedded"`
 	MerchantBusinessInfo `gorm:"embedded"`

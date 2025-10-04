@@ -124,8 +124,8 @@ func (h *AuthHandler) Login(c *gin.Context) {
 // @Router /customer/auth/google [get]
 func (h *AuthHandler) GoogleAuth(c *gin.Context) {
 	url := h.service.GetOAuthConfig("customer").AuthCodeURL("state-customer", oauth2.AccessTypeOffline)
-	//c.Redirect(http.StatusTemporaryRedirect, url)
-	c.JSON(http.StatusOK, gin.H{"url": url})
+	c.Redirect(http.StatusTemporaryRedirect, url)
+	//c.JSON(http.StatusOK, gin.H{"url": url})
 }
 
 // GoogleCallback godoc
@@ -183,7 +183,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 }
 
 // Logout godoc
-// @Summary Customer logout
+// @Summary Customer Profile Update
 // @Description Invalidates the customer's JWT token
 // @Tags Customer
 // @Security BearerAuth

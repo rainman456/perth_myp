@@ -5,6 +5,7 @@ import (
 	//"api-customer-merchant/internal/db/models"
 	//"api-customer-merchant/internal/db/models"
 	//"api-customer-merchant/internal/db/models"
+	//"api-customer-merchant/internal/db/models"
 	"log"
 	"os"
 	"time"
@@ -93,11 +94,11 @@ func AutoMigrate() {
 	//      return
 	//  }
 
-	// log.Println("Migrating Merchant...")
-	// if err := DB.AutoMigrate(&models.Merchant{}); err != nil {
-	//     log.Printf("Failed to migrate Merchant: %v", err)
-	//     return
-	// }
+	//  log.Println("Migrating Merchant...")
+	//  if err := DB.AutoMigrate(&models.Merchant{}); err != nil {
+	//      log.Printf("Failed to migrate Merchant: %v", err)
+	//      return
+	//  }
 
 	//  log.Println("Migrating User...")
 	//  if err := DB.AutoMigrate(&models.User{}); err != nil {
