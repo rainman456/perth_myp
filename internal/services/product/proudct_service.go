@@ -532,6 +532,8 @@ products, total, err := s.productRepo.ProductsFilter(ctx, repoFilter, limit, off
 
 
 
+func (s *ProductService) GetProductsCategories(ctx context.Context, inventoryID string, delta int) error
+
 
 
 
