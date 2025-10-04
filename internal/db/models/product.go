@@ -1,63 +1,72 @@
 package models
 
-/*
-
 import (
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 )
 
-// type Product struct {
-// 	gorm.Model
-// 	MerchantID  uint    `gorm:"not null" json:"merchant_id"`
-// 	Name        string  `gorm:"size:255;not null" json:"name"`
-// 	Description string  `gorm:"type:text" json:"description"`
-// 	SKU         string  `gorm:"size:100;unique;not null" json:"sku"`
-// 	Price       float64 `gorm:"type:decimal(10,2);not null" json:"price"`
-// 	CategoryID  uint    `gorm:"not null" json:"category_id"`
-// 	Merchant    Merchant `gorm:"foreignKey:MerchantID"`
-// 	Category    Category `gorm:"foreignKey:CategoryID"`
-// }
-
+// AttributesMap for JSONB
 type AttributesMap map[string]string
 
-// Value implements driver.Valuer
-func (a AttributesMap) Value() (driver.Value, error) {
-    return json.Marshal(a)
-}
-
-
-// Scan implements sql.Scanner
 func (a *AttributesMap) Scan(value interface{}) error {
-    b, ok := value.([]byte)
-    if !ok {
-        return errors.New("type assertion to []byte failed")
-    }
-    return json.Unmarshal(b, a)
+	b, ok := value.([]byte)
+	if !ok {
+		return errors.New("type assertion to []byte failed")
+	}
+	return json.Unmarshal(b, a)
 }
+
+func (a AttributesMap) Value() (driver.Value, error) {
+	return json.Marshal(a)
+}
+
+// MediaType enum-like type
+type MediaType string
+
+const (
+	MediaTypeImage MediaType = "image"
+	MediaTypeVideo MediaType = "video"
+)
+
+func (mt *MediaType) Scan(value interface{}) error {
+	*mt = MediaType(value.(string))
+	return nil
+}
+
+func (mt MediaType) Value() (driver.Value, error) {
+	return string(mt), nil
+}
+
+
 
 type Product struct {
-	ID          string                 `gorm:"type:uuid;primary_key;default:uuid_generate_v4()"` // Override gorm.Model ID
-	MerchantID  string                 `gorm:"type:uuid;not null;index"` // FK to merchants.id (UUID string)
-	Name        string                 `gorm:"size:255;not null" json:"name"`
-	Description string                 `gorm:"type:text" json:"description"`
-	SKU         string                 `gorm:"size:100;unique;not null;index" json:"sku"`
-	Price       float64                `gorm:"type:decimal(10,2);not null" json:"price"`
-	CategoryID  uint                 `gorm:"type:int;index" json:"category_id"` // Changed to string for UUID; revert to uint if numeric
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-	DeletedAt   gorm.DeletedAt `gorm:"index"`
+	ID          string          `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()" json:"id"`
+	MerchantID  string          `gorm:"type:uuid;not null;index" json:"merchant_id"`
+	Name        string          `gorm:"size:255;not null" json:"name"`
+	Description string          `gorm:"type:text" json:"description"`
+	SKU         string          `gorm:"size:100;unique;not null;index" json:"sku"`
+	BasePrice   decimal.Decimal `gorm:"type:decimal(10,2);not null" json:"base_price"`
+	CategoryID  uint            `gorm:"type:int;index" json:"category_id"`
+	CreatedAt   time.Time       `json:"created_at"`
+	UpdatedAt   time.Time       `json:"updated_at"`
+	DeletedAt   gorm.DeletedAt  `gorm:"index" json:"deleted_at,omitempty"` // Soft deletes for recovery
 
-	Merchant    Merchant    `gorm:"foreignKey:MerchantID;references:id"` // Ensure Merchant.ID is string
-	Category    Category    `gorm:"foreignKey:CategoryID"` // Adjust if Category.ID is uint
-	Variants    []Variant   `gorm:"foreignKey:ProductID"`  // Keep relational
-	Media       []Media     `gorm:"foreignKey:ProductID"`  // Keep relational
+	Merchant        Merchant       `gorm:"foreignKey:MerchantID;references:MerchantID;constraint:OnDelete:RESTRICT"` // Belongs to Merchant, no cascade to protect merchants
+	Category        Category       `gorm:"foreignKey:CategoryID;constraint:OnDelete:RESTRICT"` // Belongs to Category
+	Variants        []Variant      `gorm:"foreignKey:ProductID;constraint:OnDelete:CASCADE" json:"variants,omitempty"` // Has many Variants, cascade delete
+	Media           []Media        `gorm:"foreignKey:ProductID;constraint:OnDelete:CASCADE" json:"media,omitempty"` // Has many Media, cascade delete
+	SimpleInventory *Inventory     `gorm:"foreignKey:ProductID;constraint:OnDelete:CASCADE"` // Has one optional SimpleInventory for non-variant products
 }
+
 
 func (p *Product) BeforeCreate(tx *gorm.DB) error {
 	if p.ID == "" {
@@ -66,53 +75,57 @@ func (p *Product) BeforeCreate(tx *gorm.DB) error {
 	return nil
 }
 
-
-// type Variant struct {
-//     gorm.Model
-//     ProductID  uint
-//     Attributes map[string]string `gorm:"type:jsonb"`
-//     Price      float64
-//     SKU        string
-// }
-
-
-// //define merchant variant
-
-// type Media struct {
-//     gorm.Model
-//     ProductID uint
-//     URL       string
-//     Type      string // image/video
-//}
-
 type Variant struct {
-	gorm.Model
-	ID        string             `gorm:"type:uuid;primary_key;default:uuid_generate_v4()"` // Add UUID PK
-	ProductID string             `gorm:"type:uuid;not null;index"` // Fixed: string for UUID (references products.id)
-	//Attributes map[string]string `gorm:"type:jsonb;default:'{}'"`
-	Attributes AttributesMap `gorm:"type:jsonb;default:'{}'"`
-	Price     float64            `gorm:"type:decimal(10,2);not null"`
-	SKU       string             `gorm:"size:100;unique;not null;index"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID              string          `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()" json:"id"`
+	ProductID       string          `gorm:"type:uuid;not null;index" json:"product_id"`
+	SKU             string          `gorm:"size:100;unique;not null;index" json:"sku"`
+	PriceAdjustment decimal.Decimal `gorm:"type:decimal(10,2);not null;default:0.00" json:"price_adjustment"`
+	TotalPrice      decimal.Decimal `gorm:"type:decimal(10,2);not null" json:"total_price"` // Computed: BasePrice + PriceAdjustment
+	Attributes      AttributesMap `gorm:"type:jsonb;default:'{}'" json:"attributes"` // Use map for simplicity; can change to custom AttributesMap if needed
+	IsActive        bool            `gorm:"default:true" json:"is_active"`
+	CreatedAt       time.Time       `json:"created_at"`
+	UpdatedAt       time.Time       `json:"updated_at"`
+	DeletedAt   gorm.DeletedAt  `gorm:"index" json:"deleted_at,omitempty"` // Soft deletes for recovery
+
+	Product   Product   `gorm:"foreignKey:ProductID;constraint:OnDelete:CASCADE"` // Belongs to Product, cascade from parent
+	Inventory Inventory `gorm:"foreignKey:VariantID;constraint:OnDelete:CASCADE"` // Has one Inventory, cascade delete
 }
 
 func (v *Variant) BeforeCreate(tx *gorm.DB) error {
 	if v.ID == "" {
 		v.ID = uuid.New().String()
 	}
+	// Fetch Product to compute TotalPrice
+	var product Product
+	if err := tx.Where("id = ?", v.ProductID).First(&product).Error; err != nil {
+		return err
+	}
+	v.TotalPrice = product.BasePrice.Add(v.PriceAdjustment)
+	return nil
+}
+
+func (v *Variant) BeforeUpdate(tx *gorm.DB) error {
+	// Recompute TotalPrice on update
+	var product Product
+	if err := tx.Where("id = ?", v.ProductID).First(&product).Error; err != nil {
+		return err
+	}
+	v.TotalPrice = product.BasePrice.Add(v.PriceAdjustment)
 	return nil
 }
 
 type Media struct {
-	gorm.Model
-	ID        string  `gorm:"type:uuid;primary_key;default:uuid_generate_v4()"` // Add UUID PK
-	ProductID string  `gorm:"type:uuid;not null;index"` // Fixed: string for UUID (references products.id)
-	URL       string  `gorm:"size:500;not null"`
-	Type      string  `gorm:"size:20;default:'image';not null"` // e.g., "image", "video"
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID        string    `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()" json:"id"`
+	ProductID string    `gorm:"type:uuid;index" json:"product_id"`
+	URL       string    `gorm:"not null" json:"url"`
+	Type      MediaType `gorm:"not null" json:"type"` // enum: image, video
+	PublicID  string     `gorm:"index" json:"public_id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+
+	Product Product `gorm:"foreignKey:ProductID;constraint:OnDelete:CASCADE"` // Belongs to Product (bidirectional for easier queries)
 }
+
 
 func (m *Media) BeforeCreate(tx *gorm.DB) error {
 	if m.ID == "" {
@@ -121,4 +134,33 @@ func (m *Media) BeforeCreate(tx *gorm.DB) error {
 	return nil
 }
 
-*/
+
+
+
+func (p *Product) GenerateSKU(merchantID string) {
+	base := strings.ToUpper(strings.ReplaceAll(p.Name, " ", "-"))
+	unique := strings.ToUpper(uuid.NewString()[:8])
+	p.SKU = fmt.Sprintf("%s-%s-%s", merchantID[:4], base, unique) // Prefix min(4, len(merchantID))
+}
+
+// GenerateSKU auto-generates SKU for the variant based on product SKU and attributes
+func (v *Variant) GenerateSKU(productSKU string) {
+	if len(v.Attributes) == 0 {
+		v.SKU = productSKU + "-DEFAULT"
+		return
+	}
+
+	// Sort keys for consistent order
+	keys := make([]string, 0, len(v.Attributes))
+	for k := range v.Attributes {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	attrStr := ""
+	for _, k := range keys {
+		val := v.Attributes[k]
+		attrStr += fmt.Sprintf("-%s-%s", strings.ToUpper(k), strings.ToUpper(strings.ReplaceAll(val, " ", "-")))
+	}
+	v.SKU = productSKU + attrStr
+}

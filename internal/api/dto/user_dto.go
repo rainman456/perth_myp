@@ -40,5 +40,11 @@ type LoginRequest struct {
   	Email    string   `json:"email,omitempty"`
   	Name     string   `json:"name,omitempty"`
   	Country  string   `json:"country,omitempty"`
-  	Addresses []string `json:"addresses,omitempty"`
+  	Addresses string `json:"addresses,omitempty"`
   }	
+
+
+  type ResetPasswordRequest struct{
+	  Email      string       `json:"email" validate:"required,email"`
+	  NewPassword string `json:"new_password" binding:"required"`
+  }

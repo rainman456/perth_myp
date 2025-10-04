@@ -105,3 +105,11 @@ type MediaUpdateRequest struct {
 type MediaDeleteRequest struct {
 	Reason string `json:"reason" validate:"omitempty,max=500"`
 }
+
+type CategoryResponse struct {
+	ID         uint                  `json:"id"`
+	Name       string                `json:"name"`
+	ParentID   *uint                 `json:"parent_id"`
+	Attributes map[string]interface{}`json:"attributes"`
+	Parent     *CategoryResponse     `json:"parent"`
+}

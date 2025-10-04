@@ -66,11 +66,15 @@ import (
 func SetupProductRoutes(r *gin.Engine) {
 	logger, _ := zap.NewProduction()
 	repo := repositories.NewProductRepository()
+	catrepo:=repositories.NewCategoryRepository()
 	cfg := config.Load()
-	service := product.NewProductService(repo, cfg, logger)
-	productHandler := handlers.NewProductHandlers(service, logger)
+	productservice := product.NewProductService(repo, cfg, logger)
+	productHandler := handlers.NewProductHandlers(productservice, logger)
+	catservice:=product.NewCategoryService(catrepo)
+	cathandler:=handlers.NewCategoryHandler(catservice)
 
 	r.GET("/products", productHandler.GetAllProducts)
 	r.GET("/products/:id", productHandler.GetProductByID)
+	r.GET("/categories", cathandler.GetCategories)
 	// Merchant-specific moved to merchant_routes
 }

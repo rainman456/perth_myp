@@ -3,6 +3,7 @@ package repositories
 import (
 	"api-customer-merchant/internal/db"
 	"api-customer-merchant/internal/db/models"
+	"context"
 	"log"
 
 	"gorm.io/gorm"
@@ -39,9 +40,9 @@ func (r *UserRepository) FindByGoogleID(googleID string) (*models.User, error) {
 	return &user, nil
 }
 
-func (r *UserRepository) FindByID(id uint) (*models.User, error) {
+func (r *UserRepository) FindByID(ctx context.Context , id uint) (*models.User, error) {
 	var user models.User
-	err := r.db.First(&user, id).Error
+	err := r.db.WithContext(ctx).First(&user, id).Error
 	if err != nil {
 		return nil, err
 	}

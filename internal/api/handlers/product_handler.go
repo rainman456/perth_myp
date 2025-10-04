@@ -18,6 +18,15 @@ import (
 	"api-customer-merchant/internal/services/product"
 )
 
+
+type CategoryHandler struct {
+	service *product.CategoryService
+}
+
+func NewCategoryHandler(service *product.CategoryService) *CategoryHandler {
+	return &CategoryHandler{service: service}
+}
+
 type ProductHandler struct {
 	productService *product.ProductService
 	logger         *zap.Logger
@@ -373,3 +382,19 @@ func (h *ProductHandler) DeleteProduct(c *gin.Context) {
 
 
 
+// GetCategories godoc
+// @Summary Get all categories
+// @Description Retrieves all categories with parent information
+// @Tags Categories
+// @Produce json
+// @Success 200 {array} dto.CategoryResponse "List of categories"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Router /categories [get]
+func (h *CategoryHandler) GetCategories(c *gin.Context) {
+	categories, err := h.service.GetAllCategories()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, categories)
+}

@@ -83,11 +83,15 @@ func (s *AuthService) LoginUser(email, password string) (*models.User, error) {
 func (s *AuthService) GenerateJWT(entity interface{}) (string, error) {
 	var id uint
 	var entityType string
+	var name string
+	var email string
 
 	switch e := entity.(type) {
 	case *models.User:
 		id = e.ID
 		entityType = "user"
+		name = e.Name
+		email = e.Email
 
 	default:
 		return "", errors.New("invalid entity type")
@@ -96,6 +100,8 @@ func (s *AuthService) GenerateJWT(entity interface{}) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"id":         float64(id),
 		"entityType": entityType,
+		"name":       name,
+		"email":      email,
 		"exp":        time.Now().Add(24 * time.Hour).Unix(),
 	})
 
@@ -209,9 +215,9 @@ func (s *AuthService) GoogleLogin(code, baseURL, entityType string) (*models.Use
 	return user, jwtToken, nil
 }
 
-func (s *AuthService) UpdateProfile(userID uint, name, country string, addresses []string) error {
+func (s *AuthService) UpdateProfile(ctx context.Context ,userID uint, name, country string, addresses string) error {
 
-	user, err := s.userRepo.FindByID(userID)
+	user, err := s.userRepo.FindByID(ctx,userID)
 	if err != nil {
 		return err
 	}
@@ -233,3 +239,17 @@ func (s *AuthService) ResetPassword(email, newPassword string) error {
 	user.Password = string(hashed)
 	return s.userRepo.Update(user)
 }
+
+
+
+// GetOrder retrieves a single order by its ID.
+func (s *AuthService) GetUser(ctx context.Context, id uint) (*models.User, error) {
+	if id == 0 {
+		return nil, errors.New("invalid order ID")
+	}
+	// The repository already preloads necessary associations.
+	return s.userRepo.FindByID(ctx, id)
+	//return s.orderRepo.FindByID(id)
+}
+
+

@@ -4,14 +4,15 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 
 	//"os"
 	"strings"
 
 	//"api-customer-merchant/internal/db/models"
 	//"api-customer-merchant/internal/db/repositories"
-	services "api-customer-merchant/internal/services/user"
 	"api-customer-merchant/internal/api/dto"
+	services "api-customer-merchant/internal/services/user"
 	"api-customer-merchant/internal/utils"
 
 	"github.com/gin-gonic/gin"
@@ -54,7 +55,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	user, err := h.service.RegisterUser(req.Email, req.Name, req.Password, req.Country,req.Address)
+	user, err := h.service.RegisterUser(req.Email, req.Name, req.Password, req.Country, req.Address)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -181,18 +182,38 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Logout successful"})
 }
 
-
 // Logout godoc
 // @Summary Customer logout
 // @Description Invalidates the customer's JWT token
 // @Tags Customer
 // @Security BearerAuth
+// @Param body body dto.UserUpdateRequest true "Update Customer Profile"
 // @Produce json
 // @Success 200 {object} object{message=string} "Logout successful"
 // @Failure 400 {object} object{error=string} "Authorization header required"
-// @Router /customer/logout [patch]
+// @Router /customer/update [patch]
 func (h *AuthHandler) UpdateProfile(c *gin.Context) {
-	userID, _ := c.Get("userID")
+	ctx := c.Request.Context()
+	userID, exists := c.Get("userID")
+
+	if !exists {
+
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	userIDStr, ok := userID.(string)
+	if !ok {
+
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user session"})
+		return
+	}
+	userIDUint, err := strconv.ParseUint(userIDStr, 10, 32)
+	if err != nil {
+
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user ID"})
+		return
+	}
+
 	// var req struct {
 	// 	Name      string
 	// 	Country   string
@@ -203,10 +224,77 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if err := h.service.UpdateProfile(userID.(uint), req.Name, req.Country, req.Addresses); err != nil {
+	if err := h.service.UpdateProfile(ctx, uint(userIDUint), req.Name, req.Country, req.Addresses); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "updated"})
 }
 
+// GetProfile godoc
+// @Summary Get customer profile
+// @Description Retrieves the customer's profile information
+// @Tags Customer
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {object} models.User "Profile details"
+// @Failure 401 {object} object{error=string} "Unauthorized"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Router /customer/profile [get]
+func (h *AuthHandler) GetProfile(c *gin.Context) {
+	ctx := c.Request.Context()
+	userID, exists := c.Get("userID")
+	if !exists {
+
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	userIDStr, ok := userID.(string)
+	if !ok {
+
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user session"})
+		return
+	}
+	userIDUint, err := strconv.ParseUint(userIDStr, 10, 32)
+	if err != nil {
+
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user ID"})
+		return
+	}
+	
+
+	user, err := h.service.GetUser(ctx,uint(userIDUint))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, user)
+}
+
+// ResetPassword godoc
+// @Summary Reset customer password
+// @Description Resets the customer's password (unprotected; add verification in production)
+// @Tags Customer
+// @Accept json
+// @Produce json
+// @Param body body ResetPasswordRequest true "Reset details"
+// @Success 200 {object} object{message=string} "Password reset successful"
+// @Failure 400 {object} object{error=string} "Invalid input"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Router /customer/reset-password [post]
+func (h *AuthHandler) ResetPassword(c *gin.Context) {
+	var req dto.ResetPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	err := h.service.ResetPassword(req.Email, req.NewPassword)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Password reset successful"})
+}
