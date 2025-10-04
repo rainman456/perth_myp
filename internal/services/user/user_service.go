@@ -89,7 +89,7 @@ func (s *AuthService) GenerateJWT(entity interface{}) (string, error) {
 	switch e := entity.(type) {
 	case *models.User:
 		id = e.ID
-		entityType = "user"
+		entityType = "customer"
 		name = e.Name
 		email = e.Email
 
