@@ -158,10 +158,14 @@ func (h *AuthHandler) GoogleCallback(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
+	frontendURL := os.Getenv("BASE_URL")
+	if frontendURL == "" {
+		frontendURL = "http://localhost:3000" // fallback for local dev
+	}
 
 
 	//c.JSON(http.StatusCreated, gin.H{"token": token, "user": user})
-	redirectURL := fmt.Sprintf("https://your-frontend.com/dashboard?token=%s", token)
+	redirectURL := fmt.Sprintf("%s/auth/success?token=%s", frontendURL, token)
 	c.Redirect(http.StatusTemporaryRedirect, redirectURL)
 }
 
