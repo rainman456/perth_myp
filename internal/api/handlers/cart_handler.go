@@ -420,9 +420,9 @@ func (h *CartHandler) ClearCart(c *gin.Context) {
 	}
 
 	perr := h.cartService.ClearCart(ctx, uint(userIDUint))
-	if err != nil {
+	if perr != nil {
 		h.logger.Error("ClearCart failed", zap.Uint("user_id", userID.(uint)), zap.Error(perr))
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": perr.Error()})
 		return
 	}
 
