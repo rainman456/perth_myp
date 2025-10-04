@@ -98,6 +98,20 @@ definitions:
       user_id:
         type: integer
     type: object
+  dto.CategoryResponse:
+    properties:
+      attributes:
+        additionalProperties: true
+        type: object
+      id:
+        type: integer
+      name:
+        type: string
+      parent:
+        $ref: '#/definitions/dto.CategoryResponse'
+      parent_id:
+        type: integer
+    type: object
   dto.CreateDisputeDTO:
     properties:
       description:
@@ -369,6 +383,16 @@ definitions:
           $ref: '#/definitions/dto.VariantResponse'
         type: array
     type: object
+  dto.ResetPasswordRequest:
+    properties:
+      email:
+        type: string
+      new_password:
+        type: string
+    required:
+    - email
+    - new_password
+    type: object
   dto.ReturnRequestResponseDTO:
     properties:
       created_at:
@@ -393,6 +417,17 @@ definitions:
         type: integer
       user_id:
         type: integer
+    type: object
+  dto.UserUpdateRequest:
+    properties:
+      addresses:
+        type: string
+      country:
+        type: string
+      email:
+        type: string
+      name:
+        type: string
     type: object
   dto.VariantInput:
     properties:
@@ -738,6 +773,28 @@ paths:
       summary: Update cart item quantity
       tags:
       - Cart
+  /categories:
+    get:
+      description: Retrieves all categories with parent information
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of categories
+          schema:
+            items:
+              $ref: '#/definitions/dto.CategoryResponse'
+            type: array
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Get all categories
+      tags:
+      - Categories
   /customer/auth/google:
     get:
       description: Redirects to Google OAuth login page
@@ -846,7 +903,7 @@ paths:
       tags:
       - Customer
   /customer/logout:
-    patch:
+    post:
       description: Invalidates the customer's JWT token
       produces:
       - application/json
@@ -870,20 +927,28 @@ paths:
       summary: Customer logout
       tags:
       - Customer
-    post:
-      description: Invalidates the customer's JWT token
+  /customer/profile:
+    get:
+      description: Retrieves the customer's profile information
       produces:
       - application/json
       responses:
         "200":
-          description: Logout successful
+          description: Profile details
           schema:
             properties:
-              message:
+              error:
                 type: string
             type: object
-        "400":
-          description: Authorization header required
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
           schema:
             properties:
               error:
@@ -891,7 +956,7 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Customer logout
+      summary: Get customer profile
       tags:
       - Customer
   /customer/register:
@@ -941,6 +1006,78 @@ paths:
                 type: string
             type: object
       summary: Register a new customer
+      tags:
+      - Customer
+  /customer/reset-password:
+    post:
+      consumes:
+      - application/json
+      description: Resets the customer's password (unprotected; add verification in
+        production)
+      parameters:
+      - description: Reset details
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ResetPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Password reset successful
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Reset customer password
+      tags:
+      - Customer
+  /customer/update:
+    patch:
+      description: Invalidates the customer's JWT token
+      parameters:
+      - description: Update Customer Profile
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UserUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Update successful
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "400":
+          description: Authorization header required
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Customer logout
       tags:
       - Customer
   /disputes:

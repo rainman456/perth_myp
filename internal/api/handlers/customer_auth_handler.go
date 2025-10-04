@@ -278,7 +278,7 @@ func (h *AuthHandler) GetProfile(c *gin.Context) {
 // @Tags Customer
 // @Accept json
 // @Produce json
-// @Param body body ResetPasswordRequest true "Reset details"
+// @Param body body dto.ResetPasswordRequest true "Reset details"
 // @Success 200 {object} object{message=string} "Password reset successful"
 // @Failure 400 {object} object{error=string} "Invalid input"
 // @Failure 500 {object} object{error=string} "Internal server error"
