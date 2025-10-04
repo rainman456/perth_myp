@@ -160,12 +160,12 @@ func (h *AuthHandler) GoogleCallback(c *gin.Context) {
 	}
 	frontendURL := os.Getenv("BASE_URL")
 	if frontendURL == "" {
-		frontendURL = "https://perthmyp-9flfu.sevalla.app/" // fallback for local dev
+		frontendURL = "https://perthmyp-9flfu.sevalla.app" // fallback for local dev
 	}
 
 
 	//c.JSON(http.StatusCreated, gin.H{"token": token, "user": user})
-	redirectURL := fmt.Sprintf("%s/auth/success?token=%s", frontendURL, token)
+	redirectURL := fmt.Sprintf("%s/auth/callback?token=%s", frontendURL, token)
 	c.Redirect(http.StatusTemporaryRedirect, redirectURL)
 }
 
