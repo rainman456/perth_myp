@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -151,14 +152,17 @@ func (h *AuthHandler) GoogleCallback(c *gin.Context) {
 		return
 	}
 
-	user, token, err := h.service.GoogleLogin(code, os.Getenv("BASE_URL"), "customer")
+	_, token, err := h.service.GoogleLogin(code, os.Getenv("BASE_URL"), "customer")
 	if err != nil {
 		log.Printf("Google login failed: %v", err)
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"token": token, "user": user})
+
+	//c.JSON(http.StatusCreated, gin.H{"token": token, "user": user})
+	redirectURL := fmt.Sprintf("https://your-frontend.com/dashboard?token=%s", token)
+	c.Redirect(http.StatusTemporaryRedirect, redirectURL)
 }
 
 // Logout godoc
