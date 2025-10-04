@@ -9,6 +9,12 @@ import (
 	"gorm.io/gorm"
 )
 
+type DisputeRepo interface {
+    Create(ctx context.Context, dispute *models.Dispute) error
+    FindDisputeByID(ctx context.Context, id string) (*models.Dispute, error)
+    // Add any other methods your service calls on the repo
+}
+
 type DisputeRepository struct {
 	db *gorm.DB
 }

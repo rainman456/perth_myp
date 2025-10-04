@@ -18,13 +18,13 @@ var (
 )
 
 type DisputeService struct {
-	disputeRepo *repositories.DisputeRepository
+	disputeRepo repositories.DisputeRepo
 	orderRepo   *repositories.OrderRepository
 	logger      *zap.Logger
 }
 
 func NewDisputeService(
-	disputeRepo *repositories.DisputeRepository,
+	disputeRepo repositories.DisputeRepo,
 	orderRepo *repositories.OrderRepository,
 	logger *zap.Logger,
 ) *DisputeService {

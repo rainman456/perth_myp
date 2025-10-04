@@ -347,3 +347,42 @@ func (s *PaymentService) UpdatePaymentStatus(ctx context.Context,paymentID uint,
 
 	return s.paymentRepo.FindByID(ctx ,paymentID)
 }
+
+
+
+
+func (s *PaymentService) HandleWebhook() {
+	// logger := s.logger.With(zap.String("operation", "HandleWebhook"))
+
+	// var event paystack.Event
+	// if err := c.ShouldBindJSON(&event); err != nil {
+	// 	c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload"})
+	// 	return
+	// }
+
+	// // Verify signature
+	// sig := c.GetHeader("x-paystack-signature")
+	// if !paystack.VerifySignature([]byte(event.Raw), sig, s.conf.PaystackSecretKey) {
+	// 	c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid signature"})
+	// 	return
+	// }
+
+	// // Handle charge.success
+	// if event.Event == "charge.success" {
+	// 	var data paystack.TransactionData
+	// 	if err := json.Unmarshal(event.Data, &data); err != nil {
+	// 		logger.Error("Unmarshal webhook data failed", zap.Error(err))
+	// 		c.Status(http.StatusBadRequest)
+	// 		return
+	// 	}
+	// 	paymentResp, err := s.VerifyPayment(c.Request.Context(), data.Reference)
+	// 	if err != nil {
+	// 		logger.Error("Webhook verification failed", zap.Error(err))
+	// 		c.Status(http.StatusInternalServerError)
+	// 		return
+	// 	}
+	// 	// Trigger notifications, payouts, etc.
+	// }
+
+	// c.JSON(http.StatusOK, gin.H{"status": "success"})
+}
