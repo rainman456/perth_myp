@@ -276,10 +276,16 @@ func (h *AuthHandler) GetProfile(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	resp := &dto.ProfileResponse{}
-	if err := utils.RespMap(user, resp); err != nil {
-		
+	resp := &dto.ProfileResponse{
+		ID: user.ID,
+		Email: user.Email,
+		Name: user.Name,
+		Country: user.Country,
+		Addresses:user.Address,
 	}
+	// if err := utils.RespMap(user, resp); err != nil {
+		
+	// }
 	c.JSON(http.StatusOK, resp)
 
 	//c.JSON(http.StatusOK, user)
