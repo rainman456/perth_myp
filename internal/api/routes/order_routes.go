@@ -22,6 +22,7 @@ inventoryRepo := repositories.NewInventoryRepository() // Fixed: Added "New"
 	r.POST("/orders",protected, orderHandler.CreateOrder) //create order
 	r.GET("/orders/:id", protected,orderHandler.GetOrder) //get order
 	r.POST("orders/:id/cancel", protected,orderHandler.CancelOrder)
+	r.GET("/orders",protected,orderHandler.GetUserOrders)
 
 	//r.GET("/orders/:id", protected, orderHandler.GetOrder)
 }
