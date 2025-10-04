@@ -212,7 +212,7 @@ func SetupMerchantRoutes(r *gin.Engine) {
 		protected.Use(middleware.AuthMiddleware("merchant"))
 		{
 			protected.GET("/me", merchantAuthHandler.GetMyMerchant)
-
+            protected.POST("/logout", merchantAuthHandler.Logout)
 			productsGroup := protected.Group("/products")
 			{
 				productsGroup.POST("", merchantproductHandler.CreateProduct)

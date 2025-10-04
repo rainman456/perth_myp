@@ -3,11 +3,13 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 	"time"
 
 	"api-customer-merchant/internal/api/dto"
 	"api-customer-merchant/internal/db/models"
 	"api-customer-merchant/internal/services/merchant"
+	"api-customer-merchant/internal/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -174,4 +176,28 @@ func (h *MerchantHandler) GetMyMerchant(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, m)
+}
+
+
+
+
+// Logout godoc
+// @Summary Merchant logout
+// @Description Invalidates the Merchant's JWT token
+// @Tags Merchant
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {object} object{message=string} "Logout successful"
+// @Failure 400 {object} object{error=string} "Authorization header required"
+// @Router /customer/logout [post]
+func (h *MerchantHandler) Logout(c *gin.Context) {
+	authHeader := c.GetHeader("Authorization")
+	if authHeader == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Authorization header required"})
+		return
+	}
+
+	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+	utils.Add(tokenString)
+	c.JSON(http.StatusOK, gin.H{"message": "Logout successful"})
 }
