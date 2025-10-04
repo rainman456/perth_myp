@@ -223,6 +223,7 @@ func (s *AuthService) UpdateProfile(ctx context.Context ,userID uint, name, coun
 	}
 	user.Name = name
 	user.Country = country
+	user.Address = addresses
 	// Addresses as JSON; add field to User model if needed: Addresses jsonb
 	return s.userRepo.Update(user)
 }
