@@ -1,5 +1,10 @@
 package dto
 
+import (
+	"api-customer-merchant/internal/db/models"
+	"time"
+)
+
 //import "api-customer-merchant/internal/db/models"
 
 // CreateOrderRequest defines the request body for creating an order.
@@ -28,4 +33,39 @@ type OrderItemResponse struct {
 
 type CancelOrderRequest struct {
 	Reason string `json:"reason" validate:"omitempty,max=500"` // Optional cancellation reason
+}
+
+
+
+
+
+type OrdersResponse struct {
+	ID        uint             `json:"id"`
+	UserID    uint             `json:"user_id"`
+	OrderItems []OrdersItemResponse `json:"order_items"`
+	Status    models.OrderStatus `json:"status"`
+	CreatedAt time.Time         `json:"created_at"`
+	UpdatedAt time.Time         `json:"updated_at"`
+}
+
+type OrdersItemResponse struct {
+	ID        uint   `json:"id"`
+	OrderID   uint   `json:"order_id"`
+	ProductID string   `json:"product_id"`
+	Product   OrderProductResponse `json:"product"`
+	MerchantID string  `json:"merchant_id"`
+	Merchant  OrderMerchantResponse `json:"merchant"`
+	Quantity  uint   `json:"quantity"`
+}
+
+type OrderProductResponse struct {
+	ID          string   `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Price       float64 `json:"price"`
+}
+
+type OrderMerchantResponse struct {
+	ID        string `json:"id"`
+	StoreName string `json:"store_name"`
 }

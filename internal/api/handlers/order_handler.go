@@ -164,3 +164,38 @@ func (h *OrderHandler) CancelOrder(c *gin.Context) {
 	h.logger.Info("Order cancelled successfully", zap.Uint("order_id", uint(orderID)), zap.Uint("user_id", uint(userID)))
 	c.JSON(http.StatusOK, resp)
 }
+
+
+
+// GetUserOrders godoc
+// @Summary Get all user orders
+// @Description Retrieves all orders and their items for the authenticated user
+// @Tags Orders
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {array} dto.OrderResponse "List of orders with items"
+// @Failure 401 {object} object{error=string} "Unauthorized"
+// @Failure 400 {object} object{error=string} "Invalid user ID"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Router /orders [get]
+func (h *OrderHandler) GetUserOrders(c *gin.Context) {
+	userIDStr, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	userID, err := strconv.ParseUint(userIDStr.(string), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID"})
+		return
+	}
+
+	orders, err := h.orderService.GetUserOrders(c.Request.Context(), uint(userID))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, orders)
+}

@@ -205,19 +205,19 @@ func (s *OrderService) GetOrder(ctx context.Context, id uint) (*models.Order, er
 
 
 // GetOrdersByUserID retrieves all orders for a user
-func (s *OrderService) GetOrdersByUserID(userID uint) ([]models.Order, error) {
-	if userID == 0 {
-		return nil, errors.New("invalid user ID")
-	}
-	return s.orderRepo.FindByUserID(userID)
-}
+// func (s *OrderService) GetOrdersByUserID(userID uint) ([]models.Order, error) {
+// 	if userID == 0 {
+// 		return nil, errors.New("invalid user ID")
+// 	}
+// 	return s.orderRepo.FindByUserID(userID)
+// }
 
 // GetOrdersByMerchantID retrieves orders containing a merchant's products
-func (s *OrderService) GetOrdersByMerchantID(merchantID uint) ([]models.Order, error) {
+func (s *OrderService) GetOrdersByMerchantID(ctx context.Context ,merchantID uint) ([]models.Order, error) {
 	if merchantID == 0 {
 		return nil, errors.New("invalid merchant ID")
 	}
-	return s.orderRepo.FindByMerchantID(merchantID)
+	return s.orderRepo.FindByMerchantID(ctx,merchantID)
 }
 
 // UpdateOrderStatus updates the status of an order
@@ -320,5 +320,70 @@ func (s *OrderService) CancelOrder(ctx context.Context, orderID uint, userID uin
 
 	logger.Info("Order cancelled successfully")
 	return nil
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+func (s *OrderService) GetUserOrders(ctx context.Context, userID uint) ([]dto.OrdersResponse, error) {
+	orders, err := s.orderRepo.FindByUserID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	var orderDTOs []dto.OrdersResponse
+	for _, order := range orders {
+		orderDTO := dto.OrdersResponse{
+			ID:        order.ID,
+			UserID:    order.UserID,
+			Status:    order.Status,
+			CreatedAt: order.CreatedAt,
+			UpdatedAt: order.UpdatedAt,
+		}
+		for _, item := range order.OrderItems {
+			itemDTO := dto.OrdersItemResponse{
+				ID:        item.ID,
+				OrderID:   item.OrderID,
+				ProductID: item.ProductID,
+				Quantity:  uint(item.Quantity),
+				MerchantID: item.MerchantID,
+			}
+			if item.Product.ID != "" {
+				itemDTO.Product = dto.OrderProductResponse{
+					ID:          item.Product.ID,
+					Name:        item.Product.Name,
+					Description: item.Product.Description,
+					Price:       item.Product.BasePrice.InexactFloat64(),
+				}
+			}
+			if item.Merchant.MerchantID != "" {
+				itemDTO.Merchant = dto.OrderMerchantResponse{
+					ID:        item.Merchant.ID,
+					StoreName: item.Merchant.StoreName,
+				}
+			}
+			orderDTO.OrderItems = append(orderDTO.OrderItems, itemDTO)
+		}
+		orderDTOs = append(orderDTOs, orderDTO)
+	}
+	return orderDTOs, nil
 }
 
