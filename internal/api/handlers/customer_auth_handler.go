@@ -37,7 +37,7 @@ func NewAuthHandler(s *services.AuthService) *AuthHandler {
 // @Tags Customer
 // @Accept json
 // @Produce json
-// @Param body body object{email=string,name=string,password=string,country=string} true "Customer registration details"
+// @Param body body dto.RegisterRequest true "Customer registration details"
 // @Success 200 {object} object{token=string} "JWT token"
 // @Failure 400 {object} object{error=string} "Invalid request"
 // @Failure 500 {object} object{error=string} "Server error"
@@ -56,7 +56,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	user, err := h.service.RegisterUser(req.Email, req.Name, req.Password, req.Country, req.Address)
+	user, err := h.service.RegisterUser(req.Email, req.Name, req.Password,  req.Address, req.Country)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

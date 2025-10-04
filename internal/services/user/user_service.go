@@ -39,7 +39,7 @@ type googleUserInfo struct {
 	Name  string `json:"name"`
 }
 
-func (s *AuthService) RegisterUser(email, name, password, address ,country string) (*models.User, error) {
+func (s *AuthService) RegisterUser(email, name, password, address, country string) (*models.User, error) {
 	_, err := s.userRepo.FindByEmail(email)
 	if err == nil {
 		return nil, errors.New("email already exists")
