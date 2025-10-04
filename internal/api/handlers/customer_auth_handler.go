@@ -189,7 +189,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 // @Security BearerAuth
 // @Param body body dto.UserUpdateRequest true "Update Customer Profile"
 // @Produce json
-// @Success 200 {object} object{message=string} "Logout successful"
+// @Success 200 {object} object{message=string} "Update successful"
 // @Failure 400 {object} object{error=string} "Authorization header required"
 // @Router /customer/update [patch]
 func (h *AuthHandler) UpdateProfile(c *gin.Context) {
@@ -237,7 +237,7 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 // @Tags Customer
 // @Security BearerAuth
 // @Produce json
-// @Success 200 {object} models.User "Profile details"
+// @Success 200 {object} object{error=string} "Profile details"
 // @Failure 401 {object} object{error=string} "Unauthorized"
 // @Failure 500 {object} object{error=string} "Internal server error"
 // @Router /customer/profile [get]

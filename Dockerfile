@@ -19,6 +19,9 @@ COPY . .
 # Generate Swagger documentation and verify output
 RUN swag init --generalInfo cmd/main.go
 
+# Copy swagger.json from docs to root
+RUN cp docs/swagger.json .
+
 # Build the application
 RUN go build -o bin/api cmd/main.go
 

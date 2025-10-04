@@ -32,7 +32,7 @@ type LoginRequest struct {
   	Email    string   `json:"email"`
   	Name     string   `json:"name"`
   	Country  string   `json:"country"`
-  	Addresses []string `json:"addresses,omitempty"`
+  	Addresses string `json:"addresses,omitempty"`
   }	
 
 
