@@ -186,13 +186,16 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	}
 
 	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-	utils.Add(tokenString)
+	err:=utils.Add(tokenString)
+	if  err != nil{
+		c.JSON(http.StatusInternalServerError, gin.H{"error":"failed to logoout"})
+	}
 	c.JSON(http.StatusOK, gin.H{"message": "Logout successful"})
 }
 
 // Logout godoc
 // @Summary Customer Profile Update
-// @Description Invalidates the customer's JWT token
+// @Description Updates Customer profile
 // @Tags Customer
 // @Security BearerAuth
 // @Param body body dto.UserUpdateRequest true "Update Customer Profile"

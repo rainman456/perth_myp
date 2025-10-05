@@ -8,7 +8,6 @@ import (
 // ProductInput represents the request body for creating a product
 type ProductInput struct {
 	Name         string         `json:"name" validate:"required,max=255"`
-	MerchantID   string         `json:"merchant_id" validate:"required,max=255"`
 	Description  string         `json:"description" validate:"max=1000"`
 	//SKU          string         `json:"sku" validate:"required,max=100"`
 	BasePrice    float64        `json:"base_price" validate:"required,gt=0"`

@@ -62,7 +62,7 @@ func NewProductService(productRepo *repositories.ProductRepository,  cfg *config
 }
 
 // CreateProductWithVariants creates a product from input DTO
-func (s *ProductService) CreateProductWithVariants(ctx context.Context, input *dto.ProductInput) (*dto.ProductResponse, error) {
+func (s *ProductService) CreateProductWithVariants(ctx context.Context, merchant_id string,input *dto.ProductInput) (*dto.ProductResponse, error) {
 	logger := s.logger.With(zap.String("operation", "CreateProductWithVariants"))
 
 	// Validate input
@@ -87,7 +87,7 @@ func (s *ProductService) CreateProductWithVariants(ctx context.Context, input *d
 	// Map DTO to models
 	product := &models.Product{
 		Name:        strings.TrimSpace(input.Name),
-		MerchantID:  strings.TrimSpace(input.MerchantID),
+		MerchantID:  merchant_id,
 		Description: strings.TrimSpace(input.Description),
 		//SKU:         strings.TrimSpace(input.SKU),
 		BasePrice:   decimal.NewFromFloat(input.BasePrice),
@@ -111,7 +111,7 @@ func (s *ProductService) CreateProductWithVariants(ctx context.Context, input *d
 	}
 
 
-	product.GenerateSKU(input.MerchantID)
+	product.GenerateSKU(merchant_id)
 	for i := range variants {
 		variants[i].GenerateSKU(product.SKU)
 	}

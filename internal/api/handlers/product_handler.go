@@ -85,11 +85,11 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 	}
 
 	// Set merchant ID from context
-	input.MerchantID = merchantIDStr
+	//input.MerchantID = merchantIDStr
 	//merchantIDStr = input.MerchantID
 
 	// Call service
-	response, err := h.productService.CreateProductWithVariants(c.Request.Context(), &input)
+	response, err := h.productService.CreateProductWithVariants(c.Request.Context(),merchantIDStr, &input)
 	if err != nil {
 		logger.Error("Failed to create product", zap.Error(err))
 		if errors.Is(err, product.ErrInvalidProduct) || errors.Is(err, product.ErrInvalidMediaURL) || errors.Is(err, product.ErrInvalidAttributes) ||
