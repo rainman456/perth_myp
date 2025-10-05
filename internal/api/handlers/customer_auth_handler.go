@@ -56,7 +56,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	user, err := h.service.RegisterUser(req.Email, req.Name, req.Password,  req.Address, req.Country)
+	user, err := h.service.RegisterUser(req.Email, req.Name, req.Password, req.Address, req.Country)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -159,13 +159,16 @@ func (h *AuthHandler) GoogleCallback(c *gin.Context) {
 		return
 	}
 
-	
-	frontendURL := "http://localhost:3000" // fallback for local dev
-	
-
+	origin := c.Request.Header.Get("Origin")
+	if origin == "" {
+		origin = os.Getenv("FRONTEND_URL")
+		if origin == "" {
+			origin = "http://localhost:3000"
+		}
+	} // fallback for local dev
 
 	//c.JSON(http.StatusCreated, gin.H{"token": token, "user": user})
-	redirectURL := fmt.Sprintf("%s/auth/success?token=%s", frontendURL, token)
+	redirectURL := fmt.Sprintf("%s/auth/success?token=%s", origin, token)
 	c.Redirect(http.StatusTemporaryRedirect, redirectURL)
 }
 
@@ -186,9 +189,9 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	}
 
 	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-	err:=utils.Add(tokenString)
-	if  err != nil{
-		c.JSON(http.StatusInternalServerError, gin.H{"error":"failed to logoout"})
+	err := utils.Add(tokenString)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to logoout"})
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Logout successful"})
 }
@@ -272,22 +275,21 @@ func (h *AuthHandler) GetProfile(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user ID"})
 		return
 	}
-	
 
-	user, err := h.service.GetUser(ctx,uint(userIDUint))
+	user, err := h.service.GetUser(ctx, uint(userIDUint))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	resp := &dto.ProfileResponse{
-		ID: user.ID,
-		Email: user.Email,
-		Name: user.Name,
-		Country: user.Country,
-		Addresses:user.Address,
+		ID:        user.ID,
+		Email:     user.Email,
+		Name:      user.Name,
+		Country:   user.Country,
+		Addresses: user.Address,
 	}
 	// if err := utils.RespMap(user, resp); err != nil {
-		
+
 	// }
 	c.JSON(http.StatusOK, resp)
 
