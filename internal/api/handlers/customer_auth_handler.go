@@ -160,34 +160,40 @@ func (h *AuthHandler) GoogleCallback(c *gin.Context) {
 		return
 	}
 
-	// --- Determine redirect URL dynamically ---
-	var frontendURL string
+	// // --- Determine redirect URL dynamically ---
+	// var frontendURL string
 
-	//  Try to get from Origin header
-	origin := c.Request.Header.Get("Origin")
+	// //  Try to get from Origin header
+	// origin := c.Request.Header.Get("Origin")
 
-	//  If Origin is missing, try Referer
-	if origin == "" {
-		referer := c.Request.Referer()
-		if referer != "" {
-			// Extract base (scheme + host) from referer
-			u, err := url.Parse(referer)
-			if err == nil {
-				origin = fmt.Sprintf("%s://%s", u.Scheme, u.Host)
-			}
-		}
-	}
+	// //  If Origin is missing, try Referer
+	// if origin == "" {
+	// 	referer := c.Request.Referer()
+	// 	if referer != "" {
+	// 		// Extract base (scheme + host) from referer
+	// 		u, err := url.Parse(referer)
+	// 		if err == nil {
+	// 			origin = fmt.Sprintf("%s://%s", u.Scheme, u.Host)
+	// 		}
+	// 	}
+	// }
 
-	// Fallback to environment or localhost
-	if origin != "" {
-		frontendURL = origin
-	} else if os.Getenv("FRONTEND_URL") != "" {
-		frontendURL = os.Getenv("FRONTEND_URL")
-	} else {
-		frontendURL = "http://localhost:3000"
-	}
+	// // Fallback to environment or localhost
+	// if origin != "" {
+	// 	frontendURL = origin
+	// } else if os.Getenv("FRONTEND_URL") != "" {
+	// 	frontendURL = os.Getenv("FRONTEND_URL")
+	// } else {
+	// 	frontendURL = "http://localhost:3000"
+	// }
+	 // Decode the frontend URL
+	//  frontendURL, err := url.QueryUnescape(state)
+	//  if err != nil {
+	// 	 frontendURL = os.Getenv("FRONTEND_URL")
+	//  }
 
 	//c.JSON(http.StatusCreated, gin.H{"token": token, "user": user})
+	frontendURL := "http://localhost:3000"
 	redirectURL := fmt.Sprintf("%s/auth/success?token=%s", frontendURL, token)
 	c.Redirect(http.StatusTemporaryRedirect, redirectURL)
 }
