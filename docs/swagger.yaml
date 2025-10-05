@@ -334,9 +334,6 @@ definitions:
         items:
           $ref: '#/definitions/dto.MediaInput'
         type: array
-      merchant_id:
-        maxLength: 255
-        type: string
       name:
         maxLength: 255
         type: string
@@ -347,7 +344,6 @@ definitions:
     required:
     - base_price
     - category_id
-    - merchant_id
     - name
     type: object
   dto.ProductResponse:
@@ -382,6 +378,25 @@ definitions:
         items:
           $ref: '#/definitions/dto.VariantResponse'
         type: array
+    type: object
+  dto.RegisterRequest:
+    properties:
+      address:
+        description: Phone      string                 `json:"phone_number" validate:"omitempty"`
+        type: string
+      country:
+        type: string
+      email:
+        type: string
+      name:
+        type: string
+      password:
+        minLength: 6
+        type: string
+    required:
+    - email
+    - name
+    - password
     type: object
   dto.ResetPasswordRequest:
     properties:
@@ -971,16 +986,7 @@ paths:
         name: body
         required: true
         schema:
-          properties:
-            country:
-              type: string
-            email:
-              type: string
-            name:
-              type: string
-            password:
-              type: string
-          type: object
+          $ref: '#/definitions/dto.RegisterRequest'
       produces:
       - application/json
       responses:
@@ -1050,7 +1056,7 @@ paths:
       - Customer
   /customer/update:
     patch:
-      description: Invalidates the customer's JWT token
+      description: Updates Customer profile
       parameters:
       - description: Update Customer Profile
         in: body
@@ -1077,7 +1083,7 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Customer logout
+      summary: Customer Profile Update
       tags:
       - Customer
   /disputes:
@@ -1421,6 +1427,31 @@ paths:
                 type: string
             type: object
       summary: Merchant login
+      tags:
+      - Merchant
+  /merchant/logout:
+    post:
+      description: Invalidates the Merchant's JWT token
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Logout successful
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "400":
+          description: Authorization header required
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Merchant logout
       tags:
       - Merchant
   /merchant/me:
@@ -1873,6 +1904,43 @@ paths:
       tags:
       - Products
   /orders:
+    get:
+      description: Retrieves all orders and their items for the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of orders with items
+          schema:
+            items:
+              $ref: '#/definitions/dto.OrderResponse'
+            type: array
+        "400":
+          description: Invalid user ID
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get all user orders
+      tags:
+      - Orders
     post:
       consumes:
       - application/json
