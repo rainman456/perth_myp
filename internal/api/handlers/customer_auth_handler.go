@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 
@@ -159,16 +160,35 @@ func (h *AuthHandler) GoogleCallback(c *gin.Context) {
 		return
 	}
 
+	// --- Determine redirect URL dynamically ---
+	var frontendURL string
+
+	//  Try to get from Origin header
 	origin := c.Request.Header.Get("Origin")
+
+	//  If Origin is missing, try Referer
 	if origin == "" {
-		origin = os.Getenv("FRONTEND_URL")
-		if origin == "" {
-			origin = "http://localhost:3000"
+		referer := c.Request.Referer()
+		if referer != "" {
+			// Extract base (scheme + host) from referer
+			u, err := url.Parse(referer)
+			if err == nil {
+				origin = fmt.Sprintf("%s://%s", u.Scheme, u.Host)
+			}
 		}
-	} // fallback for local dev
+	}
+
+	// Fallback to environment or localhost
+	if origin != "" {
+		frontendURL = origin
+	} else if os.Getenv("FRONTEND_URL") != "" {
+		frontendURL = os.Getenv("FRONTEND_URL")
+	} else {
+		frontendURL = "http://localhost:3000"
+	}
 
 	//c.JSON(http.StatusCreated, gin.H{"token": token, "user": user})
-	redirectURL := fmt.Sprintf("%s/auth/success?token=%s", origin, token)
+	redirectURL := fmt.Sprintf("%s/auth/success?token=%s", frontendURL, token)
 	c.Redirect(http.StatusTemporaryRedirect, redirectURL)
 }
 
