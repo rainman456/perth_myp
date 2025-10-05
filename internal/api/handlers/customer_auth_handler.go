@@ -193,7 +193,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Logout successful"})
 }
 
-// Logout godoc
+// Update godoc
 // @Summary Customer Profile Update
 // @Description Updates Customer profile
 // @Tags Customer

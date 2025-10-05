@@ -189,7 +189,7 @@ func (h *MerchantHandler) GetMyMerchant(c *gin.Context) {
 // @Produce json
 // @Success 200 {object} object{message=string} "Logout successful"
 // @Failure 400 {object} object{error=string} "Authorization header required"
-// @Router /customer/logout [post]
+// @Router /merchant/logout [post]
 func (h *MerchantHandler) Logout(c *gin.Context) {
 	authHeader := c.GetHeader("Authorization")
 	if authHeader == "" {
