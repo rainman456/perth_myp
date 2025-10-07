@@ -21,7 +21,7 @@ IGNORE_DIRS = {
     "build",
     "test-ledger",
     "public",
-    #"api",
+    "api",
     "bank",
     "config",
     "middleware",

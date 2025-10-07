@@ -39,7 +39,33 @@ type googleUserInfo struct {
 	Name  string `json:"name"`
 }
 
-func (s *AuthService) RegisterUser(email, name, password, address, country string) (*models.User, error) {
+// func (s *AuthService) RegisterUser(email, name, password, country string,address []string) (*models.User, error) {
+// 	_, err := s.userRepo.FindByEmail(email)
+// 	if err == nil {
+// 		return nil, errors.New("email already exists")
+// 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+// 		return nil, err
+// 	}
+
+// 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	user := &models.User{
+// 		Email:    email,
+// 		Name:     name,
+// 		Password: string(hashedPassword),
+// 		Country:  country,
+// 		Address:  address,
+// 	}
+
+// 	return user, nil
+// }
+
+
+// RegisterUser registers a new user
+func (s *AuthService) RegisterUser(email, name, password, country string, addresses []string) (*models.User, error) {
 	_, err := s.userRepo.FindByEmail(email)
 	if err == nil {
 		return nil, errors.New("email already exists")
@@ -52,16 +78,21 @@ func (s *AuthService) RegisterUser(email, name, password, address, country strin
 		return nil, err
 	}
 
+	// Convert []string to []Addresslist
+	addressList := make([]models.UserAddress, len(addresses))
+	for i, addr := range addresses {
+		addressList[i] = models.UserAddress{
+			Address: addr,
+		}
+	}
+
 	user := &models.User{
 		Email:    email,
 		Name:     name,
 		Password: string(hashedPassword),
 		Country:  country,
-		Address: address,
-	}
-
-	if err := s.userRepo.Create(user); err != nil {
-		return nil, err
+		// Change Address to the correct field name
+		Addresses: addressList, // Use the converted slice
 	}
 
 	return user, nil
@@ -215,15 +246,23 @@ func (s *AuthService) GoogleLogin(code, baseURL, entityType string) (*models.Use
 	return user, jwtToken, nil
 }
 
-func (s *AuthService) UpdateProfile(ctx context.Context ,userID uint, name, country string, addresses string) error {
+func (s *AuthService) UpdateProfile(ctx context.Context ,userID uint, name, country string, addresses []string) error {
 
 	user, err := s.userRepo.FindByID(ctx,userID)
 	if err != nil {
 		return err
 	}
+
+
+	addressList := make([]models.UserAddress, len(addresses))
+	for i, addr := range addresses {
+		addressList[i] = models.UserAddress{
+			Address: addr,
+		}
+	}
 	user.Name = name
 	user.Country = country
-	user.Address = addresses
+	user.Addresses = addressList
 	// Addresses as JSON; add field to User model if needed: Addresses jsonb
 	return s.userRepo.Update(user)
 }

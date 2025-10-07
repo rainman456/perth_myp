@@ -112,3 +112,51 @@ type CategoryResponse struct {
 	Attributes map[string]interface{}`json:"attributes"`
 	Parent     *CategoryResponse     `json:"parent"`
 }
+
+
+
+
+type CreateReviewDTO struct {
+	ProductID string `json:"product_id" validate:"required"`
+	Rating    int    `json:"rating" validate:"required,min=1,max=5"`
+	Comment   string `json:"comment" validate:"omitempty"`
+}
+
+type UpdateReviewDTO struct {
+	Rating  *int    `json:"rating" validate:"omitempty,min=1,max=5"`
+	Comment *string `json:"comment" validate:"omitempty"`
+}
+
+type ReviewResponseDTO struct {
+	ID        uint      `json:"id"`
+	ProductID string    `json:"product_id"`
+	UserID    uint      `json:"user_id"`
+	Rating    int       `json:"rating"`
+	Comment   string    `json:"comment"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	UserName  string    `json:"user_name"`
+}
+
+
+type AddWishlistItemDTO struct {
+	ProductID string `json:"product_id" validate:"required,uuid"` // UUID validation for product_id
+}
+
+// WishlistItemResponseDTO represents a single wishlist item in the response
+type WishlistItemResponseDTO struct {
+	ProductID   string          `json:"product_id"`
+	Name        string          `json:"name"`
+	SKU         string          `json:"sku"`
+	BasePrice   float64 `json:"base_price"`
+	MerchantID  string          `json:"merchant_id"`
+	AddedAt     time.Time       `json:"added_at"`
+}
+
+// WishlistResponseDTO represents the entire wishlist in the response
+type WishlistResponseDTO struct {
+	UserID    uint                    `json:"user_id"`
+	Items     []WishlistItemResponseDTO `json:"items"`
+}
+
+

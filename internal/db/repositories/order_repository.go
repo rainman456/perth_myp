@@ -97,3 +97,17 @@ func (r *OrderRepository) activeScope() func(db *gorm.DB) *gorm.DB {
 		return db.Unscoped().Where("deleted_at IS NULL")
 	}
 }
+
+// HasUserPurchasedProduct checks if the user has at least one completed order containing the product
+func (r *OrderRepository) HasUserPurchasedProduct(ctx context.Context, userID uint, productID string) (bool, error) {
+	var count int64
+	err := r.db.WithContext(ctx).
+		Table("orders").
+		Joins("JOIN order_items ON order_items.order_id = orders.id").
+		Where("orders.user_id = ? AND order_items.product_id = ? AND orders.status = ?", userID, productID, models.OrderStatusCompleted).
+		Count(&count).Error
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}

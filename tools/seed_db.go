@@ -10,8 +10,8 @@ import (
 
 	"api-customer-merchant/internal/db/models" // Adjust to your models' package path
 
-	"github.com/google/uuid"
-	"github.com/shopspring/decimal"
+	//"github.com/google/uuid"
+	//"github.com/shopspring/decimal"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	//"github.com/google/uuid"
@@ -104,66 +104,66 @@ func main() {
 	//  	IsActive:   true,
 	//  }
 
-	product2 := models.Product{
-		ID:          uuid.New().String(),
-		MerchantID:  "984d6da6-29c4-4506-abaf-608b3498cc04",
-		CategoryID:  1,
-		Name:        "Earpod",
-		Description: "A high-end earpod with advanced features",
-		SKU:         "EAR-001",
-		BasePrice:   decimal.NewFromFloat(700.00),
-		Media: []models.Media{
-			{
-				URL:  "https://www.example.com/image4.png",
-				Type: "",
-			},
-			{
-				URL:  "https://www.example.com/image5.png",
-				Type: "",
-			},
-		},
-		Variants: []models.Variant{
-			{
-				ProductID:       "", // Will be set automatically after product creation
-				SKU:             "EAR-01-BLK-64",
-				PriceAdjustment: decimal.NewFromFloat(50.00),
-				TotalPrice:      decimal.NewFromFloat(0.00), // Will be computed in BeforeCreate
-				Attributes: models.AttributesMap{
-					"color": "black",
-					"size":  "large",
-				},
-				IsActive: true,
-				Inventory: models.Inventory{
-					Quantity:          100,
-					ReservedQuantity:  0,
-					LowStockThreshold: 10,
-					BackorderAllowed:  false,
-					MerchantID:        "984d6da6-29c4-4506-abaf-608b3498cc04",
-				},
-			},
-			{
-				ProductID:       "", // Will be set automatically after product creation
-				SKU:             "EAR-001-WHT-128",
-				PriceAdjustment: decimal.NewFromFloat(50.00),
-				TotalPrice:      decimal.NewFromFloat(0.00), // Will be computed in BeforeCreate
-				Attributes: models.AttributesMap{
-					"color": "white",
-					"size":  "medium",
-				},
-				IsActive: true,
-				Inventory: models.Inventory{
-					Quantity:          50,
-					ReservedQuantity:  0,
-					LowStockThreshold: 10,
-					BackorderAllowed:  false,
-					MerchantID:        "984d6da6-29c4-4506-abaf-608b3498cc04",
-				},
-			},
-		},
-	}
-	if err := db.Create([]*models.Product{&product2}).Error; err != nil {
-		log.Fatalf("Failed to seed products: %v", err)
-	}
+	// product2 := models.Product{
+	// 	ID:          uuid.New().String(),
+	// 	MerchantID:  "984d6da6-29c4-4506-abaf-608b3498cc04",
+	// 	CategoryID:  1,
+	// 	Name:        "Earpod",
+	// 	Description: "A high-end earpod with advanced features",
+	// 	SKU:         "EAR-001",
+	// 	BasePrice:   decimal.NewFromFloat(700.00),
+	// 	Media: []models.Media{
+	// 		{
+	// 			URL:  "https://www.example.com/image4.png",
+	// 			Type: "",
+	// 		},
+	// 		{
+	// 			URL:  "https://www.example.com/image5.png",
+	// 			Type: "",
+	// 		},
+	// 	},
+	// 	Variants: []models.Variant{
+	// 		{
+	// 			ProductID:       "", // Will be set automatically after product creation
+	// 			SKU:             "EAR-01-BLK-64",
+	// 			PriceAdjustment: decimal.NewFromFloat(50.00),
+	// 			TotalPrice:      decimal.NewFromFloat(0.00), // Will be computed in BeforeCreate
+	// 			Attributes: models.AttributesMap{
+	// 				"color": "black",
+	// 				"size":  "large",
+	// 			},
+	// 			IsActive: true,
+	// 			Inventory: models.Inventory{
+	// 				Quantity:          100,
+	// 				ReservedQuantity:  0,
+	// 				LowStockThreshold: 10,
+	// 				BackorderAllowed:  false,
+	// 				MerchantID:        "984d6da6-29c4-4506-abaf-608b3498cc04",
+	// 			},
+	// 		},
+	// 		{
+	// 			ProductID:       "", // Will be set automatically after product creation
+	// 			SKU:             "EAR-001-WHT-128",
+	// 			PriceAdjustment: decimal.NewFromFloat(50.00),
+	// 			TotalPrice:      decimal.NewFromFloat(0.00), // Will be computed in BeforeCreate
+	// 			Attributes: models.AttributesMap{
+	// 				"color": "white",
+	// 				"size":  "medium",
+	// 			},
+	// 			IsActive: true,
+	// 			Inventory: models.Inventory{
+	// 				Quantity:          50,
+	// 				ReservedQuantity:  0,
+	// 				LowStockThreshold: 10,
+	// 				BackorderAllowed:  false,
+	// 				MerchantID:        "984d6da6-29c4-4506-abaf-608b3498cc04",
+	// 			},
+	// 		},
+	// 	},
+	// }
+	// if err := db.Create([]*models.Product{&product2}).Error; err != nil {
+	// 	log.Fatalf("Failed to seed products: %v", err)
+	// }
 
 	// // Seed Inventory
 	// inventory1 := models.Inventory{
@@ -198,6 +198,86 @@ func main() {
 	// if err := db.Create(&cartItem).Error; err != nil {
 	// 	log.Fatalf("Failed to seed cart item: %v", err)
 	// }
+
+
+	//Seed Categories
+	// category := models.Category{
+	// 	Name:       "Electronics",
+	// 	Attributes: map[string]interface{}{"type": "gadget"},
+	// }
+	// if err := db.Create(&category).Error; err != nil {
+	// 	log.Fatalf("Failed to seed category Electronics: %v", err)
+	// }
+
+	// Luxury Clothing Category 1: Haute Couture
+	category := models.Category{
+		Name:       "Haute Couture",
+		Attributes: map[string]interface{}{
+			"material":  "silk",
+			"style":     "evening wear",
+			"exclusivity": "limited edition",
+		},
+	}
+	if err := db.Create(&category).Error; err != nil {
+		log.Fatalf("Failed to seed category Haute Couture: %v", err)
+	}
+
+	// Luxury Clothing Category 2: Designer Footwear
+	category = models.Category{
+		Name:       "Designer Footwear",
+		Attributes: map[string]interface{}{
+			"material":  "leather",
+			"heel_type": "stiletto",
+			"brand_tier": "premium",
+		},
+	}
+	if err := db.Create(&category).Error; err != nil {
+		log.Fatalf("Failed to seed category Designer Footwear: %v", err)
+	}
+
+	// Luxury Clothing Category 3: Luxury Accessories
+	category = models.Category{
+		Name:       "Luxury Accessories",
+		Attributes: map[string]interface{}{
+			"type":      "handbags",
+			"material":  "exotic leather",
+			"hardware":  "gold-plated",
+		},
+	}
+	if err := db.Create(&category).Error; err != nil {
+		log.Fatalf("Failed to seed category Luxury Accessories: %v", err)
+	}
+
+	// Luxury Clothing Category 4: Bespoke Tailoring
+	category = models.Category{
+		Name:       "Bespoke Tailoring",
+		Attributes: map[string]interface{}{
+			"fit":       "custom",
+			"fabric":    "wool",
+			"occasion":  "formal",
+		},
+	}
+	if err := db.Create(&category).Error; err != nil {
+		log.Fatalf("Failed to seed category Bespoke Tailoring: %v", err)
+	}
+
+	// Luxury Clothing Category 5: Premium Outerwear
+	category = models.Category{
+		Name:       "Premium Outerwear",
+		Attributes: map[string]interface{}{
+			"material":  "cashmere",
+			"insulation": "down",
+			"style":     "trench",
+		},
+	}
+	if err := db.Create(&category).Error; err != nil {
+		log.Fatalf("Failed to seed category Premium Outerwear: %v", err)
+	}
+
+	log.Println("Successfully seeded all categories")
+
+
+
 
 	fmt.Println("Database seeded successfully!")
 }

@@ -2,10 +2,7 @@ package db
 
 import (
 	//"api-customer-merchant/internal/db/models"
-	//"api-customer-merchant/internal/db/models"
-	//"api-customer-merchant/internal/db/models"
-	//"api-customer-merchant/internal/db/models"
-	//"api-customer-merchant/internal/db/models"
+
 	"log"
 	"os"
 	"time"
@@ -173,6 +170,7 @@ func AutoMigrate() {
 	//&models.ReturnRequest{},
 	//&models.MerchantBankDetails{},
 	//&models.User{},
+	//&models.UserAddress{},
 	//&models.MerchantApplication{},
 	//&models.Product{},
 	//&models.Variant{},
@@ -186,6 +184,9 @@ func AutoMigrate() {
 	// &models.Promotion{},
 	// &models.ReturnRequest{},
 	// &models.Payout{},
+	//&models.Review{},
+	//&models.UserWishlist{},
+	
 	)
 
 	if err != nil {

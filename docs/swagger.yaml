@@ -138,6 +138,20 @@ definitions:
     - order_item_id
     - reason
     type: object
+  dto.CreateReviewDTO:
+    properties:
+      comment:
+        type: string
+      product_id:
+        type: string
+      rating:
+        maximum: 5
+        minimum: 1
+        type: integer
+    required:
+    - product_id
+    - rating
+    type: object
   dto.DisputeResponseDTO:
     properties:
       created_at:
@@ -383,7 +397,9 @@ definitions:
     properties:
       address:
         description: Phone      string                 `json:"phone_number" validate:"omitempty"`
-        type: string
+        items:
+          type: string
+        type: array
       country:
         type: string
       email:
@@ -425,6 +441,25 @@ definitions:
       updated_at:
         type: string
     type: object
+  dto.ReviewResponseDTO:
+    properties:
+      comment:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      product_id:
+        type: string
+      rating:
+        type: integer
+      updated_at:
+        type: string
+      user_id:
+        type: integer
+      user_name:
+        type: string
+    type: object
   dto.UpdateItemRequest:
     properties:
       quantity:
@@ -433,10 +468,21 @@ definitions:
       user_id:
         type: integer
     type: object
+  dto.UpdateReviewDTO:
+    properties:
+      comment:
+        type: string
+      rating:
+        maximum: 5
+        minimum: 1
+        type: integer
+    type: object
   dto.UserUpdateRequest:
     properties:
       addresses:
-        type: string
+        items:
+          type: string
+        type: array
       country:
         type: string
       email:
@@ -2202,6 +2248,58 @@ paths:
       summary: Get product by ID
       tags:
       - Products
+  /products/{productID}/reviews:
+    get:
+      description: Retrieve reviews for a specific product
+      parameters:
+      - description: Product ID
+        in: path
+        name: productID
+        required: true
+        type: string
+      - default: 10
+        description: Limit of reviews
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset for pagination
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.ReviewResponseDTO'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Get reviews by product ID
+      tags:
+      - reviews
   /return-requests:
     get:
       description: Retrieve all return requests for the authenticated customer
@@ -2291,6 +2389,294 @@ paths:
       summary: Get return request details
       tags:
       - Return Requests
+  /review:
+    post:
+      consumes:
+      - application/json
+      description: Create a new review by user
+      parameters:
+      - description: Review input
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateReviewDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.ReviewResponseDTO'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Create a review
+      tags:
+      - reviews
+  /reviews/{id}:
+    delete:
+      description: Delete a review by ID
+      parameters:
+      - description: Review ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Delete a review
+      tags:
+      - reviews
+    get:
+      description: Retrieve a review by its ID
+      parameters:
+      - description: Review ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ReviewResponseDTO'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Get a review by ID
+      tags:
+      - reviews
+    put:
+      consumes:
+      - application/json
+      description: Update an existing review by ID
+      parameters:
+      - description: Review ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Updated review input
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateReviewDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ReviewResponseDTO'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Update a review
+      tags:
+      - reviews
+  /wishlist/{productID}:
+    delete:
+      consumes:
+      - application/json
+      description: Remove a product from the user's wishlist
+      parameters:
+      - description: Product ID
+        in: path
+        name: productID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Remove a product from the wishlist
+      tags:
+      - wishlist
+    post:
+      consumes:
+      - application/json
+      description: Add a product to the user's wishlist
+      parameters:
+      - description: Product ID
+        in: path
+        name: productID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Add a product to the wishlist
+      tags:
+      - wishlist
+  /wishlist/{productID}/check:
+    get:
+      consumes:
+      - application/json
+      description: Check if a specific product is in the user's wishlist
+      parameters:
+      - description: Product ID
+        in: path
+        name: productID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Check if a product is in the wishlist
+      tags:
+      - wishlist
+  /wishlist/clear:
+    delete:
+      consumes:
+      - application/json
+      description: Remove all products from the user's wishlist
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Clear the user's wishlist
+      tags:
+      - wishlist
+  /wishlists:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve the user's wishlist
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              properties:
+                error:
+                  type: string
+              type: object
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Get the user's wishlist
+      tags:
+      - wishlist
 securityDefinitions:
   BearerAuth:
     in: header

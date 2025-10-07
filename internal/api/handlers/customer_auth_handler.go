@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+
 	//"net/url"
 	"os"
 	"strconv"
@@ -14,6 +15,7 @@ import (
 	//"api-customer-merchant/internal/db/models"
 	//"api-customer-merchant/internal/db/repositories"
 	"api-customer-merchant/internal/api/dto"
+//"api-customer-merchant/internal/db/models"
 	services "api-customer-merchant/internal/services/user"
 	"api-customer-merchant/internal/utils"
 
@@ -57,7 +59,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	user, err := h.service.RegisterUser(req.Email, req.Name, req.Password, req.Address, req.Country)
+	user, err := h.service.RegisterUser(req.Email, req.Name, req.Password,req.Country, req.Address)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -307,12 +309,20 @@ func (h *AuthHandler) GetProfile(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	//prof dto.Pr
+	
+	
+	addressList := make([]string, len(user.Addresses))
+	for i, addr := range user.Addresses {
+		addressList[i] = addr.Address // Access the Address field from the UserAddress struct
+	}
+
 	resp := &dto.ProfileResponse{
 		ID:        user.ID,
 		Email:     user.Email,
 		Name:      user.Name,
 		Country:   user.Country,
-		Addresses: user.Address,
+		Addresses: addressList, // Assign the converted slice
 	}
 	// if err := utils.RespMap(user, resp); err != nil {
 

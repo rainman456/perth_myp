@@ -86,6 +86,8 @@ func main() {
 	routes.SetupCartRoutes(r)
 	routes.SetupDisputeRoutes(r)
 	routes.SetupReturnRequestRoutes(r)
+	routes.SetupReviewRoutes(r)
+	routes.SetupWishlistRoutes(r)
 	
 
 	// Swagger endpoint

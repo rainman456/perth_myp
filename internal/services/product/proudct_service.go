@@ -43,7 +43,7 @@ type ProductService struct {
 	logger      *zap.Logger
 	validator   *validator.Validate
 	cld         *cloudinary.Cloudinary
-	config  *config.Config
+	//config  *config.Config
 	
 }
 
@@ -76,6 +76,7 @@ func (s *ProductService) CreateProductWithVariants(ctx context.Context, merchant
 	// 	logger.Error("Invalid SKU format", zap.String("sku", input.SKU))
 	// 	return nil, ErrInvalidSKU
 	// }
+
 
 	isSimple := len(input.Variants) == 0
 	if isSimple && input.InitialStock == nil {
@@ -601,7 +602,7 @@ func (s *ProductService) UploadMedia(ctx context.Context, productID, merchantID,
 	}
 	if err := s.productRepo.CreateMedia(ctx, media); err != nil {
 		// Cleanup on failure
-		s.cld.Upload.Destroy(ctx, uploader.DestroyParams{PublicID: media.PublicID})
+		_, err := s.cld.Upload.Destroy(ctx, uploader.DestroyParams{PublicID: media.PublicID})
 		return nil, err
 	}
 
@@ -685,3 +686,11 @@ func (s *ProductService) merchantOwnsProduct(ctx context.Context, productID, mer
 	product, err := s.productRepo.FindByID(ctx, productID)
 	return err == nil && product.MerchantID == merchantID
 }
+
+
+
+
+
+
+
+

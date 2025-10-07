@@ -47,7 +47,6 @@ func (mt MediaType) Value() (driver.Value, error) {
 }
 
 
-
 type Product struct {
 	ID          string          `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()" json:"id"`
 	MerchantID  string          `gorm:"type:uuid;not null;index" json:"merchant_id"`
@@ -65,6 +64,8 @@ type Product struct {
 	Variants        []Variant      `gorm:"foreignKey:ProductID;constraint:OnDelete:CASCADE" json:"variants,omitempty"` // Has many Variants, cascade delete
 	Media           []Media        `gorm:"foreignKey:ProductID;constraint:OnDelete:CASCADE" json:"media,omitempty"` // Has many Media, cascade delete
 	SimpleInventory *Inventory     `gorm:"foreignKey:ProductID;constraint:OnDelete:CASCADE"` // Has one optional SimpleInventory for non-variant products
+	Wishlists    []UserWishlist `gorm:"foreignKey:ProductID;constraint:OnDelete:CASCADE"` // Has many UserWishlists
+	Reviews []Review `gorm:"foreignKey:ProductID"`
 }
 
 
@@ -74,6 +75,8 @@ func (p *Product) BeforeCreate(tx *gorm.DB) error {
 	}
 	return nil
 }
+
+
 
 type Variant struct {
 	ID              string          `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()" json:"id"`
@@ -89,7 +92,40 @@ type Variant struct {
 
 	Product   Product   `gorm:"foreignKey:ProductID;constraint:OnDelete:CASCADE"` // Belongs to Product, cascade from parent
 	Inventory Inventory `gorm:"foreignKey:VariantID;constraint:OnDelete:CASCADE"` // Has one Inventory, cascade delete
+	
 }
+
+
+
+type Review struct {
+	ID        uint      `gorm:"primaryKey"`
+	ProductID string    `gorm:"type:uuid;index;not null"`
+	UserID    uint      `gorm:"index;not null"`
+	Rating    int       `gorm:"not null;check:rating >= 1 AND rating <= 5"`
+	Comment   string    `gorm:"type:text"`
+	CreatedAt time.Time `gorm:"autoCreateTime"`
+	UpdatedAt time.Time `gorm:"autoUpdateTime"`
+	Product   Product   `gorm:"foreignKey:ProductID;constraint:OnDelete:CASCADE"`
+	User      User      `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`
+}
+
+type UserWishlist struct {
+	UserID    uint      `gorm:"primaryKey" json:"user_id"`
+	ProductID string    `gorm:"primaryKey;type:uuid" json:"product_id"`
+	
+	AddedAt   time.Time `json:"added_at"`
+
+	User    User    `gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
+	Product Product `gorm:"foreignKey:ProductID;references:ID;constraint:OnDelete:CASCADE"`
+}
+
+func (uw *UserWishlist) BeforeCreate(tx *gorm.DB) error {
+	uw.AddedAt = time.Now()
+	return nil
+}
+
+
+
 
 func (v *Variant) BeforeCreate(tx *gorm.DB) error {
 	if v.ID == "" {
@@ -125,6 +161,8 @@ type Media struct {
 
 	Product Product `gorm:"foreignKey:ProductID;constraint:OnDelete:CASCADE"` // Belongs to Product (bidirectional for easier queries)
 }
+
+
 
 
 func (m *Media) BeforeCreate(tx *gorm.DB) error {
