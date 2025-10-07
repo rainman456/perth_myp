@@ -25,10 +25,10 @@ func NewWishlistHandler(service *wishlist.WishlistService) *WishlistHandler {
 // @Tags wishlist
 // @Accept json
 // @Produce json
-// @Param productID path string true "Product ID"
-// @Success 200 {object} object{error=string}
+// @Param prbody body dto.AddItemRequest true  "Wishlist body"
+// @Success 201 {object} object{message=string} "product added to wishlist"
 // @Failure 400 {object} object{error=string}
-// @Router /wishlist/{productID} [post]
+// @Router /wishlist [post]
 func (h *WishlistHandler) AddToWishlist(c *gin.Context) {
 	userIDInterface, exists := c.Get("userID")
 	if !exists {
@@ -67,7 +67,7 @@ func (h *WishlistHandler) AddToWishlist(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param productID path string true "Product ID"
-// @Success 200 {object} object{error=string}
+// @Success 200 {object} object{message=string}
 // @Failure 400 {object}  object{error=string}
 // @Router /wishlist/{productID} [delete]
 func (h *WishlistHandler) RemoveFromWishlist(c *gin.Context) {
@@ -103,8 +103,11 @@ func (h *WishlistHandler) RemoveFromWishlist(c *gin.Context) {
 // @Tags wishlist
 // @Accept json
 // @Produce json
-// @Success 200 {array} object{error=string}
+// @Security BearerAuth
+// @Success 200 {array} {object} dto.WishlistResponseDTO
 // @Failure 500 {object} object{error=string}
+// @Failure 400 {object} object{error=string}
+// @Failure 401 {object} object{error=string}
 // @Router /wishlist [get]  // Fixed path comment to match routes.go
 func (h *WishlistHandler) GetWishlist(c *gin.Context) {
 	userID, exists := c.Get("userID")
@@ -139,7 +142,7 @@ func (h *WishlistHandler) GetWishlist(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param productID path string true "Product ID"
-// @Success 200 {object} object{error=string}
+// @Success 200 {object} object{message=string}
 // @Failure 500 {object} object{error=string}
 // @Router /wishlist/{productID}/check [get]
 func (h *WishlistHandler) IsInWishlist(c *gin.Context) {
@@ -175,7 +178,7 @@ func (h *WishlistHandler) IsInWishlist(c *gin.Context) {
 // @Tags wishlist
 // @Accept json
 // @Produce json
-// @Success 200 {object} object{error=string}
+// @Success 204
 // @Failure 500 {object} object{error=string}
 // @Router /wishlist/clear [delete]
 func (h *WishlistHandler) ClearWishlist(c *gin.Context) {

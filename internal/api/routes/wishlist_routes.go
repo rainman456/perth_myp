@@ -23,7 +23,7 @@ func SetupWishlistRoutes(r *gin.Engine) {
 		wishlistHandler := handlers.NewWishlistHandler(service)
 
 		protected := middleware.AuthMiddleware("customer") // Consider adding auth middleware
-		r.POST("/wishlist/:productID", protected, wishlistHandler.AddToWishlist)
+		r.POST("/wishlist", protected, wishlistHandler.AddToWishlist)
 		r.DELETE("/wishlist/:productID", protected,   wishlistHandler.RemoveFromWishlist)
 		r.GET("/wishlist", protected, wishlistHandler.GetWishlist)
 		r.GET("/wishlist/:productID/check", protected, wishlistHandler.IsInWishlist)
