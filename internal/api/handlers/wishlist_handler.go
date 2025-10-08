@@ -25,7 +25,7 @@ func NewWishlistHandler(service *wishlist.WishlistService) *WishlistHandler {
 // @Tags wishlist
 // @Accept json
 // @Produce json
-// @Param prbody body dto.AddItemRequest true  "Wishlist body"
+// @Param body body dto.AddItemRequest true  "Wishlist body"
 // @Success 201 {object} object{message=string} "product added to wishlist"
 // @Failure 400 {object} object{error=string}
 // @Router /wishlist [post]
