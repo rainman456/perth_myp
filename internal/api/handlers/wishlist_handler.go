@@ -104,7 +104,7 @@ func (h *WishlistHandler) RemoveFromWishlist(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Success 200 {array} {object} dto.WishlistResponseDTO
+// @Success 200 {object} dto.WishlistResponseDTO
 // @Failure 500 {object} object{error=string}
 // @Failure 400 {object} object{error=string}
 // @Failure 401 {object} object{error=string}

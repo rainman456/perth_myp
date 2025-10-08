@@ -3131,9 +3131,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/wishlist/clear": {
-            "delete": {
-                "description": "Remove all products from the user's wishlist",
+        "/wishlist": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve the user's wishlist",
                 "consumes": [
                     "application/json"
                 ],
@@ -3143,10 +3148,27 @@ const docTemplate = `{
                 "tags": [
                     "wishlist"
                 ],
-                "summary": "Clear the user's wishlist",
+                "summary": "Get the user's wishlist",
                 "responses": {
                     "200": {
                         "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.WishlistResponseDTO"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -3168,9 +3190,7 @@ const docTemplate = `{
                         }
                     }
                 }
-            }
-        },
-        "/wishlist/{productID}": {
+            },
             "post": {
                 "description": "Add a product to the user's wishlist",
                 "consumes": [
@@ -3185,20 +3205,22 @@ const docTemplate = `{
                 "summary": "Add a product to the wishlist",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Product ID",
-                        "name": "productID",
-                        "in": "path",
-                        "required": true
+                        "description": "Wishlist body",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.AddItemRequest"
+                        }
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "OK",
+                    "201": {
+                        "description": "product added to wishlist",
                         "schema": {
                             "type": "object",
                             "properties": {
-                                "error": {
+                                "message": {
                                     "type": "string"
                                 }
                             }
@@ -3216,7 +3238,40 @@ const docTemplate = `{
                         }
                     }
                 }
-            },
+            }
+        },
+        "/wishlist/clear": {
+            "delete": {
+                "description": "Remove all products from the user's wishlist",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "wishlist"
+                ],
+                "summary": "Clear the user's wishlist",
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/wishlist/{productID}": {
             "delete": {
                 "description": "Remove a product from the user's wishlist",
                 "consumes": [
@@ -3244,7 +3299,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "properties": {
-                                "error": {
+                                "message": {
                                     "type": "string"
                                 }
                             }
@@ -3292,50 +3347,8 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "properties": {
-                                "error": {
+                                "message": {
                                     "type": "string"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "error": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/wishlists": {
-            "get": {
-                "description": "Retrieve the user's wishlist",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "wishlist"
-                ],
-                "summary": "Get the user's wishlist",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "type": "object",
-                                "properties": {
-                                    "error": {
-                                        "type": "string"
-                                    }
                                 }
                             }
                         }
@@ -4145,6 +4158,43 @@ const docTemplate = `{
                 },
                 "updated_at": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.WishlistItemResponseDTO": {
+            "type": "object",
+            "properties": {
+                "added_at": {
+                    "type": "string"
+                },
+                "base_price": {
+                    "type": "number"
+                },
+                "merchant_id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "product_id": {
+                    "type": "string"
+                },
+                "sku": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.WishlistResponseDTO": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.WishlistItemResponseDTO"
+                    }
+                },
+                "user_id": {
+                    "type": "integer"
                 }
             }
         },

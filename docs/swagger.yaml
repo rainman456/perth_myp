@@ -531,6 +531,30 @@ definitions:
       updated_at:
         type: string
     type: object
+  dto.WishlistItemResponseDTO:
+    properties:
+      added_at:
+        type: string
+      base_price:
+        type: number
+      merchant_id:
+        type: string
+      name:
+        type: string
+      product_id:
+        type: string
+      sku:
+        type: string
+    type: object
+  dto.WishlistResponseDTO:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/dto.WishlistItemResponseDTO'
+        type: array
+      user_id:
+        type: integer
+    type: object
   models.CartStatus:
     enum:
     - Active
@@ -2533,6 +2557,75 @@ paths:
       summary: Update a review
       tags:
       - reviews
+  /wishlist:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve the user's wishlist
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.WishlistResponseDTO'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get the user's wishlist
+      tags:
+      - wishlist
+    post:
+      consumes:
+      - application/json
+      description: Add a product to the user's wishlist
+      parameters:
+      - description: Wishlist body
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AddItemRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: product added to wishlist
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Add a product to the wishlist
+      tags:
+      - wishlist
   /wishlist/{productID}:
     delete:
       consumes:
@@ -2551,7 +2644,7 @@ paths:
           description: OK
           schema:
             properties:
-              error:
+              message:
                 type: string
             type: object
         "400":
@@ -2562,36 +2655,6 @@ paths:
                 type: string
             type: object
       summary: Remove a product from the wishlist
-      tags:
-      - wishlist
-    post:
-      consumes:
-      - application/json
-      description: Add a product to the user's wishlist
-      parameters:
-      - description: Product ID
-        in: path
-        name: productID
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-      summary: Add a product to the wishlist
       tags:
       - wishlist
   /wishlist/{productID}/check:
@@ -2612,7 +2675,7 @@ paths:
           description: OK
           schema:
             properties:
-              error:
+              message:
                 type: string
             type: object
         "500":
@@ -2633,13 +2696,8 @@ paths:
       produces:
       - application/json
       responses:
-        "200":
-          description: OK
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
+        "204":
+          description: No Content
         "500":
           description: Internal Server Error
           schema:
@@ -2648,33 +2706,6 @@ paths:
                 type: string
             type: object
       summary: Clear the user's wishlist
-      tags:
-      - wishlist
-  /wishlists:
-    get:
-      consumes:
-      - application/json
-      description: Retrieve the user's wishlist
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              properties:
-                error:
-                  type: string
-              type: object
-            type: array
-        "500":
-          description: Internal Server Error
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-      summary: Get the user's wishlist
       tags:
       - wishlist
 securityDefinitions:
