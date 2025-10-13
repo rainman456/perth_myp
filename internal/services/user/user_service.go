@@ -65,7 +65,7 @@ type googleUserInfo struct {
 
 
 // RegisterUser registers a new user
-func (s *AuthService) RegisterUser(email, name, password, country string, addresses []string) (*models.User, error) {
+func (s *AuthService) RegisterUser(email, name, password, country string) (*models.User, error) {
 	_, err := s.userRepo.FindByEmail(email)
 	if err == nil {
 		return nil, errors.New("email already exists")
@@ -79,12 +79,12 @@ func (s *AuthService) RegisterUser(email, name, password, country string, addres
 	}
 
 	// Convert []string to []Addresslist
-	addressList := make([]models.UserAddress, len(addresses))
-	for i, addr := range addresses {
-		addressList[i] = models.UserAddress{
-			Address: addr,
-		}
-	}
+	// addressList := make([]models.UserAddress, len(addresses))
+	// for i, addr := range addresses {
+	// 	addressList[i] = models.UserAddress{
+	// 		Address: addr,
+	// 	}
+	// }
 
 	user := &models.User{
 		Email:    email,
@@ -92,7 +92,7 @@ func (s *AuthService) RegisterUser(email, name, password, country string, addres
 		Password: string(hashedPassword),
 		Country:  country,
 		// Change Address to the correct field name
-		Addresses: addressList, // Use the converted slice
+		//Addresses: addressList, // Use the converted slice
 	}
 
 	return user, nil
@@ -254,15 +254,15 @@ func (s *AuthService) UpdateProfile(ctx context.Context ,userID uint, name, coun
 	}
 
 
-	addressList := make([]models.UserAddress, len(addresses))
-	for i, addr := range addresses {
-		addressList[i] = models.UserAddress{
-			Address: addr,
-		}
-	}
+	// addressList := make([]models.UserAddress, len(addresses))
+	// for i, addr := range addresses {
+	// 	addressList[i] = models.UserAddress{
+	// 		Address: addr,
+	// 	}
+	// }
 	user.Name = name
 	user.Country = country
-	user.Addresses = addressList
+	//user.Addresses = addressList
 	// Addresses as JSON; add field to User model if needed: Addresses jsonb
 	return s.userRepo.Update(user)
 }

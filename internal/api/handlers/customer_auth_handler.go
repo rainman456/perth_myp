@@ -59,7 +59,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	user, err := h.service.RegisterUser(req.Email, req.Name, req.Password,req.Country, req.Address)
+	user, err := h.service.RegisterUser(req.Email, req.Name, req.Password,req.Country)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -312,17 +312,17 @@ func (h *AuthHandler) GetProfile(c *gin.Context) {
 	//prof dto.Pr
 	
 	
-	addressList := make([]string, len(user.Addresses))
-	for i, addr := range user.Addresses {
-		addressList[i] = addr.Address // Access the Address field from the UserAddress struct
-	}
+	// addressList := make([]string, len(user.Addresses))
+	// for i, addr := range user.Addresses {
+	// 	addressList[i] = addr.Address // Access the Address field from the UserAddress struct
+	// }
 
 	resp := &dto.ProfileResponse{
 		ID:        user.ID,
 		Email:     user.Email,
 		Name:      user.Name,
 		Country:   user.Country,
-		Addresses: addressList, // Assign the converted slice
+		//Addresses: addressList, // Assign the converted slice
 	}
 	// if err := utils.RespMap(user, resp); err != nil {
 
@@ -358,3 +358,8 @@ func (h *AuthHandler) ResetPassword(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Password reset successful"})
 }
+
+
+
+
+

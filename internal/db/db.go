@@ -170,7 +170,7 @@ func AutoMigrate() {
 	//&models.ReturnRequest{},
 	//&models.MerchantBankDetails{},
 	//&models.User{},
-	//&models.UserAddress{},
+    //&models.UserAddress{},
 	//&models.MerchantApplication{},
 	// &models.Product{},
 	// &models.Variant{},

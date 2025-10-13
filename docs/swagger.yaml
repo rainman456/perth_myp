@@ -13,6 +13,25 @@ definitions:
     - product_id
     - quantity
     type: object
+  dto.AddressResponse:
+    properties:
+      additional_phone_number:
+        type: string
+      address:
+        type: string
+      delivery_address:
+        type: string
+      id:
+        type: integer
+      lga:
+        type: string
+      phone_number:
+        type: string
+      shipping_address:
+        type: string
+      state:
+        type: string
+    type: object
   dto.AutocompleteResponse:
     properties:
       suggestions:
@@ -121,6 +140,25 @@ definitions:
       parent_id:
         type: integer
     type: object
+  dto.CreateAddressRequest:
+    properties:
+      additional_phone_number:
+        type: string
+      address:
+        type: string
+      delivery_address:
+        type: string
+      lga:
+        type: string
+      phone_number:
+        type: string
+      shipping_address:
+        type: string
+      state:
+        type: string
+    required:
+    - address
+    type: object
   dto.CreateDisputeDTO:
     properties:
       description:
@@ -214,6 +252,15 @@ definitions:
         type: integer
       reserved_quantity:
         type: integer
+    type: object
+  dto.ListAddressesResponse:
+    properties:
+      count:
+        type: integer
+      items:
+        items:
+          $ref: '#/definitions/dto.AddressResponse'
+        type: array
     type: object
   dto.LoginResponse:
     properties:
@@ -471,11 +518,6 @@ definitions:
     type: object
   dto.RegisterRequest:
     properties:
-      address:
-        description: Phone      string                 `json:"phone_number" validate:"omitempty"`
-        items:
-          type: string
-        type: array
       country:
         type: string
       email:
@@ -534,6 +576,23 @@ definitions:
       user_id:
         type: integer
       user_name:
+        type: string
+    type: object
+  dto.UpdateAddressRequest:
+    properties:
+      additional_phone_number:
+        type: string
+      address:
+        type: string
+      delivery_address:
+        type: string
+      lga:
+        type: string
+      phone_number:
+        type: string
+      shipping_address:
+        type: string
+      state:
         type: string
     type: object
   dto.UpdateItemRequest:
@@ -1037,6 +1096,223 @@ paths:
       summary: Get all categories
       tags:
       - Categories
+  /customer/addresses:
+    get:
+      description: Returns all addresses for the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ListAddressesResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List user's addresses
+      tags:
+      - Customer
+    post:
+      consumes:
+      - application/json
+      description: Create a user address (user must be authenticated)
+      parameters:
+      - description: Address payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateAddressRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.AddressResponse'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a new address
+      tags:
+      - Customer
+  /customer/addresses/{id}:
+    delete:
+      description: Delete an address (must belong to authenticated user)
+      parameters:
+      - description: address id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete an address
+      tags:
+      - Customer
+    get:
+      description: Get a single address by id (must belong to authenticated user)
+      parameters:
+      - description: address id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.AddressResponse'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get single address
+      tags:
+      - Customer
+    patch:
+      consumes:
+      - application/json
+      description: Update fields of an address (must belong to authenticated user)
+      parameters:
+      - description: address id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Update payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateAddressRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.AddressResponse'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update an address
+      tags:
+      - Customer
   /customer/auth/google:
     get:
       description: Redirects to Google OAuth login page

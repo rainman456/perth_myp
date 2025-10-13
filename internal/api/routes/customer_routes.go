@@ -12,6 +12,9 @@ import (
 func RegisterCustomerRoutes(r *gin.Engine) {
 	repo := repositories.NewUserRepository()
 	service := user.NewAuthService(repo)
+	addrRepo := repositories.NewUserAddressRepository()
+	addrSvc := user.NewAddressService(addrRepo)
+	addrHandler := handlers.NewAddressHandler(addrSvc)
 	customer := r.Group("/customer")
 	{
 		authHandler := handlers.NewAuthHandler(service)
@@ -25,5 +28,10 @@ func RegisterCustomerRoutes(r *gin.Engine) {
 		protected.PATCH("/update",authHandler.UpdateProfile)
 		protected.POST("/logout", authHandler.Logout)
 		protected.GET("/profile",authHandler.GetProfile)
+		protected.POST("/customer/addresses", addrHandler.CreateAddress)
+		protected.GET("/customer/addresses", addrHandler.ListAddresses)
+		protected.GET("/customer/addresses/:id", addrHandler.GetAddress)
+		protected.PATCH("/customer/addresses/:id", addrHandler.UpdateAddress)
+		protected.DELETE("/customer/addresses/:id", addrHandler.DeleteAddress)
 	}
 }

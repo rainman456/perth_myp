@@ -202,6 +202,9 @@ func (s *OrderService) GetOrder(ctx context.Context, id uint) (*models.Order, er
 	// The repository already preloads necessary associations.
 	return s.orderRepo.FindByID(ctx, id)
 	//return s.orderRepo.FindByID(id)
+
+
+
 }
 
 
