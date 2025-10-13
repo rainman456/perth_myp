@@ -61,6 +61,10 @@ func (s *WishlistService) GetWishlist(ctx context.Context, userID uint) (*dto.Wi
 		items[i] = dto.WishlistItemResponseDTO{
 			ProductID:  w.ProductID,
 			Name:       w.Product.Name,
+			SKU: w.Product.SKU,
+			Discount: w.Product.Discount.InexactFloat64(),
+			FinalPrice: w.Product.FinalPrice.InexactFloat64(),
+			DiscountType: string(w.Product.DiscountType),
 		}
 	}
 

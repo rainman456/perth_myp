@@ -94,7 +94,7 @@ func (h *ReviewHandler) GetReview(c *gin.Context) {
 // @Failure 500 {object} object{error=string}
 // @Failure 400 {object} object{error=string}
 // @Failure 401 {object} object{error=string}
-// @Router /products/{productID}/reviews [get]
+// @Router /{productID}/reviews [get]
 func (h *ReviewHandler) GetReviewsByProduct(c *gin.Context) {
 	productID := c.Param("productID")
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))

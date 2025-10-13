@@ -86,9 +86,9 @@ for i, item := range cart.CartItems {
     subtotal := 0.0
     // Check if Product is preloaded (avoid empty struct issues)
     if item.Product.ID != "" {  // Use ID as non-zero check (struct-safe)
-        price := item.Product.BasePrice.InexactFloat64()  // Convert decimal.Decimal
+        price := item.Product.FinalPrice.InexactFloat64()  // Convert decimal.Decimal
         if item.VariantID != nil && item.Variant != nil && item.Variant.ID != "" {
-            price += item.Variant.PriceAdjustment.InexactFloat64()  // Add adjustment
+            price += item.Variant.FinalPrice.InexactFloat64()  // Add adjustment
         }
         subtotal = float64(item.Quantity) * price
     }
@@ -246,9 +246,9 @@ func (s *CartService) AddItemToCart(ctx context.Context, userID uint, quantity i
     for i, item := range updatedCart.CartItems {
         subtotal := 0.0
         if item.Product.ID != "" {  // Struct-safe check
-            price := item.Product.BasePrice.InexactFloat64()
+            price := item.Product.FinalPrice.InexactFloat64()
             if item.VariantID != nil && item.Variant != nil && item.Variant.ID != "" {
-                price += item.Variant.PriceAdjustment.InexactFloat64()
+                price += item.Variant.FinalPrice.InexactFloat64()
             }
             subtotal = float64(item.Quantity) * price
         }

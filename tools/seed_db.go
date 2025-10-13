@@ -12,6 +12,7 @@ import (
 
 	//"github.com/google/uuid"
 	//"github.com/shopspring/decimal"
+	"github.com/shopspring/decimal"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	//"github.com/google/uuid"
@@ -210,74 +211,327 @@ func main() {
 	// }
 
 	// Luxury Clothing Category 1: Haute Couture
-	category := models.Category{
-		Name:       "Haute Couture",
-		Attributes: map[string]interface{}{
-			"material":  "silk",
-			"style":     "evening wear",
-			"exclusivity": "limited edition",
+		// Seed Products
+	// Seed Products
+	merchantID := "68a63ffc-f988-47a3-bc74-989b498b1e01" // Assuming a seeded merchant ID
+
+	// Product 1: Simple product without variants
+	product1 := models.Product{
+		MerchantID:  merchantID,
+		CategoryID:  1, // Assuming category exists
+		Name:        "Luxury Watch",
+		Description: "Elegant timepiece",
+		SKU:         "WATCH-001",
+		BasePrice:   decimal.NewFromFloat(500.00),
+		Media: []models.Media{
+			{URL: "https://example.com/watch.jpg", Type: models.MediaTypeImage},
+		},
+		SimpleInventory: &models.Inventory{
+			Quantity:          50,
+			ReservedQuantity:  0,
+			LowStockThreshold: 5,
+			BackorderAllowed:  false,
+			MerchantID:        merchantID,
 		},
 	}
-	if err := db.Create(&category).Error; err != nil {
-		log.Fatalf("Failed to seed category Haute Couture: %v", err)
+	if err := db.Create(&product1).Error; err != nil {
+		log.Fatalf("Failed to seed product1: %v", err)
 	}
 
-	// Luxury Clothing Category 2: Designer Footwear
-	category = models.Category{
-		Name:       "Designer Footwear",
-		Attributes: map[string]interface{}{
-			"material":  "leather",
-			"heel_type": "stiletto",
-			"brand_tier": "premium",
+	// Product 2: Simple product without variants
+	product2 := models.Product{
+		MerchantID:  merchantID,
+		CategoryID:  2,
+		Name:        "Designer Sunglasses",
+		Description: "Stylish eyewear",
+		SKU:         "SUNGLASS-001",
+		BasePrice:   decimal.NewFromFloat(200.00),
+		Media: []models.Media{
+			{URL: "https://example.com/sunglasses.jpg", Type: models.MediaTypeImage},
+		},
+		SimpleInventory: &models.Inventory{
+			Quantity:          100,
+			ReservedQuantity:  0,
+			LowStockThreshold: 10,
+			BackorderAllowed:  false,
+			MerchantID:        merchantID,
 		},
 	}
-	if err := db.Create(&category).Error; err != nil {
-		log.Fatalf("Failed to seed category Designer Footwear: %v", err)
+	if err := db.Create(&product2).Error; err != nil {
+		log.Fatalf("Failed to seed product2: %v", err)
 	}
 
-	// Luxury Clothing Category 3: Luxury Accessories
-	category = models.Category{
-		Name:       "Luxury Accessories",
-		Attributes: map[string]interface{}{
-			"type":      "handbags",
-			"material":  "exotic leather",
-			"hardware":  "gold-plated",
+	// Product 3: Simple product without variants
+	product3 := models.Product{
+		MerchantID:  merchantID,
+		CategoryID:  3,
+		Name:        "Leather Wallet",
+		Description: "Premium leather accessory",
+		SKU:         "WALLET-001",
+		BasePrice:   decimal.NewFromFloat(150.00),
+		Media: []models.Media{
+			{URL: "https://example.com/wallet.jpg", Type: models.MediaTypeImage},
+		},
+		SimpleInventory: &models.Inventory{
+			Quantity:          75,
+			ReservedQuantity:  0,
+			LowStockThreshold: 8,
+			BackorderAllowed:  true,
+			MerchantID:        merchantID,
 		},
 	}
-	if err := db.Create(&category).Error; err != nil {
-		log.Fatalf("Failed to seed category Luxury Accessories: %v", err)
+	if err := db.Create(&product3).Error; err != nil {
+		log.Fatalf("Failed to seed product3: %v", err)
 	}
 
-	// Luxury Clothing Category 4: Bespoke Tailoring
-	category = models.Category{
-		Name:       "Bespoke Tailoring",
-		Attributes: map[string]interface{}{
-			"fit":       "custom",
-			"fabric":    "wool",
-			"occasion":  "formal",
+	// Product 4: With variants
+	product4 := models.Product{
+		MerchantID:  merchantID,
+		CategoryID:  4,
+		Name:        "Tailored Suit",
+		Description: "Custom-fit suit",
+		SKU:         "SUIT-001",
+		BasePrice:   decimal.NewFromFloat(1000.00),
+		Media: []models.Media{
+			{URL: "https://example.com/suit.jpg", Type: models.MediaTypeImage},
+		},
+		Variants: []models.Variant{
+			{
+				SKU:             "SUIT-001-BLK-M",
+				PriceAdjustment: decimal.NewFromFloat(0.00),
+				Attributes: models.AttributesMap{
+					"color": "black",
+					"size":  "M",
+				},
+				IsActive: true,
+				Inventory: models.Inventory{
+					Quantity:          20,
+					ReservedQuantity:  0,
+					LowStockThreshold: 3,
+					BackorderAllowed:  false,
+					MerchantID:        merchantID,
+				},
+			},
+			{
+				SKU:             "SUIT-001-BLU-L",
+				PriceAdjustment: decimal.NewFromFloat(50.00),
+				Attributes: models.AttributesMap{
+					"color": "blue",
+					"size":  "L",
+				},
+				IsActive: true,
+				Inventory: models.Inventory{
+					Quantity:          15,
+					ReservedQuantity:  0,
+					LowStockThreshold: 2,
+					BackorderAllowed:  false,
+					MerchantID:        merchantID,
+				},
+			},
+			{
+				SKU:             "SUIT-001-GRY-XL",
+				PriceAdjustment: decimal.NewFromFloat(100.00),
+				Attributes: models.AttributesMap{
+					"color": "gray",
+					"size":  "XL",
+				},
+				IsActive: true,
+				Inventory: models.Inventory{
+					Quantity:          10,
+					ReservedQuantity:  0,
+					LowStockThreshold: 1,
+					BackorderAllowed:  true,
+					MerchantID:        merchantID,
+				},
+			},
 		},
 	}
-	if err := db.Create(&category).Error; err != nil {
-		log.Fatalf("Failed to seed category Bespoke Tailoring: %v", err)
+	if err := db.Create(&product4).Error; err != nil {
+		log.Fatalf("Failed to seed product4: %v", err)
 	}
 
-	// Luxury Clothing Category 5: Premium Outerwear
-	category = models.Category{
-		Name:       "Premium Outerwear",
-		Attributes: map[string]interface{}{
-			"material":  "cashmere",
-			"insulation": "down",
-			"style":     "trench",
+	// Product 5: With variants
+	product5 := models.Product{
+		MerchantID:  merchantID,
+		CategoryID:  5,
+		Name:        "Cashmere Coat",
+		Description: "Warm winter coat",
+		SKU:         "COAT-001",
+		BasePrice:   decimal.NewFromFloat(800.00),
+		Media: []models.Media{
+			{URL: "https://example.com/coat.jpg", Type: models.MediaTypeImage},
+		},
+		Variants: []models.Variant{
+			{
+				SKU:             "COAT-001-BRN-S",
+				PriceAdjustment: decimal.NewFromFloat(0.00),
+				Attributes: models.AttributesMap{
+					"color": "brown",
+					"size":  "S",
+				},
+				IsActive: true,
+				Inventory: models.Inventory{
+					Quantity:          30,
+					ReservedQuantity:  0,
+					LowStockThreshold: 5,
+					BackorderAllowed:  false,
+					MerchantID:        merchantID,
+				},
+			},
+			{
+				SKU:             "COAT-001-BLK-M",
+				PriceAdjustment: decimal.NewFromFloat(20.00),
+				Attributes: models.AttributesMap{
+					"color": "black",
+					"size":  "M",
+				},
+				IsActive: true,
+				Inventory: models.Inventory{
+					Quantity:          25,
+					ReservedQuantity:  0,
+					LowStockThreshold: 4,
+					BackorderAllowed:  false,
+					MerchantID:        merchantID,
+				},
+			},
 		},
 	}
-	if err := db.Create(&category).Error; err != nil {
-		log.Fatalf("Failed to seed category Premium Outerwear: %v", err)
+	if err := db.Create(&product5).Error; err != nil {
+		log.Fatalf("Failed to seed product5: %v", err)
 	}
 
-	log.Println("Successfully seeded all categories")
+	// Product 6: With variants
+	product6 := models.Product{
+		MerchantID:  merchantID,
+		CategoryID:  1,
+		Name:        "Silk Dress",
+		Description: "Elegant evening dress",
+		SKU:         "DRESS-001",
+		BasePrice:   decimal.NewFromFloat(600.00),
+		Media: []models.Media{
+			{URL: "https://example.com/dress.jpg", Type: models.MediaTypeImage},
+		},
+		Variants: []models.Variant{
+			{
+				SKU:             "DRESS-001-RED-S",
+				PriceAdjustment: decimal.NewFromFloat(0.00),
+				Attributes: models.AttributesMap{
+					"color": "red",
+					"size":  "S",
+				},
+				IsActive: true,
+				Inventory: models.Inventory{
+					Quantity:          40,
+					ReservedQuantity:  0,
+					LowStockThreshold: 6,
+					BackorderAllowed:  true,
+					MerchantID:        merchantID,
+				},
+			},
+			{
+				SKU:             "DRESS-001-BLU-M",
+				PriceAdjustment: decimal.NewFromFloat(30.00),
+				Attributes: models.AttributesMap{
+					"color": "blue",
+					"size":  "M",
+				},
+				IsActive: true,
+				Inventory: models.Inventory{
+					Quantity:          35,
+					ReservedQuantity:  0,
+					LowStockThreshold: 5,
+					BackorderAllowed:  false,
+					MerchantID:        merchantID,
+				},
+			},
+			{
+				SKU:             "DRESS-001-BLK-L",
+				PriceAdjustment: decimal.NewFromFloat(50.00),
+				Attributes: models.AttributesMap{
+					"color": "black",
+					"size":  "L",
+				},
+				IsActive: true,
+				Inventory: models.Inventory{
+					Quantity:          30,
+					ReservedQuantity:  0,
+					LowStockThreshold: 4,
+					BackorderAllowed:  false,
+					MerchantID:        merchantID,
+				},
+			},
+		},
+	}
+	if err := db.Create(&product6).Error; err != nil {
+		log.Fatalf("Failed to seed product6: %v", err)
+	}
 
+	// // Luxury Clothing Category 1: Haute Couture
+	// category := models.Category{
+	// 	Name:       "Haute Couture",
+	// 	Attributes: map[string]interface{}{
+	// 		"material":  "silk",
+	// 		"style":     "evening wear",
+	// 		"exclusivity": "limited edition",
+	// 	},
+	// }
+	// if err := db.Create(&category).Error; err != nil {
+	// 	log.Fatalf("Failed to seed category Haute Couture: %v", err)
+	// }
 
+	// // Luxury Clothing Category 2: Designer Footwear
+	// category = models.Category{
+	// 	Name:       "Designer Footwear",
+	// 	Attributes: map[string]interface{}{
+	// 		"material":  "leather",
+	// 		"heel_type": "stiletto",
+	// 		"brand_tier": "premium",
+	// 	},
+	// }
+	// if err := db.Create(&category).Error; err != nil {
+	// 	log.Fatalf("Failed to seed category Designer Footwear: %v", err)
+	// }
 
+	// // Luxury Clothing Category 3: Luxury Accessories
+	// category = models.Category{
+	// 	Name:       "Luxury Accessories",
+	// 	Attributes: map[string]interface{}{
+	// 		"type":      "handbags",
+	// 		"material":  "exotic leather",
+	// 		"hardware":  "gold-plated",
+	// 	},
+	// }
+	// if err := db.Create(&category).Error; err != nil {
+	// 	log.Fatalf("Failed to seed category Luxury Accessories: %v", err)
+	// }
+
+	// // Luxury Clothing Category 4: Bespoke Tailoring
+	// category = models.Category{
+	// 	Name:       "Bespoke Tailoring",
+	// 	Attributes: map[string]interface{}{
+	// 		"fit":       "custom",
+	// 		"fabric":    "wool",
+	// 		"occasion":  "formal",
+	// 	},
+	// }
+	// if err := db.Create(&category).Error; err != nil {
+	// 	log.Fatalf("Failed to seed category Bespoke Tailoring: %v", err)
+	// }
+
+	// // Luxury Clothing Category 5: Premium Outerwear
+	// category = models.Category{
+	// 	Name:       "Premium Outerwear",
+	// 	Attributes: map[string]interface{}{
+	// 		"material":  "cashmere",
+	// 		"insulation": "down",
+	// 		"style":     "trench",
+	// 	},
+	// }
+	// if err := db.Create(&category).Error; err != nil {
+	// 	log.Fatalf("Failed to seed category Premium Outerwear: %v", err)
+	// }
+
+	// log.Println("Successfully seeded all categories")
 
 	fmt.Println("Database seeded successfully!")
 }

@@ -125,7 +125,7 @@ func (h *CartHandler) GetCartItem(c *gin.Context) {
 // @Tags Cart
 // @Produce json
 // @Security BearerAuth
-// @Success 200 {object} dto.CartResponse
+// @Success 200 {array} dto.CartResponse
 // @Failure 401 {object} object{error=string}
 // @Router /cart [get]
 func (h *CartHandler) GetCart(c *gin.Context) {
@@ -245,7 +245,7 @@ func (h *CartHandler) RemoveCartItem(c *gin.Context) {
 // @Tags Cart
 // @Produce json
 // @Security BearerAuth
-// @Success 200 {object} object{message=string}
+// @Success 204 {object} object{message=string}
 // @Failure 400 {object} object{error=string}
 // @Failure 401 {object} object{error=string}
 // @Router /cart/clear [post]

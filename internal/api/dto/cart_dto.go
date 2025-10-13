@@ -15,7 +15,7 @@ type AddItemRequest struct {
 
 // UpdateItemRequest: For PUT /cart/items/:id (full replace quantity) or PATCH /cart/items/:id (partial update)
 type UpdateItemRequest struct {
-	UserID   uint `json:"user_id,omitempty"`
+	
 	Quantity int  `json:"quantity" validate:"omitempty,gt=0"` // Omitempty for PATCH
 }
 

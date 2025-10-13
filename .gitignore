@@ -1,3 +1,5 @@
 docs
 parse.py
 update.txt
+.venv
+test_results

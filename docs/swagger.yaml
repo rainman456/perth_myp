@@ -299,13 +299,22 @@ definitions:
       payment_status:
         type: string
       status:
-        description: Consider using the models.OrderStatus type directly
-        type: string
+        $ref: '#/definitions/dto.OrderStatus'
       total_amount:
         type: number
       user_id:
         type: integer
     type: object
+  dto.OrderStatus:
+    enum:
+    - Pending
+    - Completed
+    - Cancelled
+    type: string
+    x-enum-varnames:
+    - OrderStatusPending
+    - OrderStatusCompleted
+    - OrderStatusCancelled
   dto.PaymentResponse:
     properties:
       amount:
@@ -340,6 +349,15 @@ definitions:
       description:
         maxLength: 1000
         type: string
+      discount:
+        minimum: 0
+        type: number
+      discount_type:
+        enum:
+        - fixed
+        - percentage
+        - ""
+        type: string
       initial_stock:
         description: For simple products
         minimum: 0
@@ -370,6 +388,17 @@ definitions:
         type: string
       description:
         type: string
+      discount:
+        minimum: 0
+        type: number
+      discount_type:
+        enum:
+        - fixed
+        - percentage
+        - ""
+        type: string
+      final_price:
+        type: number
       id:
         type: string
       media:
@@ -392,6 +421,21 @@ definitions:
         items:
           $ref: '#/definitions/dto.VariantResponse'
         type: array
+    type: object
+  dto.ProfileResponse:
+    properties:
+      addresses:
+        items:
+          type: string
+        type: array
+      country:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
     type: object
   dto.RegisterRequest:
     properties:
@@ -465,8 +509,6 @@ definitions:
       quantity:
         description: Omitempty for PATCH
         type: integer
-      user_id:
-        type: integer
     type: object
   dto.UpdateReviewDTO:
     properties:
@@ -496,6 +538,15 @@ definitions:
         additionalProperties:
           type: string
         type: object
+      discount:
+        minimum: 0
+        type: number
+      discount_type:
+        enum:
+        - fixed
+        - percentage
+        - ""
+        type: string
       initial_stock:
         minimum: 0
         type: integer
@@ -514,6 +565,17 @@ definitions:
         type: object
       created_at:
         type: string
+      discount:
+        minimum: 0
+        type: number
+      discount_type:
+        enum:
+        - fixed
+        - percentage
+        - ""
+        type: string
+      final_price:
+        type: number
       id:
         type: string
       inventory:
@@ -535,8 +597,15 @@ definitions:
     properties:
       added_at:
         type: string
-      base_price:
+      discount:
+        minimum: 0
         type: number
+      discount_type:
+        enum:
+        - fixed
+        - percentage
+        - ""
+        type: string
       merchant_id:
         type: string
       name:
@@ -545,6 +614,8 @@ definitions:
         type: string
       sku:
         type: string
+      total_price:
+        type: number
     type: object
   dto.WishlistResponseDTO:
     properties:
@@ -605,7 +676,9 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/dto.CartResponse'
+            items:
+              $ref: '#/definitions/dto.CartResponse'
+            type: array
         "401":
           description: Unauthorized
           schema:
@@ -662,8 +735,8 @@ paths:
       produces:
       - application/json
       responses:
-        "200":
-          description: OK
+        "204":
+          description: No Content
           schema:
             properties:
               message:
@@ -1021,10 +1094,7 @@ paths:
         "200":
           description: Profile details
           schema:
-            properties:
-              error:
-                type: string
-            type: object
+            $ref: '#/definitions/dto.ProfileResponse'
         "401":
           description: Unauthorized
           schema:
@@ -2640,8 +2710,8 @@ paths:
       produces:
       - application/json
       responses:
-        "200":
-          description: OK
+        "204":
+          description: No Content
           schema:
             properties:
               message:

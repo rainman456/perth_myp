@@ -24,7 +24,7 @@ func SetupCartRoutes(r *gin.Engine) {
 	productRepo := repositories.NewProductRepository()
 	cartService := cart.NewCartService(cartRepo, cartitemRepo, productRepo, inventoryRepo, logger)
 	cartHandlers := handlers.NewCartHandler(cartService,logger)
-	protected := middleware.AuthMiddleware("user")
+	protected := middleware.AuthMiddleware("customer")
 	r.GET("/cart", protected, cartHandlers.GetCart)
 	r.POST("/cart/items", protected, cartHandlers.AddToCart)
 	r.GET("/cart/items/:id", protected, cartHandlers.GetCartItem)

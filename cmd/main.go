@@ -100,7 +100,7 @@ func main() {
 	// Get port from environment variable or default to 8080
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080"
+		port = "8000"
 	}
 
 	// Run on 0.0.0.0:port for Railway compatibility

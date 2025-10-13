@@ -67,7 +67,7 @@ func (h *WishlistHandler) AddToWishlist(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param productID path string true "Product ID"
-// @Success 200 {object} object{message=string}
+// @Success 204 {object} object{message=string}
 // @Failure 400 {object}  object{error=string}
 // @Router /wishlist/{productID} [delete]
 func (h *WishlistHandler) RemoveFromWishlist(c *gin.Context) {

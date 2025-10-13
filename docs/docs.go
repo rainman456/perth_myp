@@ -72,7 +72,10 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.CartResponse"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.CartResponse"
+                            }
                         }
                     },
                     "401": {
@@ -166,8 +169,8 @@ const docTemplate = `{
                 ],
                 "summary": "Clear the cart",
                 "responses": {
-                    "200": {
-                        "description": "OK",
+                    "204": {
+                        "description": "No Content",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -733,12 +736,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Profile details",
                         "schema": {
-                            "type": "object",
-                            "properties": {
-                                "error": {
-                                    "type": "string"
-                                }
-                            }
+                            "$ref": "#/definitions/dto.ProfileResponse"
                         }
                     },
                     "401": {
@@ -3294,8 +3292,8 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "OK",
+                    "204": {
+                        "description": "No Content",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -3815,8 +3813,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "status": {
-                    "description": "Consider using the models.OrderStatus type directly",
-                    "type": "string"
+                    "$ref": "#/definitions/dto.OrderStatus"
                 },
                 "total_amount": {
                     "type": "number"
@@ -3825,6 +3822,19 @@ const docTemplate = `{
                     "type": "integer"
                 }
             }
+        },
+        "dto.OrderStatus": {
+            "type": "string",
+            "enum": [
+                "Pending",
+                "Completed",
+                "Cancelled"
+            ],
+            "x-enum-varnames": [
+                "OrderStatusPending",
+                "OrderStatusCompleted",
+                "OrderStatusCancelled"
+            ]
         },
         "dto.PaymentResponse": {
             "type": "object",
@@ -3880,6 +3890,18 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 1000
                 },
+                "discount": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "discount_type": {
+                    "type": "string",
+                    "enum": [
+                        "fixed",
+                        "percentage",
+                        ""
+                    ]
+                },
                 "initial_stock": {
                     "description": "For simple products",
                     "type": "integer",
@@ -3918,6 +3940,21 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
+                "discount": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "discount_type": {
+                    "type": "string",
+                    "enum": [
+                        "fixed",
+                        "percentage",
+                        ""
+                    ]
+                },
+                "final_price": {
+                    "type": "number"
+                },
                 "id": {
                     "type": "string"
                 },
@@ -3952,6 +3989,29 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/dto.VariantResponse"
                     }
+                }
+            }
+        },
+        "dto.ProfileResponse": {
+            "type": "object",
+            "properties": {
+                "addresses": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "country": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
                 }
             }
         },
@@ -4061,9 +4121,6 @@ const docTemplate = `{
                 "quantity": {
                     "description": "Omitempty for PATCH",
                     "type": "integer"
-                },
-                "user_id": {
-                    "type": "integer"
                 }
             }
         },
@@ -4112,6 +4169,18 @@ const docTemplate = `{
                         "type": "string"
                     }
                 },
+                "discount": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "discount_type": {
+                    "type": "string",
+                    "enum": [
+                        "fixed",
+                        "percentage",
+                        ""
+                    ]
+                },
                 "initial_stock": {
                     "type": "integer",
                     "minimum": 0
@@ -4134,6 +4203,21 @@ const docTemplate = `{
                 },
                 "created_at": {
                     "type": "string"
+                },
+                "discount": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "discount_type": {
+                    "type": "string",
+                    "enum": [
+                        "fixed",
+                        "percentage",
+                        ""
+                    ]
+                },
+                "final_price": {
+                    "type": "number"
                 },
                 "id": {
                     "type": "string"
@@ -4167,8 +4251,17 @@ const docTemplate = `{
                 "added_at": {
                     "type": "string"
                 },
-                "base_price": {
-                    "type": "number"
+                "discount": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "discount_type": {
+                    "type": "string",
+                    "enum": [
+                        "fixed",
+                        "percentage",
+                        ""
+                    ]
                 },
                 "merchant_id": {
                     "type": "string"
@@ -4181,6 +4274,9 @@ const docTemplate = `{
                 },
                 "sku": {
                     "type": "string"
+                },
+                "total_price": {
+                    "type": "number"
                 }
             }
         },

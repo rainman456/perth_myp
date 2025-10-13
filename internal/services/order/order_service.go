@@ -96,9 +96,9 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID uint) (*dto.Order
         // Calculate total and create order items
         var orderItems []models.OrderItem
         for _, item := range cart.CartItems {
-            price := item.Product.BasePrice.InexactFloat64()
+            price := item.Product.FinalPrice.InexactFloat64()
             if item.VariantID != nil && item.Variant != nil {
-                price = item.Variant.TotalPrice.InexactFloat64() // Use variant price if available
+                price = item.Variant.FinalPrice.InexactFloat64() // Use variant price if available
             }
             totalAmount += float64(item.Quantity) * price
             orderItems = append(orderItems, models.OrderItem{
@@ -169,7 +169,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID uint) (*dto.Order
     orderResponse := &dto.OrderResponse{
         ID:         newOrder.ID,
         UserID:     newOrder.UserID,
-        Status:     string(newOrder.Status),
+        Status:     dto.OrderStatus(newOrder.Status),
         OrderItems: make([]dto.OrderItemResponse, len(newOrder.OrderItems)),
     }
     for i, item := range newOrder.OrderItems {

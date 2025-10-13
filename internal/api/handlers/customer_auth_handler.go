@@ -279,7 +279,7 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 // @Tags Customer
 // @Security BearerAuth
 // @Produce json
-// @Success 200 {object} object{error=string} "Profile details"
+// @Success 200 {object} dto.ProfileResponse "Profile details"
 // @Failure 401 {object} object{error=string} "Unauthorized"
 // @Failure 500 {object} object{error=string} "Internal server error"
 // @Router /customer/profile [get]

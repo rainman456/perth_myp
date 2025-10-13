@@ -14,13 +14,29 @@ type CreateOrderRequest struct {
 }
 
 // OrderResponse defines the structure for order-related responses.
+// OrderStatus describes the status of an order.
+//
+// swagger:enum
+//
+// Pending
+// Completed
+// Cancelled
+type OrderStatus string
+
+const (
+	OrderStatusPending   OrderStatus = "Pending"
+	OrderStatusCompleted OrderStatus = "Completed"
+	OrderStatusCancelled OrderStatus = "Cancelled"
+)
+
+// OrderResponse defines the structure for an order response.
 type OrderResponse struct {
-	ID         uint                `json:"id"`
-	UserID     uint                `json:"user_id"`
-	Status     string              `json:"status"` // Consider using the models.OrderStatus type directly
-	OrderItems []OrderItemResponse `json:"order_items"`
-	TotalAmount   float64 `json:"total_amount"`
-	PaymentStatus string  `json:"payment_status"`
+	ID           uint                `json:"id"`
+	UserID       uint                `json:"user_id"`
+	Status       OrderStatus         `json:"status"`
+	OrderItems   []OrderItemResponse `json:"order_items"`
+	TotalAmount  float64             `json:"total_amount"`
+	PaymentStatus string             `json:"payment_status"`
 }
 
 // OrderItemResponse defines the structure for individual items in an order.
@@ -29,7 +45,6 @@ type OrderItemResponse struct {
 	Quantity  int     `json:"quantity"`
 	Price     float64 `json:"price"`
 }
-
 
 type CancelOrderRequest struct {
 	Reason string `json:"reason" validate:"omitempty,max=500"` // Optional cancellation reason

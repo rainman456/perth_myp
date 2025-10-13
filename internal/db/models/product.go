@@ -15,6 +15,24 @@ import (
 )
 
 // AttributesMap for JSONB
+
+type DiscountType string
+
+const (
+	DiscountTypeFixed      DiscountType = "fixed"      // e.g., N5 off
+	DiscountTypePercentage DiscountType = "percentage" // e.g., 10% off
+	DiscountTypeNone      DiscountType = ""           // No discount
+)
+
+func (dt *DiscountType) Scan(value interface{}) error {
+	*dt = DiscountType(value.(string))
+	return nil
+}
+
+func (dt DiscountType) Value() (driver.Value, error) {
+	return string(dt), nil
+}
+
 type AttributesMap map[string]string
 
 func (a *AttributesMap) Scan(value interface{}) error {
@@ -54,6 +72,9 @@ type Product struct {
 	Description string          `gorm:"type:text" json:"description"`
 	SKU         string          `gorm:"size:100;unique;not null;index" json:"sku"`
 	BasePrice   decimal.Decimal `gorm:"type:decimal(10,2);not null" json:"base_price"`
+	Discount       decimal.Decimal `gorm:"type:decimal(10,2);not null;default:0.00" json:"discount"` // NEW: Discount amount
+	DiscountType   DiscountType    `gorm:"type:varchar(20);not null;default:''" json:"discount_type"` // NEW: fixed/percentage
+	FinalPrice     decimal.Decimal `gorm:"type:decimal(10,2);not null;default:0.00" json:"final_price"` 
 	CategoryID  uint            `gorm:"type:int;index" json:"category_id"`
 	CreatedAt   time.Time       `json:"created_at"`
 	UpdatedAt   time.Time       `json:"updated_at"`
@@ -69,14 +90,42 @@ type Product struct {
 }
 
 
+// func (p *Product) BeforeCreate(tx *gorm.DB) error {
+// 	if p.ID == "" {
+// 		p.ID = uuid.New().String()
+// 	}
+// 	return nil
+// }
+
 func (p *Product) BeforeCreate(tx *gorm.DB) error {
 	if p.ID == "" {
 		p.ID = uuid.New().String()
 	}
+	p.ComputeFinalPrice()
 	return nil
 }
 
+func (p *Product) BeforeUpdate(tx *gorm.DB) error {
+	p.ComputeFinalPrice()
+	return nil
+}
 
+func (p *Product) ComputeFinalPrice() {
+	if p.DiscountType == DiscountTypePercentage && !p.Discount.Equal(decimal.Zero) {
+		// e.g., 10% off = BasePrice * (1 - Discount/100)
+		discountFraction := p.Discount.Div(decimal.NewFromInt(100))
+		p.FinalPrice = p.BasePrice.Mul(decimal.NewFromInt(1).Sub(discountFraction))
+	} else if p.DiscountType == DiscountTypeFixed && !p.Discount.Equal(decimal.Zero) {
+		// e.g., $5 off = BasePrice - Discount
+		p.FinalPrice = p.BasePrice.Sub(p.Discount)
+	} else {
+		p.FinalPrice = p.BasePrice
+	}
+	// Ensure non-negative
+	if p.FinalPrice.LessThan(decimal.Zero) {
+		p.FinalPrice = decimal.Zero
+	}
+}
 
 type Variant struct {
 	ID              string          `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()" json:"id"`
@@ -84,6 +133,9 @@ type Variant struct {
 	SKU             string          `gorm:"size:100;unique;not null;index" json:"sku"`
 	PriceAdjustment decimal.Decimal `gorm:"type:decimal(10,2);not null;default:0.00" json:"price_adjustment"`
 	TotalPrice      decimal.Decimal `gorm:"type:decimal(10,2);not null" json:"total_price"` // Computed: BasePrice + PriceAdjustment
+	Discount        decimal.Decimal `gorm:"type:decimal(10,2);not null;default:0.00" json:"discount"` // NEW
+	DiscountType    DiscountType    `gorm:"type:varchar(20);not null;default:''" json:"discount_type"` // NEW
+	FinalPrice      decimal.Decimal `gorm:"type:decimal(10,2);not null;default:0.00" json:"final_price"`            // NEW: TotalPrice - Discount
 	Attributes      AttributesMap `gorm:"type:jsonb;default:'{}'" json:"attributes"` // Use map for simplicity; can change to custom AttributesMap if needed
 	IsActive        bool            `gorm:"default:true" json:"is_active"`
 	CreatedAt       time.Time       `json:"created_at"`
@@ -127,27 +179,67 @@ func (uw *UserWishlist) BeforeCreate(tx *gorm.DB) error {
 
 
 
+// func (v *Variant) BeforeCreate(tx *gorm.DB) error {
+// 	if v.ID == "" {
+// 		v.ID = uuid.New().String()
+// 	}
+// 	// Fetch Product to compute TotalPrice
+// 	var product Product
+// 	if err := tx.Where("id = ?", v.ProductID).First(&product).Error; err != nil {
+// 		return err
+// 	}
+// 	v.TotalPrice = product.BasePrice.Add(v.PriceAdjustment)
+// 	return nil
+// }
+
+// func (v *Variant) BeforeUpdate(tx *gorm.DB) error {
+// 	// Recompute TotalPrice on update
+// 	var product Product
+// 	if err := tx.Where("id = ?", v.ProductID).First(&product).Error; err != nil {
+// 		return err
+// 	}
+// 	v.TotalPrice = product.BasePrice.Add(v.PriceAdjustment)
+// 	return nil
+// }
+
+
 func (v *Variant) BeforeCreate(tx *gorm.DB) error {
 	if v.ID == "" {
 		v.ID = uuid.New().String()
 	}
-	// Fetch Product to compute TotalPrice
+	// Fetch Product to compute TotalPrice and FinalPrice
 	var product Product
 	if err := tx.Where("id = ?", v.ProductID).First(&product).Error; err != nil {
 		return err
 	}
 	v.TotalPrice = product.BasePrice.Add(v.PriceAdjustment)
+	v.computeFinalPrice()
 	return nil
 }
 
 func (v *Variant) BeforeUpdate(tx *gorm.DB) error {
-	// Recompute TotalPrice on update
+	// Recompute TotalPrice and FinalPrice
 	var product Product
 	if err := tx.Where("id = ?", v.ProductID).First(&product).Error; err != nil {
 		return err
 	}
 	v.TotalPrice = product.BasePrice.Add(v.PriceAdjustment)
+	v.computeFinalPrice()
 	return nil
+}
+
+func (v *Variant) computeFinalPrice() {
+	if v.DiscountType == DiscountTypePercentage && !v.Discount.Equal(decimal.Zero) {
+		discountFraction := v.Discount.Div(decimal.NewFromInt(100))
+		v.FinalPrice = v.TotalPrice.Mul(decimal.NewFromInt(1).Sub(discountFraction))
+	} else if v.DiscountType == DiscountTypeFixed && !v.Discount.Equal(decimal.Zero) {
+		v.FinalPrice = v.TotalPrice.Sub(v.Discount)
+	} else {
+		v.FinalPrice = v.TotalPrice
+	}
+	if v.FinalPrice.LessThan(decimal.Zero) {
+		v.FinalPrice = decimal.Zero
+	}
 }
 
 type Media struct {

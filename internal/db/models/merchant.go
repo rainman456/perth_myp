@@ -96,8 +96,8 @@ func (Merchant) TableName() string {
 type MerchantBasicInfo struct {
 	StoreName     string `gorm:"column:store_name;size:255;not null" json:"store_name" validate:"required"`
 	Name          string `gorm:"column:name;size:255;not null" json:"name" validate:"required"`
-	PersonalEmail string `gorm:"column:personal_email;size:255;not null;unique" json:"personal_email" validate:"required"`
-	WorkEmail     string `gorm:"column:work_email;size:255;not null;unique" json:"work_email" validate:"required"`
+	PersonalEmail string `gorm:"column:personal_email;size:255;not null;unique"`
+	WorkEmail     string `gorm:"column:work_email;size:255;not null;unique" json:"work_email"`
 	PhoneNumber   string `gorm:"column:phone_number;size:50" json:"phone_number"`
 }
 

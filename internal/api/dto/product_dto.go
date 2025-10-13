@@ -13,6 +13,8 @@ type ProductInput struct {
 	BasePrice    float64        `json:"base_price" validate:"required,gt=0"`
 	CategoryID   uint           `json:"category_id" validate:"required"`
 	InitialStock *int           `json:"initial_stock" validate:"omitempty,gte=0"` // For simple products
+	Discount      float64 `json:"discount" validate:"gte=0"`
+    DiscountType  string          `json:"discount_type" validate:"oneof=fixed percentage ''"`
 	Variants     []VariantInput `json:"variants,omitempty" validate:"dive,omitempty"`
 	Media        []MediaInput   `json:"media,omitempty" validate:"dive,omitempty"`
 }
@@ -20,6 +22,8 @@ type ProductInput struct {
 type VariantInput struct {
 	//SKU             string            `json:"sku" validate:"required,max=100"`
 	PriceAdjustment float64           `json:"price_adjustment" validate:"gte=0"`
+	Discount        float64          `json:"discount" validate:"gte=0"`
+    DiscountType    string          `json:"discount_type" validate:"oneof=fixed percentage ''"`
 	Attributes      map[string]string `json:"attributes" validate:"required,dive,required"`
 	InitialStock    int               `json:"initial_stock" validate:"gte=0"`
 }
@@ -37,6 +41,9 @@ type ProductResponse struct {
 	Description     string             `json:"description"`
 	SKU             string             `json:"sku"`
 	BasePrice       float64            `json:"base_price"`
+	Discount      float64 `json:"discount" validate:"gte=0"`
+    DiscountType  string          `json:"discount_type" validate:"oneof=fixed percentage ''"`
+	FinalPrice       float64            `json:"final_price"`
 	CategoryID      uint               `json:"category_id"`
 	CreatedAt       time.Time          `json:"created_at"`
 	UpdatedAt       time.Time          `json:"updated_at"`
@@ -51,6 +58,9 @@ type VariantResponse struct {
 	SKU             string            `json:"sku"`
 	PriceAdjustment float64           `json:"price_adjustment"`
 	TotalPrice      float64           `json:"total_price"`
+	Discount      float64 `json:"discount" validate:"gte=0"`
+    DiscountType  string          `json:"discount_type" validate:"oneof=fixed percentage ''"`
+	FinalPrice       float64            `json:"final_price"`
 	Attributes      map[string]string `json:"attributes"`
 	IsActive        bool              `json:"is_active"`
 	CreatedAt       time.Time         `json:"created_at"`
@@ -147,8 +157,10 @@ type AddWishlistItemDTO struct {
 type WishlistItemResponseDTO struct {
 	ProductID   string          `json:"product_id"`
 	Name        string          `json:"name"`
+	FinalPrice      float64           `json:"total_price"`
+	Discount      float64 `json:"discount" validate:"gte=0"`
+    DiscountType  string          `json:"discount_type" validate:"oneof=fixed percentage ''"`
 	SKU         string          `json:"sku"`
-	BasePrice   float64 `json:"base_price"`
 	MerchantID  string          `json:"merchant_id"`
 	AddedAt     time.Time       `json:"added_at"`
 }
