@@ -197,6 +197,45 @@ func (h *ProductHandler) GetProductByID(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
+
+// GetProductByName fetches a single product by name
+// GetProductByID godoc
+// @Summary Get product by Name
+// @Description Fetches a single product with media and variants
+// @Tags Products
+// @Produce json
+// @Param id path string true "Product ID"
+// @Success 200 {object} dto.ProductResponse
+// @Failure 400 {object} object{error=string}
+// @Failure 404 {object} object{error=string}
+// @Failure 500 {object} object{error=string}
+// @Router /products/{name} [get]
+func (h *ProductHandler) GetProductByName(c *gin.Context) {
+	logger := h.logger.With(zap.String("operation", "GetProductByName"))
+	productName := c.Param("name")
+	if productName == "" {
+		logger.Error("Missing product ID")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "product ID required"})
+		return
+	}
+
+	// Call service with preloads
+	response, err := h.productService.GetProductByName(c.Request.Context(), productName)
+	if err != nil {
+		logger.Error("Failed to fetch product", zap.Error(err), zap.String("product_name", productName))
+		if errors.Is(err, product.ErrInvalidProduct) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "product not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch product"})
+		return
+	}
+
+	logger.Info("Product fetched successfully", zap.String("product_name", productName))
+	c.JSON(http.StatusOK, response)
+}
+
+
 // ListProductsByMerchant lists a merchant's products with pagination
 // ListProductsByMerchant godoc
 // @Summary List merchant's products

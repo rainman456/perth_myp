@@ -68,6 +68,18 @@ func (r *ProductRepository) FindBySKU(ctx context.Context, sku string) (*models.
 }
 
 
+func (r *ProductRepository) FindByName(ctx context.Context, name string) (*models.Product, error) {
+	var product models.Product
+	err := r.db.WithContext(ctx).Where("name = ? AND deleted_at IS NULL", name).First(&product).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, ErrProductNotFound
+	} else if err != nil {
+		return nil, fmt.Errorf("failed to find product by name: %w", err)
+	}
+	return &product, nil
+}
+
+
 
 // func (r *ProductRepository) FindByID(id string, preloads ...string) (*models.Product, error) {
 // 	var product models.Product

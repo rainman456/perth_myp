@@ -199,11 +199,11 @@ func (h *CartHandler) UpdateCartItemQuantity(c *gin.Context) {
 		return
 	}
 
-	resp := &dto.CartResponse{}
-	if err := utils.RespMap(updatedCart, resp); err != nil {
-		h.logger.Error(" error", zap.Error(err))
-	}
-	c.JSON(http.StatusOK, resp)
+	// resp := &dto.CartResponse{}
+	// if err := utils.RespMap(updatedCart, resp); err != nil {
+	// 	h.logger.Error(" error", zap.Error(err))
+	// }
+	c.JSON(http.StatusOK, updatedCart)
 
 }
 

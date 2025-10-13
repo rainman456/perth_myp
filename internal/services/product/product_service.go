@@ -585,7 +585,80 @@ products, total, err := s.productRepo.ProductsFilter(ctx, repoFilter, limit, off
 
 
 
+// GetProductByID fetches a product by name
+func (s *ProductService) GetProductByName(ctx context.Context, name string) (*dto.ProductResponse, error) {
+	logger := s.logger.With(zap.String("operation", "GetProductByName"), zap.String("product_id", name))
+	product, err := s.productRepo.FindByName(ctx,  name)  // Fixed: Added ctx
+	if err != nil {
+		if errors.Is(err, repositories.ErrProductNotFound) {
+			return nil, err
+		}
+		logger.Error("Failed to fetch product", zap.Error(err))
+		return nil, fmt.Errorf("failed to fetch product: %w", err)
+	}
 
+	response := &dto.ProductResponse{
+		ID:          product.ID,
+		MerchantID:  product.MerchantID,
+		Name:        product.Name,
+		Description: product.Description,
+		SKU:         product.SKU,
+		BasePrice:   (product.BasePrice).InexactFloat64(),
+		FinalPrice: product.FinalPrice.InexactFloat64(),
+		Discount: product.Discount.InexactFloat64(),
+		DiscountType: string(product.DiscountType),
+		CategoryID:  product.CategoryID,
+		CreatedAt:   product.CreatedAt,
+		UpdatedAt:   product.UpdatedAt,
+		Variants:    make([]dto.VariantResponse, len(product.Variants)),
+		Media:       make([]dto.MediaResponse, len(product.Media)),
+	}
+	for i, v := range product.Variants {
+		response.Variants[i] = dto.VariantResponse{
+			ID:              v.ID,
+			ProductID:       v.ProductID,
+			SKU:             v.SKU,
+			PriceAdjustment: (v.PriceAdjustment).InexactFloat64(),
+			TotalPrice:      (v.TotalPrice).InexactFloat64(),
+			FinalPrice: v.FinalPrice.InexactFloat64(),
+		Discount: v.Discount.InexactFloat64(),
+		DiscountType: string(v.DiscountType),
+			Attributes:      v.Attributes,
+			IsActive:        v.IsActive,
+			CreatedAt:       v.CreatedAt,
+			UpdatedAt:       v.UpdatedAt,
+			Inventory: dto.InventoryResponse{
+				ID:                v.Inventory.ID,
+				Quantity:          v.Inventory.Quantity,
+				ReservedQuantity:  v.Inventory.ReservedQuantity,
+				LowStockThreshold: v.Inventory.LowStockThreshold,
+				BackorderAllowed:  v.Inventory.BackorderAllowed,
+			},
+		}
+	}
+	for i, m := range product.Media {
+		response.Media[i] = dto.MediaResponse{
+			ID:        m.ID,
+			ProductID: m.ProductID,
+			URL:       m.URL,
+			Type:      string(m.Type),
+			CreatedAt: m.CreatedAt,
+			UpdatedAt: m.UpdatedAt,
+		}
+	}
+	if product.SimpleInventory != nil {
+		response.SimpleInventory = &dto.InventoryResponse{
+			ID:                product.SimpleInventory.ID,
+			Quantity:          product.SimpleInventory.Quantity,
+			ReservedQuantity:  product.SimpleInventory.ReservedQuantity,
+			LowStockThreshold: product.SimpleInventory.LowStockThreshold,
+			BackorderAllowed:  product.SimpleInventory.BackorderAllowed,
+		}
+	}
+
+	logger.Info("Product fetched successfully")
+	return response, nil
+}
 
 
 
@@ -733,6 +806,10 @@ func (s *ProductService) DeleteMedia(ctx context.Context, mediaID, productID, me
 	logger.Info("Media deleted", zap.String("public_id", media.PublicID), zap.String("reason", reason))
 	return nil
 }
+
+
+
+
 
 // Helper: Check merchant owns product
 func (s *ProductService) merchantOwnsProduct(ctx context.Context, productID, merchantID string) bool {

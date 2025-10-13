@@ -267,7 +267,7 @@ func (s *CartService) AddItemToCart(ctx context.Context, userID uint, quantity i
 }
 
 // UpdateCartItemQuantity updates the quantity of a cart item
-func (s *CartService) UpdateCartItemQuantity(ctx context.Context, cartItemID uint, quantity int) (*models.Cart, error) {
+func (s *CartService) UpdateCartItemQuantity(ctx context.Context, cartItemID uint, quantity int) (*dto.CartResponse, error) {
 	if cartItemID == 0 {
 		return nil, errors.New("invalid cart item ID")
 	}
@@ -314,7 +314,44 @@ func (s *CartService) UpdateCartItemQuantity(ctx context.Context, cartItemID uin
 		return nil, err
 	}
 
-	return s.cartRepo.FindByID(ctx, cartItem.CartID)
+	//return s.cartRepo.FindByID(ctx, cartItem.CartID)
+    cart, err := s.cartRepo.FindByID(ctx, cartItem.CartID)
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		s.logger.Error("Failed to query active cart", zap.Uint("cart_id", cartItem.CartID), zap.Error(err))
+		return nil, fmt.Errorf("db error: %w", err)
+	}
+
+	response := &dto.CartResponse{
+		ID:        cart.ID,
+		UserID:    cart.UserID,
+		Status:    cart.Status,
+		Items:     make([]dto.CartItemResponse, len(cart.CartItems)),
+		Total:     0,  // Will compute sum of subtotals
+		CreatedAt: cart.CreatedAt,
+		UpdatedAt: cart.UpdatedAt,
+	}
+	for i, item := range cart.CartItems {
+		subtotal := 0.0
+		// Check if Product is preloaded (avoid empty struct issues)
+		if item.Product.ID != "" {  // Use ID as non-zero check (struct-safe)
+			price := item.Product.FinalPrice.InexactFloat64()  // Convert decimal.Decimal
+			if item.VariantID != nil && item.Variant != nil && item.Variant.ID != "" {
+				price += item.Variant.FinalPrice.InexactFloat64()  // Add adjustment
+			}
+			subtotal = float64(item.Quantity) * price
+		}
+		response.Items[i] = dto.CartItemResponse{
+			ID:        item.ID,
+			ProductID: item.ProductID,
+			Name: item.Product.Name,
+			VariantID: item.VariantID,
+			Quantity:  item.Quantity,
+			Subtotal:  subtotal,  // Computed: quantity * (base + adjustment)
+		}
+		response.Total += subtotal  // Accumulate grand total
+	}
+	return response, nil
+	
 }
 
 func (s *CartService) RemoveCartItem(ctx context.Context, cartItemID uint) (*models.Cart, error) {

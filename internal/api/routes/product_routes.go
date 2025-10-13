@@ -75,6 +75,7 @@ func SetupProductRoutes(r *gin.Engine) {
 
 	r.GET("/products", productHandler.GetAllProducts)
 	r.GET("/products/:id", productHandler.GetProductByID)
+	r.GET("/products/:name", productHandler.GetProductByName)
 	r.GET("/categories", cathandler.GetCategories)
 	// Merchant-specific moved to merchant_routes
 }
