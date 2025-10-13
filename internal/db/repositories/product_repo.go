@@ -68,6 +68,37 @@ func (r *ProductRepository) FindBySKU(ctx context.Context, sku string) (*models.
 }
 
 
+// AutocompleteProducts fetches products matching a name prefix.
+func (r *ProductRepository) AutocompleteProducts(ctx context.Context, prefix string, limit int) ([]models.Product, error) {
+    if limit <= 0 || limit > 20 { // Sanity check
+        limit = 10
+    }
+
+    var suggestions []models.Product
+    err := r.db.WithContext(ctx).
+        Where("LOWER(name) LIKE LOWER(?)", prefix+"%").
+        Where("deleted_at IS NULL"). // Soft delete handling
+        Order("name ASC").
+        Limit(limit).
+        Find(&suggestions).Error
+    if err != nil {
+        return nil, fmt.Errorf("failed to fetch autocomplete products: %w", err)
+    }
+
+    // Map to DTO
+    // suggestions := make([]dto.ProductAutocompleteResponse, len(products))
+    // for i, p := range products {
+    //     suggestions[i] = dto.ProductAutocompleteResponse{
+    //         ID:          p.ID,
+    //         Name:        p.Name,
+    //         SKU:         p.SKU,
+    //         Description: p.Description,
+    //     }
+    // }
+
+    return suggestions, nil
+}
+
 func (r *ProductRepository) FindByName(ctx context.Context, name string) (*models.Product, error) {
 	var product models.Product
 	err := r.db.WithContext(ctx).Where("name = ? AND deleted_at IS NULL", name).First(&product).Error

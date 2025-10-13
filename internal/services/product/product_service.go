@@ -357,6 +357,47 @@ func (s *ProductService) ListProductsByMerchant(ctx context.Context, merchantID 
 	return responses, nil
 }
 
+
+
+
+
+
+
+
+
+
+// Autocomplete fetches product suggestions for search autocomplete.
+func (s *ProductService) Autocomplete(ctx context.Context, prefix string, limit int) (*dto.AutocompleteResponse, error) {
+    s.logger.Info("Fetching autocomplete suggestions", zap.String("prefix", prefix), zap.Int("limit", limit))
+
+    suggestions, err := s.productRepo.AutocompleteProducts(ctx, prefix, limit)
+    if err != nil {
+        s.logger.Error("Failed to fetch autocomplete products", zap.Error(err))
+        return nil, fmt.Errorf("autocomplete failed: %w", err)
+    }
+
+    suggest := make([]dto.ProductAutocompleteResponse, len(suggestions))
+    for i, p := range suggestions {
+        suggest[i] = dto.ProductAutocompleteResponse{
+            ID:          p.ID,
+            Name:        p.Name,
+            SKU:         p.SKU,
+            Description: p.Description,
+        }
+    }
+
+	response := &dto.AutocompleteResponse{
+        Suggestions: suggest,
+    }
+
+    s.logger.Info("Autocomplete suggestions returned", zap.Int("count", len(suggestions)))
+    return response, nil
+}
+
+
+
+
+
 // GetAllProducts fetches all active products for the landing page
 func (s *ProductService) GetAllProducts(ctx context.Context, limit, offset int, categoryID *uint) ([]dto.ProductResponse, int64, error) {
 	logger := s.logger.With(zap.String("operation", "GetAllProducts"))

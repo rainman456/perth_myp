@@ -173,3 +173,15 @@ type WishlistResponseDTO struct {
 }
 
 
+// ProductAutocompleteResponse represents a single product suggestion for autocomplete.
+type ProductAutocompleteResponse struct {
+    ID          string  `json:"id"`
+    Name        string  `json:"name"`
+    SKU         string  `json:"sku"`
+    Description string  `json:"description,omitempty"`
+}
+
+// AutocompleteResponse is the full response with a list of suggestions.
+type AutocompleteResponse struct {
+    Suggestions []ProductAutocompleteResponse `json:"suggestions"`
+}

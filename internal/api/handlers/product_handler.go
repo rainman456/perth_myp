@@ -236,6 +236,45 @@ func (h *ProductHandler) GetProductByName(c *gin.Context) {
 }
 
 
+
+
+
+
+// AutocompleteHandler godoc
+// @Summary      Product Autocomplete
+// @Description  Get product suggestions based on a name prefix for search autocomplete.
+// @Tags         Products
+// @Accept       json
+// @Produce      json
+// @Param        query     query     string  true  "Search prefix (e.g., 'a' for products starting with 'a')"
+// @Param        limit     query     int     false "Number of results (default 10, max 20)"
+// @Success      200  {object}  dto.AutocompleteResponse
+// @Failure      400  {object}  map[string]string  "Invalid query parameter"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /products/autocomplete [get]
+func (h *ProductHandler) AutocompleteHandler(c *gin.Context) {
+    prefix := c.Query("query")
+    if prefix == "" {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Query parameter 'query' is required"})
+        return
+    }
+
+    limitStr := c.Query("limit")
+    limit, err := strconv.Atoi(limitStr)
+    if err != nil {
+        limit = 10 // Default
+    }
+
+    response, err := h.productService.Autocomplete(c.Request.Context(), prefix, limit)
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+    }
+
+    c.JSON(http.StatusOK, response)
+}
+
+
 // ListProductsByMerchant lists a merchant's products with pagination
 // ListProductsByMerchant godoc
 // @Summary List merchant's products
