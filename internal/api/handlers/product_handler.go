@@ -209,7 +209,7 @@ func (h *ProductHandler) GetProductByID(c *gin.Context) {
 // @Failure 400 {object} object{error=string}
 // @Failure 404 {object} object{error=string}
 // @Failure 500 {object} object{error=string}
-// @Router /products/{name} [get]
+// @Router /products/by-name/{name} [get]
 func (h *ProductHandler) GetProductByName(c *gin.Context) {
 	logger := h.logger.With(zap.String("operation", "GetProductByName"))
 	productName := c.Param("name")

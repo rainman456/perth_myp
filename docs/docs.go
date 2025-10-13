@@ -2623,7 +2623,63 @@ const docTemplate = `{
                 }
             }
         },
-        "/products/{id}": {
+        "/products/autocomplete": {
+            "get": {
+                "description": "Get product suggestions based on a name prefix for search autocomplete.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Products"
+                ],
+                "summary": "Product Autocomplete",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search prefix (e.g., 'a' for products starting with 'a')",
+                        "name": "query",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Number of results (default 10, max 20)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.AutocompleteResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid query parameter",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/products/by-name/{name}": {
             "get": {
                 "description": "Fetches a single product with media and variants",
                 "produces": [
@@ -2632,7 +2688,7 @@ const docTemplate = `{
                 "tags": [
                     "Products"
                 ],
-                "summary": "Get product by ID",
+                "summary": "Get product by Name",
                 "parameters": [
                     {
                         "type": "string",
@@ -2685,47 +2741,30 @@ const docTemplate = `{
                 }
             }
         },
-        "/products/{productID}/reviews": {
+        "/products/{id}": {
             "get": {
-                "description": "Retrieve reviews for a specific product",
+                "description": "Fetches a single product with media and variants",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "reviews"
+                    "Products"
                 ],
-                "summary": "Get reviews by product ID",
+                "summary": "Get product by ID",
                 "parameters": [
                     {
                         "type": "string",
                         "description": "Product ID",
-                        "name": "productID",
+                        "name": "id",
                         "in": "path",
                         "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "default": 10,
-                        "description": "Limit of reviews",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "default": 0,
-                        "description": "Offset for pagination",
-                        "name": "offset",
-                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/dto.ReviewResponseDTO"
-                            }
+                            "$ref": "#/definitions/dto.ProductResponse"
                         }
                     },
                     "400": {
@@ -2739,8 +2778,8 @@ const docTemplate = `{
                             }
                         }
                     },
-                    "401": {
-                        "description": "Unauthorized",
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -3364,6 +3403,85 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/{productID}/reviews": {
+            "get": {
+                "description": "Retrieve reviews for a specific product",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "reviews"
+                ],
+                "summary": "Get reviews by product ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Product ID",
+                        "name": "productID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Limit of reviews",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Offset for pagination",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.ReviewResponseDTO"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -3383,6 +3501,17 @@ const docTemplate = `{
                 },
                 "variant_id": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.AutocompleteResponse": {
+            "type": "object",
+            "properties": {
+                "suggestions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ProductAutocompleteResponse"
+                    }
                 }
             }
         },
@@ -3459,6 +3588,9 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "integer"
+                },
+                "name": {
+                    "type": "string"
                 },
                 "product": {
                     "$ref": "#/definitions/dto.ProductResponse"
@@ -3786,6 +3918,12 @@ const docTemplate = `{
         "dto.OrderItemResponse": {
             "type": "object",
             "properties": {
+                "image_url": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
                 "price": {
                     "type": "number"
                 },
@@ -3800,6 +3938,9 @@ const docTemplate = `{
         "dto.OrderResponse": {
             "type": "object",
             "properties": {
+                "created_at": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "integer"
                 },
@@ -3817,6 +3958,9 @@ const docTemplate = `{
                 },
                 "total_amount": {
                     "type": "number"
+                },
+                "updated_at": {
+                    "type": "string"
                 },
                 "user_id": {
                     "type": "integer"
@@ -3867,6 +4011,23 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.ProductAutocompleteResponse": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "sku": {
                     "type": "string"
                 }
             }
@@ -3969,6 +4130,12 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                },
+                "reviews": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ReviewResponseDTO"
+                    }
                 },
                 "simple_inventory": {
                     "description": "For simple products",

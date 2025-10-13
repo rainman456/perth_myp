@@ -13,6 +13,13 @@ definitions:
     - product_id
     - quantity
     type: object
+  dto.AutocompleteResponse:
+    properties:
+      suggestions:
+        items:
+          $ref: '#/definitions/dto.ProductAutocompleteResponse'
+        type: array
+    type: object
   dto.BankListItemDTO:
     properties:
       code:
@@ -62,6 +69,8 @@ definitions:
         type: object
       id:
         type: integer
+      name:
+        type: string
       product:
         $ref: '#/definitions/dto.ProductResponse'
       product_id:
@@ -281,6 +290,10 @@ definitions:
     type: object
   dto.OrderItemResponse:
     properties:
+      image_url:
+        type: string
+      name:
+        type: string
       price:
         type: number
       product_id:
@@ -290,6 +303,8 @@ definitions:
     type: object
   dto.OrderResponse:
     properties:
+      created_at:
+        type: string
       id:
         type: integer
       order_items:
@@ -302,6 +317,8 @@ definitions:
         $ref: '#/definitions/dto.OrderStatus'
       total_amount:
         type: number
+      updated_at:
+        type: string
       user_id:
         type: integer
     type: object
@@ -337,6 +354,17 @@ definitions:
         description: Paystack ref
         type: string
       updated_at:
+        type: string
+    type: object
+  dto.ProductAutocompleteResponse:
+    properties:
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      sku:
         type: string
     type: object
   dto.ProductInput:
@@ -409,6 +437,10 @@ definitions:
         type: string
       name:
         type: string
+      reviews:
+        items:
+          $ref: '#/definitions/dto.ReviewResponseDTO'
+        type: array
       simple_inventory:
         allOf:
         - $ref: '#/definitions/dto.InventoryResponse'
@@ -647,6 +679,58 @@ info:
   title: Multivendor API
   version: "1.0"
 paths:
+  /{productID}/reviews:
+    get:
+      description: Retrieve reviews for a specific product
+      parameters:
+      - description: Product ID
+        in: path
+        name: productID
+        required: true
+        type: string
+      - default: 10
+        description: Limit of reviews
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset for pagination
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.ReviewResponseDTO'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Get reviews by product ID
+      tags:
+      - reviews
   /banks:
     get:
       description: Returns list of all supported banks with codes
@@ -2342,24 +2426,20 @@ paths:
       summary: Get product by ID
       tags:
       - Products
-  /products/{productID}/reviews:
+  /products/autocomplete:
     get:
-      description: Retrieve reviews for a specific product
+      consumes:
+      - application/json
+      description: Get product suggestions based on a name prefix for search autocomplete.
       parameters:
-      - description: Product ID
-        in: path
-        name: productID
+      - description: Search prefix (e.g., 'a' for products starting with 'a')
+        in: query
+        name: query
         required: true
         type: string
-      - default: 10
-        description: Limit of reviews
+      - description: Number of results (default 10, max 20)
         in: query
         name: limit
-        type: integer
-      - default: 0
-        description: Offset for pagination
-        in: query
-        name: offset
         type: integer
       produces:
       - application/json
@@ -2367,9 +2447,38 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/dto.ReviewResponseDTO'
-            type: array
+            $ref: '#/definitions/dto.AutocompleteResponse'
+        "400":
+          description: Invalid query parameter
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Product Autocomplete
+      tags:
+      - Products
+  /products/by-name/{name}:
+    get:
+      description: Fetches a single product with media and variants
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ProductResponse'
         "400":
           description: Bad Request
           schema:
@@ -2377,8 +2486,8 @@ paths:
               error:
                 type: string
             type: object
-        "401":
-          description: Unauthorized
+        "404":
+          description: Not Found
           schema:
             properties:
               error:
@@ -2391,9 +2500,9 @@ paths:
               error:
                 type: string
             type: object
-      summary: Get reviews by product ID
+      summary: Get product by Name
       tags:
-      - reviews
+      - Products
   /return-requests:
     get:
       description: Retrieve all return requests for the authenticated customer
