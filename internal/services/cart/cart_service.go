@@ -95,6 +95,7 @@ for i, item := range cart.CartItems {
     response.Items[i] = dto.CartItemResponse{
         ID:        item.ID,
         ProductID: item.ProductID,
+		Name: item.Product.Name,
         VariantID: item.VariantID,
         Quantity:  item.Quantity,
         Subtotal:  subtotal,  // Computed: quantity * (base + adjustment)
@@ -255,6 +256,7 @@ func (s *CartService) AddItemToCart(ctx context.Context, userID uint, quantity i
         response.Items[i] = dto.CartItemResponse{
             ID:        item.ID,
             ProductID: item.ProductID,
+			Name: item.Product.Name,
             VariantID: item.VariantID,
             Quantity:  item.Quantity,
             Subtotal:  subtotal,
@@ -273,7 +275,7 @@ func (s *CartService) UpdateCartItemQuantity(ctx context.Context, cartItemID uin
 		return nil, ErrInvalidQuantity
 	}
 
-	// load cart item (contains MerchantID and ProductID)
+	// load cart item (contains MerchantID, ProductID, and optional VariantID)
 	cartItem, err := s.cartItemRepo.FindByID(ctx, cartItemID)
 	if err != nil {
 		return nil, repositories.ErrCartItemNotFound
@@ -290,8 +292,14 @@ func (s *CartService) UpdateCartItemQuantity(ctx context.Context, cartItemID uin
 		merchantID = prod.MerchantID
 	}
 
-	// NOTE: FindByProductID signature is (ctx, productID, merchantID)
-	inventory, err := s.inventoryRepo.FindByProductID(ctx, cartItem.ProductID, merchantID)
+	// Determine lookup ID: use VariantID if present, otherwise ProductID
+	lookupID := cartItem.ProductID
+	if cartItem.VariantID != nil {
+		lookupID = *cartItem.VariantID
+	}
+
+	// Use combined repo method
+	inventory, err := s.inventoryRepo.FindByProductOrVariantID(ctx, lookupID, merchantID)
 	if err != nil {
 		return nil, ErrInventoryNotFound
 	}
@@ -331,7 +339,13 @@ func (s *CartService) RemoveCartItem(ctx context.Context, cartItemID uint) (*mod
 	}
 
 	// pass ctx and merchantID as required by repo
-	inventory, err := s.inventoryRepo.FindByProductID(ctx, cartItem.ProductID, merchantID)
+	lookupID := cartItem.ProductID
+	if cartItem.VariantID != nil {
+		lookupID = *cartItem.VariantID
+	}
+
+	// Use combined repo method
+	inventory, err := s.inventoryRepo.FindByProductOrVariantID(ctx, lookupID, merchantID)
 	if err != nil {
 		return nil, ErrInventoryNotFound
 	}

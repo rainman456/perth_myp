@@ -82,6 +82,16 @@ func (r *InventoryRepository) FindByProductID(ctx context.Context, productID str
 	return &inv, err
 }
 
+
+// FindByProductOrVariantID retrieves inventory by either product ID (for simple products) or variant ID
+func (r *InventoryRepository) FindByProductOrVariantID(ctx context.Context, id, merchantID string) (*models.Inventory, error) {
+	var inv models.Inventory
+	err := r.db.WithContext(ctx).
+		Where("(product_id = ? OR variant_id = ?) AND merchant_id = ?", id, id, merchantID).
+		First(&inv).Error
+	return &inv, err
+}
+
 // UpdateStock adjusts quantity (can be negative for reservations)
 func (r *InventoryRepository) UpdateStock(ctx context.Context, invID uint, delta int) error {
 	return r.db.WithContext(ctx).

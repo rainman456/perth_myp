@@ -1,7 +1,7 @@
 package dto
 
 import (
-	"api-customer-merchant/internal/db/models"
+	//"api-customer-merchant/internal/db/models"
 	"time"
 )
 
@@ -37,13 +37,19 @@ type OrderResponse struct {
 	OrderItems   []OrderItemResponse `json:"order_items"`
 	TotalAmount  float64             `json:"total_amount"`
 	PaymentStatus string             `json:"payment_status"`
+	CreatedAt    time.Time           `json:"created_at"`
+	UpdatedAt time.Time         `json:"updated_at"`
+
 }
 
 // OrderItemResponse defines the structure for individual items in an order.
 type OrderItemResponse struct {
 	ProductID string  `json:"product_id"`
+	Name      string    `json:"name"`
 	Quantity  int     `json:"quantity"`
 	Price     float64 `json:"price"`
+	Image   string    `json:"image_url"`
+
 }
 
 type CancelOrderRequest struct {
@@ -58,7 +64,7 @@ type OrdersResponse struct {
 	ID        uint             `json:"id"`
 	UserID    uint             `json:"user_id"`
 	OrderItems []OrdersItemResponse `json:"order_items"`
-	Status    models.OrderStatus `json:"status"`
+	Status    OrderStatus `json:"status"`
 	CreatedAt time.Time         `json:"created_at"`
 	UpdatedAt time.Time         `json:"updated_at"`
 }

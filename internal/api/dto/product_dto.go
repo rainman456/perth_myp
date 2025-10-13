@@ -49,6 +49,7 @@ type ProductResponse struct {
 	UpdatedAt       time.Time          `json:"updated_at"`
 	Variants        []VariantResponse  `json:"variants,omitempty"`
 	Media           []MediaResponse    `json:"media,omitempty"`
+	Reviews          []ReviewResponseDTO `json:"reviews,omitempty"`
 	SimpleInventory *InventoryResponse `json:"simple_inventory,omitempty"` // For simple products
 }
 

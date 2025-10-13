@@ -390,7 +390,17 @@ func (s *ProductService) GetAllProducts(ctx context.Context, limit, offset int, 
 			UpdatedAt:   p.UpdatedAt,
 			Variants:    make([]dto.VariantResponse, len(p.Variants)),
 			Media:       make([]dto.MediaResponse, len(p.Media)),
+			Reviews:     make([]dto.ReviewResponseDTO, len(p.Reviews)) ,
 		}
+		for e,r:= range p.Reviews{
+			responses[i].Reviews[e]=dto.ReviewResponseDTO{
+				UserName: r.User.Name,
+				Comment: r.Comment,
+				Rating: r.Rating,
+			}
+		}
+
+
 		for j, v := range p.Variants {
 			responses[i].Variants[j] = dto.VariantResponse{
 				ID:              v.ID,
@@ -508,7 +518,16 @@ products, total, err := s.productRepo.ProductsFilter(ctx, repoFilter, limit, off
 			UpdatedAt:   p.UpdatedAt,
 			Variants:    make([]dto.VariantResponse, len(p.Variants)),
 			Media:       make([]dto.MediaResponse, len(p.Media)),
+			Reviews:     make([]dto.ReviewResponseDTO, len(p.Reviews)) ,
 		}
+		for e,r:= range p.Reviews{
+			responses[i].Reviews[e]=dto.ReviewResponseDTO{
+				UserName: r.User.Name,
+				Comment: r.Comment,
+				Rating: r.Rating,
+			}
+		}
+
 
 		// Variants: compute TotalPrice = BasePrice + PriceAdjustment
 		for j, v := range p.Variants {

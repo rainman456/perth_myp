@@ -171,10 +171,13 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID uint) (*dto.Order
         UserID:     newOrder.UserID,
         Status:     dto.OrderStatus(newOrder.Status),
         OrderItems: make([]dto.OrderItemResponse, len(newOrder.OrderItems)),
+		CreatedAt: newOrder.CreatedAt,
+		UpdatedAt: newOrder.UpdatedAt,
     }
     for i, item := range newOrder.OrderItems {
         orderResponse.OrderItems[i] = dto.OrderItemResponse{
             ProductID: fmt.Sprint(item.ProductID),
+			Name: item.Product.Name,
             Quantity:  item.Quantity,
             Price:     item.Price,
         }
@@ -354,7 +357,7 @@ func (s *OrderService) GetUserOrders(ctx context.Context, userID uint) ([]dto.Or
 		orderDTO := dto.OrdersResponse{
 			ID:        order.ID,
 			UserID:    order.UserID,
-			Status:    order.Status,
+			Status:    dto.OrderStatus(order.Status),
 			CreatedAt: order.CreatedAt,
 			UpdatedAt: order.UpdatedAt,
 		}

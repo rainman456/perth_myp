@@ -15,7 +15,7 @@ type AddItemRequest struct {
 
 // UpdateItemRequest: For PUT /cart/items/:id (full replace quantity) or PATCH /cart/items/:id (partial update)
 type UpdateItemRequest struct {
-	
+
 	Quantity int  `json:"quantity" validate:"omitempty,gt=0"` // Omitempty for PATCH
 }
 
@@ -43,6 +43,7 @@ type CartResponse struct {
 type CartItemResponse struct {
 	ID         uint            `json:"id"`
 	ProductID  string            `json:"product_id"`
+	Name      string              `json:"name"`
 	VariantID  *string           `json:"variant_id,omitempty"`
 	Attributes map[string]any `json:"attributes,omitempty"`
 	Product    *ProductResponse  `json:"product,omitempty"`
