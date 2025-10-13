@@ -34,7 +34,7 @@ func NewProductMediaHandler(mediaService *product.ProductService, logger *zap.Lo
 // UploadMedia godoc
 // @Summary Upload product media
 // @Description Uploads image/video for a product
-// @Tags Products
+// @Tags Merchant
 // @Accept multipart/form-data
 // @Produce json
 // @Security BearerAuth
@@ -115,7 +115,7 @@ func (h *ProductMediaHandler) UploadMedia(c *gin.Context) {
 // UpdateMedia godoc
 // @Summary Update product media
 // @Description Updates existing media for a product
-// @Tags Products
+// @Tags Merchant
 // @Accept multipart/form-data
 // @Produce json
 // @Security BearerAuth
@@ -189,7 +189,7 @@ func (h *ProductMediaHandler) UpdateMedia(c *gin.Context) {
 // DeleteMedia godoc
 // @Summary Delete product media
 // @Description Deletes media for a product
-// @Tags Products
+// @Tags Merchant
 // @Accept json
 // @Produce json
 // @Security BearerAuth

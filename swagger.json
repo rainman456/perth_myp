@@ -1628,7 +1628,7 @@
                     "application/json"
                 ],
                 "tags": [
-                    "Products"
+                    "Merchant"
                 ],
                 "summary": "List merchant's products",
                 "parameters": [
@@ -1724,7 +1724,7 @@
                     "application/json"
                 ],
                 "tags": [
-                    "Products"
+                    "Merchant"
                 ],
                 "summary": "Create a new product",
                 "parameters": [
@@ -1785,7 +1785,7 @@
                     "application/json"
                 ],
                 "tags": [
-                    "Products"
+                    "Merchant"
                 ],
                 "summary": "Update product inventory",
                 "parameters": [
@@ -1882,7 +1882,7 @@
                     "application/json"
                 ],
                 "tags": [
-                    "Products"
+                    "Merchant"
                 ],
                 "summary": "Delete a product",
                 "parameters": [
@@ -1968,7 +1968,7 @@
                     "application/json"
                 ],
                 "tags": [
-                    "Products"
+                    "Merchant"
                 ],
                 "summary": "Upload product media",
                 "parameters": [
@@ -2052,7 +2052,7 @@
                     "application/json"
                 ],
                 "tags": [
-                    "Products"
+                    "Merchant"
                 ],
                 "summary": "Update product media",
                 "parameters": [
@@ -2145,7 +2145,7 @@
                     "application/json"
                 ],
                 "tags": [
-                    "Products"
+                    "Merchant"
                 ],
                 "summary": "Delete product media",
                 "parameters": [
@@ -2672,7 +2672,7 @@
                 }
             }
         },
-        "/products/{id}": {
+        "/products/by-name/{name}": {
             "get": {
                 "description": "Fetches a single product with media and variants",
                 "produces": [
@@ -2681,7 +2681,7 @@
                 "tags": [
                     "Products"
                 ],
-                "summary": "Get product by ID",
+                "summary": "Get product by Name",
                 "parameters": [
                     {
                         "type": "string",
@@ -2734,7 +2734,7 @@
                 }
             }
         },
-        "/products/{name}": {
+        "/products/{id}": {
             "get": {
                 "description": "Fetches a single product with media and variants",
                 "produces": [
@@ -2743,7 +2743,7 @@
                 "tags": [
                     "Products"
                 ],
-                "summary": "Get product by Name",
+                "summary": "Get product by ID",
                 "parameters": [
                     {
                         "type": "string",

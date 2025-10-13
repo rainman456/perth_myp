@@ -1810,7 +1810,7 @@ paths:
       - BearerAuth: []
       summary: List merchant's products
       tags:
-      - Products
+      - Merchant
     post:
       consumes:
       - application/json
@@ -1847,7 +1847,7 @@ paths:
       - BearerAuth: []
       summary: Create a new product
       tags:
-      - Products
+      - Merchant
   /merchant/products/{id}:
     delete:
       description: Soft-deletes a product by ID for authenticated merchant
@@ -1899,7 +1899,7 @@ paths:
       - BearerAuth: []
       summary: Delete a product
       tags:
-      - Products
+      - Merchant
   /merchant/products/{product_id}/media:
     post:
       consumes:
@@ -1953,7 +1953,7 @@ paths:
       - BearerAuth: []
       summary: Upload product media
       tags:
-      - Products
+      - Merchant
   /merchant/products/{product_id}/media/{media_id}:
     delete:
       consumes:
@@ -2003,7 +2003,7 @@ paths:
       - BearerAuth: []
       summary: Delete product media
       tags:
-      - Products
+      - Merchant
     put:
       consumes:
       - multipart/form-data
@@ -2063,7 +2063,7 @@ paths:
       - BearerAuth: []
       summary: Update product media
       tags:
-      - Products
+      - Merchant
   /merchant/products/inventory/{id}:
     put:
       consumes:
@@ -2126,7 +2126,7 @@ paths:
       - BearerAuth: []
       summary: Update product inventory
       tags:
-      - Products
+      - Merchant
   /orders:
     get:
       description: Retrieves all orders and their items for the authenticated user

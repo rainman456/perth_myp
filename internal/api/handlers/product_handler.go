@@ -45,7 +45,7 @@ func NewProductHandlers(productService *product.ProductService, logger *zap.Logg
 // CreateProduct godoc
 // @Summary Create a new product
 // @Description Creates a product with variants and media for authenticated merchant
-// @Tags Products
+// @Tags Merchant
 // @Accept json
 // @Produce json
 // @Security BearerAuth
@@ -279,7 +279,7 @@ func (h *ProductHandler) AutocompleteHandler(c *gin.Context) {
 // ListProductsByMerchant godoc
 // @Summary List merchant's products
 // @Description Fetches paginated list of products for authenticated merchant
-// @Tags Products
+// @Tags Merchant
 // @Produce json
 // @Security BearerAuth
 // @Param limit query int false "Limit (default 20)"
@@ -339,7 +339,7 @@ func (h *ProductHandler) ListProductsByMerchant(c *gin.Context) {
 // UpdateInventory godoc
 // @Summary Update product inventory
 // @Description Adjusts stock delta for a given inventory ID
-// @Tags Products
+// @Tags Merchant
 // @Accept json
 // @Produce json
 // @Security BearerAuth
@@ -409,7 +409,7 @@ func (h *ProductHandler) UpdateInventory(c *gin.Context) {
 // DeleteProduct godoc
 // @Summary Delete a product
 // @Description Soft-deletes a product by ID for authenticated merchant
-// @Tags Products
+// @Tags Merchant
 // @Produce json
 // @Security BearerAuth
 // @Param id path string true "Product ID"

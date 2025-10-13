@@ -1635,7 +1635,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Products"
+                    "Merchant"
                 ],
                 "summary": "List merchant's products",
                 "parameters": [
@@ -1731,7 +1731,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Products"
+                    "Merchant"
                 ],
                 "summary": "Create a new product",
                 "parameters": [
@@ -1792,7 +1792,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Products"
+                    "Merchant"
                 ],
                 "summary": "Update product inventory",
                 "parameters": [
@@ -1889,7 +1889,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Products"
+                    "Merchant"
                 ],
                 "summary": "Delete a product",
                 "parameters": [
@@ -1975,7 +1975,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Products"
+                    "Merchant"
                 ],
                 "summary": "Upload product media",
                 "parameters": [
@@ -2059,7 +2059,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Products"
+                    "Merchant"
                 ],
                 "summary": "Update product media",
                 "parameters": [
@@ -2152,7 +2152,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Products"
+                    "Merchant"
                 ],
                 "summary": "Delete product media",
                 "parameters": [
