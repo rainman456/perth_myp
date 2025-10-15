@@ -106,7 +106,7 @@ type MediaResponse struct {
 type VariantResponse struct {
 	ID        string `json:"id"`
 	ProductID string `json:"product_id"`
-	SKU       string `json:"sku"`
+	//SKU       string `json:"sku"`
 
 	// Flattened attributes for convenience
 	Color    *string `json:"color,omitempty"`
