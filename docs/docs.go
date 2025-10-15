@@ -2018,7 +2018,7 @@ const docTemplate = `{
                                 "products": {
                                     "type": "array",
                                     "items": {
-                                        "$ref": "#/definitions/dto.ProductResponse"
+                                        "$ref": "#/definitions/dto.MerchantProductResponse"
                                     }
                                 },
                                 "total": {
@@ -2094,7 +2094,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/dto.ProductResponse"
+                            "$ref": "#/definitions/dto.MerchantProductResponse"
                         }
                     },
                     "400": {
@@ -4192,6 +4192,10 @@ const docTemplate = `{
         "dto.InventoryResponse": {
             "type": "object",
             "properties": {
+                "available": {
+                    "description": "quantity - reserved",
+                    "type": "integer"
+                },
                 "backorder_allowed": {
                     "type": "boolean"
                 },
@@ -4204,8 +4208,12 @@ const docTemplate = `{
                 "quantity": {
                     "type": "integer"
                 },
-                "reserved_quantity": {
+                "reserved": {
                     "type": "integer"
+                },
+                "status": {
+                    "description": "\"in_stock\", \"low_stock\", \"out_of_stock\", \"backorder\"",
+                    "type": "string"
                 }
             }
         },
@@ -4329,6 +4337,77 @@ const docTemplate = `{
                 },
                 "work_email": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.MerchantProductResponse": {
+            "type": "object",
+            "properties": {
+                "base_price": {
+                    "description": "SKU             string             ` + "`" + `json:\"sku\"` + "`" + `",
+                    "type": "number"
+                },
+                "category_id": {
+                    "type": "integer"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "discount": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "discount_type": {
+                    "type": "string",
+                    "enum": [
+                        "fixed",
+                        "percentage",
+                        ""
+                    ]
+                },
+                "final_price": {
+                    "type": "number"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "media": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.MediaResponse"
+                    }
+                },
+                "merchant_id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "reviews": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ReviewResponseDTO"
+                    }
+                },
+                "simple_inventory": {
+                    "description": "For simple products",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/dto.InventoryResponse"
+                        }
+                    ]
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "variants": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ProductVariantResponse"
+                    }
                 }
             }
         },
@@ -4503,19 +4582,99 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.ProductResponse": {
+        "dto.ProductPricingResponse": {
             "type": "object",
             "properties": {
                 "base_price": {
                     "type": "number"
                 },
+                "discount": {
+                    "type": "number"
+                },
+                "final_price": {
+                    "description": "DiscountType string  ` + "`" + `json:\"discount_type\"` + "`" + ` // \"fixed\", \"percentage\", or \"\"",
+                    "type": "number"
+                }
+            }
+        },
+        "dto.ProductResponse": {
+            "type": "object",
+            "properties": {
                 "category_id": {
                     "type": "integer"
+                },
+                "category_name": {
+                    "type": "string"
                 },
                 "created_at": {
                     "type": "string"
                 },
                 "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "images": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "inventory": {
+                    "description": "nil for variant products",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/dto.InventoryResponse"
+                        }
+                    ]
+                },
+                "merchant_id": {
+                    "description": "SKU             string            ` + "`" + `json:\"sku\"` + "`" + `",
+                    "type": "string"
+                },
+                "merchant_name": {
+                    "type": "string"
+                },
+                "merchant_store_name": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "pricing": {
+                    "$ref": "#/definitions/dto.ProductPricingResponse"
+                },
+                "reviews": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ReviewResponseDTO"
+                    }
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "variants": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.VariantResponse"
+                    }
+                }
+            }
+        },
+        "dto.ProductVariantResponse": {
+            "type": "object",
+            "properties": {
+                "attributes": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "created_at": {
                     "type": "string"
                 },
                 "discount": {
@@ -4536,43 +4695,26 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
-                "media": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/dto.MediaResponse"
-                    }
+                "inventory": {
+                    "$ref": "#/definitions/dto.InventoryResponse"
                 },
-                "merchant_id": {
+                "is_active": {
+                    "type": "boolean"
+                },
+                "price_adjustment": {
+                    "type": "number"
+                },
+                "product_id": {
                     "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "reviews": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/dto.ReviewResponseDTO"
-                    }
-                },
-                "simple_inventory": {
-                    "description": "For simple products",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/dto.InventoryResponse"
-                        }
-                    ]
                 },
                 "sku": {
                     "type": "string"
                 },
+                "total_price": {
+                    "type": "number"
+                },
                 "updated_at": {
                     "type": "string"
-                },
-                "variants": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/dto.VariantResponse"
-                    }
                 }
             }
         },
@@ -4672,20 +4814,16 @@ const docTemplate = `{
                 "created_at": {
                     "type": "string"
                 },
-                "id": {
-                    "type": "integer"
-                },
-                "product_id": {
+                "product_name": {
+                    "description": "ID        uint      ` + "`" + `json:\"id\"` + "`" + `\nProductID string    ` + "`" + `json:\"product_id\"` + "`" + `",
                     "type": "string"
                 },
                 "rating": {
+                    "description": "UserID    uint      ` + "`" + `json:\"user_id\"` + "`" + `",
                     "type": "integer"
                 },
                 "updated_at": {
                     "type": "string"
-                },
-                "user_id": {
-                    "type": "integer"
                 },
                 "user_name": {
                     "type": "string"
@@ -4795,32 +4933,40 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.VariantPricingResponse": {
+            "type": "object",
+            "properties": {
+                "base_price": {
+                    "description": "Product base price",
+                    "type": "number"
+                },
+                "discount": {
+                    "description": "Discount amount or percentage",
+                    "type": "number"
+                },
+                "final_price": {
+                    "description": "DiscountType    string  ` + "`" + `json:\"discount_type\"` + "`" + `    // \"fixed\", \"percentage\", or \"\"",
+                    "type": "number"
+                },
+                "price_adjustment": {
+                    "description": "Variant markup/markdown",
+                    "type": "number"
+                },
+                "total_price": {
+                    "description": "BasePrice + Adjustment",
+                    "type": "number"
+                }
+            }
+        },
         "dto.VariantResponse": {
             "type": "object",
             "properties": {
-                "attributes": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "string"
-                    }
+                "color": {
+                    "description": "Flattened attributes for convenience",
+                    "type": "string"
                 },
                 "created_at": {
                     "type": "string"
-                },
-                "discount": {
-                    "type": "number",
-                    "minimum": 0
-                },
-                "discount_type": {
-                    "type": "string",
-                    "enum": [
-                        "fixed",
-                        "percentage",
-                        ""
-                    ]
-                },
-                "final_price": {
-                    "type": "number"
                 },
                 "id": {
                     "type": "string"
@@ -4831,17 +4977,17 @@ const docTemplate = `{
                 "is_active": {
                     "type": "boolean"
                 },
-                "price_adjustment": {
-                    "type": "number"
+                "pricing": {
+                    "$ref": "#/definitions/dto.VariantPricingResponse"
                 },
                 "product_id": {
                     "type": "string"
                 },
-                "sku": {
+                "size": {
                     "type": "string"
                 },
-                "total_price": {
-                    "type": "number"
+                "sku": {
+                    "type": "string"
                 },
                 "updated_at": {
                     "type": "string"

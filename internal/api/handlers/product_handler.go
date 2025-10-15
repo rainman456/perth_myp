@@ -50,7 +50,7 @@ func NewProductHandlers(productService *product.ProductService, logger *zap.Logg
 // @Produce json
 // @Security BearerAuth
 // @Param body body dto.ProductInput true "Product details"
-// @Success 201 {object} dto.ProductResponse
+// @Success 201 {object} dto.MerchantProductResponse
 // @Failure 400 {object} object{error=string}
 // @Failure 401 {object} object{error=string}
 // @Router /merchant/products [post]
@@ -285,7 +285,7 @@ func (h *ProductHandler) AutocompleteHandler(c *gin.Context) {
 // @Param limit query int false "Limit (default 20)"
 // @Param offset query int false "Offset (default 0)"
 // @Param active_only query boolean false "Active only (default false)"
-// @Success 200 {object} object{products=[]dto.ProductResponse,total=int,limit=int,offset=int}
+// @Success 200 {object} object{products=[]dto.MerchantProductResponse,total=int,limit=int,offset=int}
 // @Failure 400 {object} object{error=string}
 // @Failure 401 {object} object{error=string}
 // @Failure 500 {object} object{error=string}

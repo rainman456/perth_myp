@@ -157,13 +157,11 @@ func (s *ReviewService) DeleteReview(ctx context.Context, id uint, userID uint) 
 
 func (s *ReviewService) mapToDTO(r *models.Review) *dto.ReviewResponseDTO {
 	return &dto.ReviewResponseDTO{
-		ID:        r.ID,
-		ProductID: r.ProductID,
-		UserID:    r.UserID,
-		Rating:    r.Rating,
-		Comment:   r.Comment,
-		CreatedAt: r.CreatedAt,
-		UpdatedAt: r.UpdatedAt,
-		UserName:  r.User.Name,
+		ProductName:  r.Product.Name,
+		Rating:      r.Rating,
+		Comment:     r.Comment,
+		CreatedAt:   r.CreatedAt,
+		UpdatedAt:   r.UpdatedAt,
+		UserName:    r.User.Name,
 	}
 }

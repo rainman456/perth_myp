@@ -172,7 +172,7 @@ func AutoMigrate() {
 	//&models.User{},
     //&models.UserAddress{},
 	//&models.MerchantApplication{},
-	// &models.Product{},
+	 //&models.Product{},
 	// &models.Variant{},
 	// &models.Media{},
 	// &models.Cart{},

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	//"os"
 	"path/filepath"
 
@@ -15,6 +16,7 @@ import (
 	"go.uber.org/zap"
 
 	"api-customer-merchant/internal/api/dto"
+	"api-customer-merchant/internal/api/helpers"
 	"api-customer-merchant/internal/config"
 	"api-customer-merchant/internal/db/models"
 	"api-customer-merchant/internal/db/repositories"
@@ -62,7 +64,7 @@ func NewProductService(productRepo *repositories.ProductRepository,  cfg *config
 }
 
 // CreateProductWithVariants creates a product from input DTO
-func (s *ProductService) CreateProductWithVariants(ctx context.Context, merchant_id string,input *dto.ProductInput) (*dto.ProductResponse, error) {
+func (s *ProductService) CreateProductWithVariants(ctx context.Context, merchant_id string,input *dto.ProductInput) (*dto.MerchantProductResponse, error) {
 	logger := s.logger.With(zap.String("operation", "CreateProductWithVariants"))
 
 	// Validate input
@@ -107,8 +109,8 @@ func (s *ProductService) CreateProductWithVariants(ctx context.Context, merchant
 			IsActive:        true,
 		}
 	}
-	media := make([]models.Media, len(input.Media))
-	for i, m := range input.Media {
+	media := make([]models.Media, len(input.Images))
+	for i, m := range input.Images {
 		media[i] = models.Media{
 			URL:  strings.TrimSpace(m.URL),
 			Type: models.MediaType(m.Type),
@@ -139,69 +141,7 @@ if isSimple {
 	}
 
 	// Map to response DTO
-	response := &dto.ProductResponse{
-		ID:          product.ID,
-		MerchantID:  product.MerchantID,
-		Name:        product.Name,
-		Description: product.Description,
-		//SKU:         product.SKU,
-		BasePrice:   (product.BasePrice).InexactFloat64(),
-		FinalPrice: product.FinalPrice.InexactFloat64(),
-		Discount: product.Discount.InexactFloat64(),
-		DiscountType: string(product.DiscountType),
-		CategoryID:  product.CategoryID,
-		CreatedAt:   product.CreatedAt,
-		UpdatedAt:   product.UpdatedAt,
-		Media:       make([]dto.MediaResponse, len(product.Media)),
-		Variants:    make([]dto.VariantResponse, len(product.Variants)),
-	}
-	for i, v := range product.Variants {
-		response.Variants[i] = dto.VariantResponse{
-			ID:              v.ID,
-			ProductID:       v.ProductID,
-			//SKU:             v.SKU,
-			PriceAdjustment: v.PriceAdjustment.InexactFloat64(),
-			TotalPrice:      v.TotalPrice.InexactFloat64(),
-			FinalPrice: v.FinalPrice.InexactFloat64(),
-		Discount: v.Discount.InexactFloat64(),
-		DiscountType: string(v.DiscountType),
-			Attributes:      v.Attributes,
-			IsActive:        v.IsActive,
-			CreatedAt:       v.CreatedAt,
-			UpdatedAt:       v.UpdatedAt,
-			Inventory: dto.InventoryResponse{
-				ID:                v.Inventory.ID,
-				Quantity:          v.Inventory.Quantity,
-				ReservedQuantity:  v.Inventory.ReservedQuantity,
-				LowStockThreshold: v.Inventory.LowStockThreshold,
-				BackorderAllowed:  v.Inventory.BackorderAllowed,
-			},
-		}
-	}
-
-	// Map media
-	for i, m := range product.Media {
-		response.Media[i] = dto.MediaResponse{
-			ID:        m.ID,
-			ProductID: m.ProductID,
-			URL:       m.URL,
-			Type:      string(m.Type),
-			CreatedAt: m.CreatedAt,
-			UpdatedAt: m.UpdatedAt,
-		}
-	}
-
-	// SimpleInventory is always nil for simple products
-	//response.SimpleInventory = nil
-	if product.SimpleInventory != nil {
-    response.SimpleInventory = &dto.InventoryResponse{
-        ID:                product.SimpleInventory.ID,
-        Quantity:          product.SimpleInventory.Quantity,
-        ReservedQuantity:  product.SimpleInventory.ReservedQuantity,
-        LowStockThreshold: product.SimpleInventory.LowStockThreshold,
-        BackorderAllowed:  product.SimpleInventory.BackorderAllowed,
-    }
-}
+	response := helpers.ToMerchantProductResponse(product)
 
 	logger.Info("Product created successfully", zap.String("product_id", product.ID))
 	return response, nil
@@ -219,71 +159,27 @@ func (s *ProductService) GetProductByID(ctx context.Context, id string, preloads
 		return nil, fmt.Errorf("failed to fetch product: %w", err)
 	}
 
-	response := &dto.ProductResponse{
-		ID:          product.ID,
-		MerchantID:  product.MerchantID,
-		Name:        product.Name,
-		Description: product.Description,
-		SKU:         product.SKU,
-		BasePrice:   (product.BasePrice).InexactFloat64(),
-		FinalPrice: product.FinalPrice.InexactFloat64(),
-		Discount: product.Discount.InexactFloat64(),
-		DiscountType: string(product.DiscountType),
-		CategoryID:  product.CategoryID,
-		CreatedAt:   product.CreatedAt,
-		UpdatedAt:   product.UpdatedAt,
-		Variants:    make([]dto.VariantResponse, len(product.Variants)),
-		Media:       make([]dto.MediaResponse, len(product.Media)),
-	}
+	variantDTOs := make([]dto.VariantResponse, len(product.Variants))
 	for i, v := range product.Variants {
-		response.Variants[i] = dto.VariantResponse{
-			ID:              v.ID,
-			ProductID:       v.ProductID,
-			SKU:             v.SKU,
-			PriceAdjustment: (v.PriceAdjustment).InexactFloat64(),
-			TotalPrice:      (v.TotalPrice).InexactFloat64(),
-			FinalPrice: v.FinalPrice.InexactFloat64(),
-		Discount: v.Discount.InexactFloat64(),
-		DiscountType: string(v.DiscountType),
-			Attributes:      v.Attributes,
-			IsActive:        v.IsActive,
-			CreatedAt:       v.CreatedAt,
-			UpdatedAt:       v.UpdatedAt,
-			Inventory: dto.InventoryResponse{
-				ID:                v.Inventory.ID,
-				Quantity:          v.Inventory.Quantity,
-				ReservedQuantity:  v.Inventory.ReservedQuantity,
-				LowStockThreshold: v.Inventory.LowStockThreshold,
-				BackorderAllowed:  v.Inventory.BackorderAllowed,
-			},
-		}
+		variantDTOs[i] = *helpers.ToVariantResponse(&v, product.BasePrice)
 	}
-	for i, m := range product.Media {
-		response.Media[i] = dto.MediaResponse{
-			ID:        m.ID,
-			ProductID: m.ProductID,
-			URL:       m.URL,
-			Type:      string(m.Type),
-			CreatedAt: m.CreatedAt,
-			UpdatedAt: m.UpdatedAt,
-		}
+
+	// Prepare reviews DTOs
+	reviewDTOs := make([]dto.ReviewResponseDTO, len(product.Reviews))
+	for i, r := range product.Reviews {
+		reviewDTOs[i] = *helpers.ToReviewResponse(&r)
 	}
-	if product.SimpleInventory != nil {
-		response.SimpleInventory = &dto.InventoryResponse{
-			ID:                product.SimpleInventory.ID,
-			Quantity:          product.SimpleInventory.Quantity,
-			ReservedQuantity:  product.SimpleInventory.ReservedQuantity,
-			LowStockThreshold: product.SimpleInventory.LowStockThreshold,
-			BackorderAllowed:  product.SimpleInventory.BackorderAllowed,
-		}
-	}
+
+	// Use helper with loaded merchant
+	response := helpers.ToProductResponse(product, variantDTOs, reviewDTOs, &product.Merchant)
 
 	logger.Info("Product fetched successfully")
 	return response, nil
 }
 
+
 // ListProductsByMerchant lists products for a merchant
-func (s *ProductService) ListProductsByMerchant(ctx context.Context, merchantID string, limit, offset int, activeOnly bool) ([]dto.ProductResponse, error) {
+func (s *ProductService) ListProductsByMerchant(ctx context.Context, merchantID string, limit, offset int, activeOnly bool) ([]dto.MerchantProductResponse, error) {
 	logger := s.logger.With(zap.String("operation", "ListProductsByMerchant"), zap.String("merchant_id", merchantID))
 	products, err := s.productRepo.ListByMerchant(ctx, merchantID, limit, offset, activeOnly)  // Fixed: Added ctx
 	if err != nil {
@@ -291,66 +187,9 @@ func (s *ProductService) ListProductsByMerchant(ctx context.Context, merchantID 
 		return nil, fmt.Errorf("failed to list products: %w", err)
 	}
 
-	responses := make([]dto.ProductResponse, len(products))
+	responses := make([]dto.MerchantProductResponse, len(products))
 	for i, p := range products {
-		responses[i] = dto.ProductResponse{
-			ID:          p.ID,
-			MerchantID:  p.MerchantID,
-			Name:        p.Name,
-			Description: p.Description,
-			SKU:         p.SKU,
-			BasePrice:   (p.BasePrice).InexactFloat64(),
-			FinalPrice: p.FinalPrice.InexactFloat64(),
-		Discount: p.Discount.InexactFloat64(),
-		DiscountType: string(p.DiscountType),
-			CategoryID:  p.CategoryID,
-			CreatedAt:   p.CreatedAt,
-			UpdatedAt:   p.UpdatedAt,
-			Variants:    make([]dto.VariantResponse, len(p.Variants)),
-			Media:       make([]dto.MediaResponse, len(p.Media)),
-		}
-		for j, v := range p.Variants {
-			responses[i].Variants[j] = dto.VariantResponse{
-				ID:              v.ID,
-				ProductID:       v.ProductID,
-				SKU:             v.SKU,
-				PriceAdjustment: (v.PriceAdjustment).InexactFloat64(),
-				TotalPrice:      (v.TotalPrice).InexactFloat64(),
-				FinalPrice: v.FinalPrice.InexactFloat64(),
-		Discount: v.Discount.InexactFloat64(),
-		DiscountType: string(v.DiscountType),
-				Attributes:      v.Attributes,
-				IsActive:        v.IsActive,
-				CreatedAt:       v.CreatedAt,
-				UpdatedAt:       v.UpdatedAt,
-				Inventory: dto.InventoryResponse{
-					ID:                v.Inventory.ID,
-					Quantity:          v.Inventory.Quantity,
-					ReservedQuantity:  v.Inventory.ReservedQuantity,
-					LowStockThreshold: v.Inventory.LowStockThreshold,
-					BackorderAllowed:  v.Inventory.BackorderAllowed,
-				},
-			}
-		}
-		for j, m := range p.Media {
-			responses[i].Media[j] = dto.MediaResponse{
-				ID:        m.ID,
-				ProductID: m.ProductID,
-				URL:       m.URL,
-				Type:      string(m.Type),
-				CreatedAt: m.CreatedAt,
-				UpdatedAt: m.UpdatedAt,
-			}
-		}
-		if p.SimpleInventory != nil {
-			responses[i].SimpleInventory = &dto.InventoryResponse{
-				ID:                p.SimpleInventory.ID,
-				Quantity:          p.SimpleInventory.Quantity,
-				ReservedQuantity:  p.SimpleInventory.ReservedQuantity,
-				LowStockThreshold: p.SimpleInventory.LowStockThreshold,
-				BackorderAllowed:  p.SimpleInventory.BackorderAllowed,
-			}
-		}
+		responses[i] = *helpers.ToMerchantProductResponse(&p)
 	}
 
 	logger.Info("Products listed successfully", zap.Int("count", len(responses)))
@@ -416,74 +255,22 @@ func (s *ProductService) GetAllProducts(ctx context.Context, limit, offset int, 
 
 	responses := make([]dto.ProductResponse, len(products))
 	for i, p := range products {
-		responses[i] = dto.ProductResponse{
-			ID:          p.ID,
-			MerchantID:  "", // Exclude for customer-facing API
-			Name:        p.Name,
-			Description: p.Description,
-			SKU:         p.SKU,
-			BasePrice:   (p.BasePrice).InexactFloat64(),
-			FinalPrice: p.FinalPrice.InexactFloat64(),
-		Discount: p.Discount.InexactFloat64(),
-		DiscountType: string(p.DiscountType),
-			CategoryID:  p.CategoryID,
-			CreatedAt:   p.CreatedAt,
-			UpdatedAt:   p.UpdatedAt,
-			Variants:    make([]dto.VariantResponse, len(p.Variants)),
-			Media:       make([]dto.MediaResponse, len(p.Media)),
-			Reviews:     make([]dto.ReviewResponseDTO, len(p.Reviews)) ,
-		}
-		for e,r:= range p.Reviews{
-			responses[i].Reviews[e]=dto.ReviewResponseDTO{
-				UserName: r.User.Name,
-				Comment: r.Comment,
-				Rating: r.Rating,
-			}
-		}
-
-
+		// Prepare variants DTOs
+		variantDTOs := make([]dto.VariantResponse, len(p.Variants))
 		for j, v := range p.Variants {
-			responses[i].Variants[j] = dto.VariantResponse{
-				ID:              v.ID,
-				ProductID:       v.ProductID,
-				SKU:             v.SKU,
-				PriceAdjustment: (v.PriceAdjustment).InexactFloat64(),
-				TotalPrice:      (v.TotalPrice).InexactFloat64(),
-				FinalPrice: v.FinalPrice.InexactFloat64(),
-		Discount: v.Discount.InexactFloat64(),
-		DiscountType: string(v.DiscountType),
-				Attributes:      v.Attributes,
-				IsActive:        v.IsActive,
-				CreatedAt:       v.CreatedAt,
-				UpdatedAt:       v.UpdatedAt,
-				Inventory: dto.InventoryResponse{
-					ID:                v.Inventory.ID,
-					Quantity:          v.Inventory.Quantity,
-					ReservedQuantity:  v.Inventory.ReservedQuantity,
-					LowStockThreshold: v.Inventory.LowStockThreshold,
-					BackorderAllowed:  v.Inventory.BackorderAllowed,
-				},
-			}
+			variantDTOs[j] = *helpers.ToVariantResponse(&v, p.BasePrice)
 		}
-		for j, m := range p.Media {
-			responses[i].Media[j] = dto.MediaResponse{
-				ID:        m.ID,
-				ProductID: m.ProductID,
-				URL:       m.URL,
-				Type:      string(m.Type),
-				CreatedAt: m.CreatedAt,
-				UpdatedAt: m.UpdatedAt,
-			}
+
+		// Prepare reviews DTOs
+		reviewDTOs := make([]dto.ReviewResponseDTO, len(p.Reviews))
+		for j, r := range p.Reviews {
+			reviewDTOs[j] = *helpers.ToReviewResponse(&r)
 		}
-		if p.SimpleInventory != nil {
-			responses[i].SimpleInventory = &dto.InventoryResponse{
-				ID:                p.SimpleInventory.ID,
-				Quantity:          p.SimpleInventory.Quantity,
-				ReservedQuantity:  p.SimpleInventory.ReservedQuantity,
-				LowStockThreshold: p.SimpleInventory.LowStockThreshold,
-				BackorderAllowed:  p.SimpleInventory.BackorderAllowed,
-			}
-		}
+
+		// Use helper (nil merchant for customer-facing, and set MerchantID = "")
+		resp := helpers.ToProductResponse(&p, variantDTOs, reviewDTOs, nil)
+		resp.MerchantID = ""
+		responses[i] = *resp
 	}
 
 	logger.Info("Products fetched for landing page", zap.Int("count", len(responses)), zap.Int64("total", total))
@@ -541,83 +328,22 @@ products, total, err := s.productRepo.ProductsFilter(ctx, repoFilter, limit, off
 	// --- map DB models -> DTOs ---
 	responses := make([]dto.ProductResponse, len(products))
 	for i, p := range products {
-		// convert base price once
-		basePriceFloat := p.BasePrice.InexactFloat64()
-
-		responses[i] = dto.ProductResponse{
-			ID:          p.ID,
-			MerchantID:  "", // hide merchant id from customer-facing API
-			Name:        p.Name,
-			Description: p.Description,
-			SKU:         p.SKU,
-			BasePrice:   basePriceFloat,
-			FinalPrice: p.FinalPrice.InexactFloat64(),
-		Discount: p.Discount.InexactFloat64(),
-		DiscountType: string(p.DiscountType),
-			CategoryID:  p.CategoryID,
-			CreatedAt:   p.CreatedAt,
-			UpdatedAt:   p.UpdatedAt,
-			Variants:    make([]dto.VariantResponse, len(p.Variants)),
-			Media:       make([]dto.MediaResponse, len(p.Media)),
-			Reviews:     make([]dto.ReviewResponseDTO, len(p.Reviews)) ,
-		}
-		for e,r:= range p.Reviews{
-			responses[i].Reviews[e]=dto.ReviewResponseDTO{
-				UserName: r.User.Name,
-				Comment: r.Comment,
-				Rating: r.Rating,
-			}
-		}
-
-
-		// Variants: compute TotalPrice = BasePrice + PriceAdjustment
+		// Prepare variants DTOs
+		variantDTOs := make([]dto.VariantResponse, len(p.Variants))
 		for j, v := range p.Variants {
-			totalPriceDecimal := p.BasePrice.Add(v.PriceAdjustment) // decimal + decimal
-			responses[i].Variants[j] = dto.VariantResponse{
-				ID:              v.ID,
-				ProductID:       v.ProductID,
-				SKU:             v.SKU,
-				PriceAdjustment: v.PriceAdjustment.InexactFloat64(),
-				TotalPrice:      totalPriceDecimal.InexactFloat64(),
-				FinalPrice: v.FinalPrice.InexactFloat64(),
-		Discount: v.Discount.InexactFloat64(),
-		DiscountType: string(v.DiscountType),
-				Attributes:      v.Attributes,
-				IsActive:        v.IsActive,
-				CreatedAt:       v.CreatedAt,
-				UpdatedAt:       v.UpdatedAt,
-				Inventory: dto.InventoryResponse{
-					ID:                v.Inventory.ID,
-					Quantity:          v.Inventory.Quantity,
-					ReservedQuantity:  v.Inventory.ReservedQuantity,
-					LowStockThreshold: v.Inventory.LowStockThreshold,
-					BackorderAllowed:  v.Inventory.BackorderAllowed,
-				},
-			}
+			variantDTOs[j] = *helpers.ToVariantResponse(&v, p.BasePrice)
 		}
 
-		// Media
-		for j, m := range p.Media {
-			responses[i].Media[j] = dto.MediaResponse{
-				ID:        m.ID,
-				ProductID: m.ProductID,
-				URL:       m.URL,
-				Type:      string(m.Type),
-				CreatedAt: m.CreatedAt,
-				UpdatedAt: m.UpdatedAt,
-			}
+		// Prepare reviews DTOs
+		reviewDTOs := make([]dto.ReviewResponseDTO, len(p.Reviews))
+		for j, r := range p.Reviews {
+			reviewDTOs[j] = *helpers.ToReviewResponse(&r)
 		}
 
-		// SimpleInventory (for non-variant products)
-		if p.SimpleInventory != nil {
-			responses[i].SimpleInventory = &dto.InventoryResponse{
-				ID:                p.SimpleInventory.ID,
-				Quantity:          p.SimpleInventory.Quantity,
-				ReservedQuantity:  p.SimpleInventory.ReservedQuantity,
-				LowStockThreshold: p.SimpleInventory.LowStockThreshold,
-				BackorderAllowed:  p.SimpleInventory.BackorderAllowed,
-			}
-		}
+		// Use helper (nil merchant for customer-facing, and set MerchantID = "")
+		resp := helpers.ToProductResponse(&p, variantDTOs, reviewDTOs, nil)
+		resp.MerchantID = ""
+		responses[i] = *resp
 	}
 
 	logger.Info("Products fetched for filter", zap.Int("count", len(responses)), zap.Int64("total", total))
@@ -638,64 +364,19 @@ func (s *ProductService) GetProductByName(ctx context.Context, name string) (*dt
 		return nil, fmt.Errorf("failed to fetch product: %w", err)
 	}
 
-	response := &dto.ProductResponse{
-		ID:          product.ID,
-		MerchantID:  product.MerchantID,
-		Name:        product.Name,
-		Description: product.Description,
-		SKU:         product.SKU,
-		BasePrice:   (product.BasePrice).InexactFloat64(),
-		FinalPrice: product.FinalPrice.InexactFloat64(),
-		Discount: product.Discount.InexactFloat64(),
-		DiscountType: string(product.DiscountType),
-		CategoryID:  product.CategoryID,
-		CreatedAt:   product.CreatedAt,
-		UpdatedAt:   product.UpdatedAt,
-		Variants:    make([]dto.VariantResponse, len(product.Variants)),
-		Media:       make([]dto.MediaResponse, len(product.Media)),
-	}
+	variantDTOs := make([]dto.VariantResponse, len(product.Variants))
 	for i, v := range product.Variants {
-		response.Variants[i] = dto.VariantResponse{
-			ID:              v.ID,
-			ProductID:       v.ProductID,
-			SKU:             v.SKU,
-			PriceAdjustment: (v.PriceAdjustment).InexactFloat64(),
-			TotalPrice:      (v.TotalPrice).InexactFloat64(),
-			FinalPrice: v.FinalPrice.InexactFloat64(),
-		Discount: v.Discount.InexactFloat64(),
-		DiscountType: string(v.DiscountType),
-			Attributes:      v.Attributes,
-			IsActive:        v.IsActive,
-			CreatedAt:       v.CreatedAt,
-			UpdatedAt:       v.UpdatedAt,
-			Inventory: dto.InventoryResponse{
-				ID:                v.Inventory.ID,
-				Quantity:          v.Inventory.Quantity,
-				ReservedQuantity:  v.Inventory.ReservedQuantity,
-				LowStockThreshold: v.Inventory.LowStockThreshold,
-				BackorderAllowed:  v.Inventory.BackorderAllowed,
-			},
-		}
+		variantDTOs[i] = *helpers.ToVariantResponse(&v, product.BasePrice)
 	}
-	for i, m := range product.Media {
-		response.Media[i] = dto.MediaResponse{
-			ID:        m.ID,
-			ProductID: m.ProductID,
-			URL:       m.URL,
-			Type:      string(m.Type),
-			CreatedAt: m.CreatedAt,
-			UpdatedAt: m.UpdatedAt,
-		}
+
+	// Prepare reviews DTOs
+	reviewDTOs := make([]dto.ReviewResponseDTO, len(product.Reviews))
+	for i, r := range product.Reviews {
+		reviewDTOs[i] = *helpers.ToReviewResponse(&r)
 	}
-	if product.SimpleInventory != nil {
-		response.SimpleInventory = &dto.InventoryResponse{
-			ID:                product.SimpleInventory.ID,
-			Quantity:          product.SimpleInventory.Quantity,
-			ReservedQuantity:  product.SimpleInventory.ReservedQuantity,
-			LowStockThreshold: product.SimpleInventory.LowStockThreshold,
-			BackorderAllowed:  product.SimpleInventory.BackorderAllowed,
-		}
-	}
+
+	// Use helper with loaded merchant
+	response := helpers.ToProductResponse(product, variantDTOs, reviewDTOs, &product.Merchant)
 
 	logger.Info("Product fetched successfully")
 	return response, nil

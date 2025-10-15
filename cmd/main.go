@@ -15,6 +15,7 @@ import (
 
 	//"api-customer-merchant/internal/middleware"
 	"api-customer-merchant/internal/db"
+	//"api-customer-merchant/internal/db/models"
 	"api-customer-merchant/internal/utils"
 
 	"github.com/gin-gonic/gin"
@@ -37,6 +38,9 @@ import (
 // @in header
 // @name Authorization
 func main() {
+
+
+	
 
 	// if err := godotenv.Load(); err != nil {
 	//          log.Println("No .env file found, relying on environment variables")
@@ -63,8 +67,10 @@ func main() {
 	// 	log.Fatal("JWT_SECRET not set")
 	// }
 	// Connect to database and migrate
+	
 	db.Connect()
 	db.AutoMigrate()
+	//models.BackfillProductSlugs(db.DB)
 	r := gin.Default()
 	r.Use(gin.Recovery())
 	r.Use(cors.New(cors.Config{

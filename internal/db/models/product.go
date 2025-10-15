@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -21,7 +22,7 @@ type DiscountType string
 const (
 	DiscountTypeFixed      DiscountType = "fixed"      // e.g., N5 off
 	DiscountTypePercentage DiscountType = "percentage" // e.g., 10% off
-	DiscountTypeNone      DiscountType = ""           // No discount
+	DiscountTypeNone       DiscountType = ""           // No discount
 )
 
 func (dt *DiscountType) Scan(value interface{}) error {
@@ -64,31 +65,31 @@ func (mt MediaType) Value() (driver.Value, error) {
 	return string(mt), nil
 }
 
-
 type Product struct {
-	ID          string          `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()" json:"id"`
-	MerchantID  string          `gorm:"type:uuid;not null;index" json:"merchant_id"`
-	Name        string          `gorm:"size:255;not null" json:"name"`
-	Description string          `gorm:"type:text" json:"description"`
-	SKU         string          `gorm:"size:100;unique;not null;index" json:"sku"`
-	BasePrice   decimal.Decimal `gorm:"type:decimal(10,2);not null" json:"base_price"`
-	Discount       decimal.Decimal `gorm:"type:decimal(10,2);not null;default:0.00" json:"discount"` // NEW: Discount amount
-	DiscountType   DiscountType    `gorm:"type:varchar(20);not null;default:''" json:"discount_type"` // NEW: fixed/percentage
-	FinalPrice     decimal.Decimal `gorm:"type:decimal(10,2);not null;default:0.00" json:"final_price"` 
-	CategoryID  uint            `gorm:"type:int;index" json:"category_id"`
-	CreatedAt   time.Time       `json:"created_at"`
-	UpdatedAt   time.Time       `json:"updated_at"`
-	DeletedAt   gorm.DeletedAt  `gorm:"index" json:"deleted_at,omitempty"` // Soft deletes for recovery
+	ID          string `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()" json:"id"`
+	MerchantID  string `gorm:"type:uuid;not null;index" json:"merchant_id"`
+	Name        string `gorm:"size:255;not null" json:"name"`
+	Description string `gorm:"type:text" json:"description"`
+	SKU         string `gorm:"size:100;unique;not null;index" json:"sku"`
 
-	Merchant        Merchant       `gorm:"foreignKey:MerchantID;references:MerchantID;constraint:OnDelete:RESTRICT"` // Belongs to Merchant, no cascade to protect merchants
-	Category        Category       `gorm:"foreignKey:CategoryID;constraint:OnDelete:RESTRICT"` // Belongs to Category
-	Variants        []Variant      `gorm:"foreignKey:ProductID;constraint:OnDelete:CASCADE" json:"variants,omitempty"` // Has many Variants, cascade delete
-	Media           []Media        `gorm:"foreignKey:ProductID;constraint:OnDelete:CASCADE" json:"media,omitempty"` // Has many Media, cascade delete
-	SimpleInventory *Inventory     `gorm:"foreignKey:ProductID;constraint:OnDelete:CASCADE"` // Has one optional SimpleInventory for non-variant products
-	Wishlists    []UserWishlist `gorm:"foreignKey:ProductID;constraint:OnDelete:CASCADE"` // Has many UserWishlists
-	Reviews []Review `gorm:"foreignKey:ProductID"`
+	BasePrice       decimal.Decimal `gorm:"type:decimal(10,2);not null" json:"base_price"`
+	Discount        decimal.Decimal `gorm:"type:decimal(10,2);not null;default:0.00" json:"discount"`  // NEW: Discount amount
+	DiscountType    DiscountType    `gorm:"type:varchar(20);not null;default:''" json:"discount_type"` // NEW: fixed/percentage
+	FinalPrice      decimal.Decimal `gorm:"type:decimal(10,2);not null;default:0.00" json:"final_price"`
+	CategoryID      uint            `gorm:"type:int;index" json:"category_id"`
+	CreatedAt       time.Time       `json:"created_at"`
+	UpdatedAt       time.Time       `json:"updated_at"`
+	DeletedAt       gorm.DeletedAt  `gorm:"index" json:"deleted_at,omitempty"`                                          // Soft deletes for recovery
+	//Slug            string          `gorm:"size:255;not null;uniqueIndex:idx_merchant_slug" json:"slug"`
+	Slug string `gorm:"size:255;index" json:"slug"`                // Add this
+	Merchant        Merchant        `gorm:"foreignKey:MerchantID;references:MerchantID;constraint:OnDelete:RESTRICT"`   // Belongs to Merchant, no cascade to protect merchants
+	Category        Category        `gorm:"foreignKey:CategoryID;constraint:OnDelete:RESTRICT"`                         // Belongs to Category
+	Variants        []Variant       `gorm:"foreignKey:ProductID;constraint:OnDelete:CASCADE" json:"variants,omitempty"` // Has many Variants, cascade delete
+	Media           []Media         `gorm:"foreignKey:ProductID;constraint:OnDelete:CASCADE" json:"media,omitempty"`    // Has many Media, cascade delete
+	SimpleInventory *Inventory      `gorm:"foreignKey:ProductID;constraint:OnDelete:CASCADE"`                           // Has one optional SimpleInventory for non-variant products
+	Wishlists       []UserWishlist  `gorm:"foreignKey:ProductID;constraint:OnDelete:CASCADE"`                           // Has many UserWishlists
+	Reviews         []Review        `gorm:"foreignKey:ProductID"`
 }
-
 
 // func (p *Product) BeforeCreate(tx *gorm.DB) error {
 // 	if p.ID == "" {
@@ -101,9 +102,31 @@ func (p *Product) BeforeCreate(tx *gorm.DB) error {
 	if p.ID == "" {
 		p.ID = uuid.New().String()
 	}
+	if p.Slug == "" {
+		p.Slug = GenerateSlug(p.Name, p.ID)
+	}
 	p.ComputeFinalPrice()
 	return nil
 }
+
+// Helper function to generate slug
+func GenerateSlug(name, id string) string {
+	// Convert to lowercase, replace spaces with hyphens, remove special chars
+	slug := strings.ToLower(name)
+	slug = strings.ReplaceAll(slug, " ", "-")
+	slug = regexp.MustCompile(`[^a-z0-9-]`).ReplaceAllString(slug, "")
+	slug = regexp.MustCompile(`-+`).ReplaceAllString(slug, "-")
+	slug = strings.Trim(slug, "-")
+	
+	// Add UUID suffix to ensure uniqueness if needed
+	if slug == "" {
+		slug = id[:8]
+	} else {
+		slug = slug + "-" + id[:8]
+	}
+	return slug
+}
+
 
 func (p *Product) BeforeUpdate(tx *gorm.DB) error {
 	p.ComputeFinalPrice()
@@ -132,22 +155,20 @@ type Variant struct {
 	ProductID       string          `gorm:"type:uuid;not null;index" json:"product_id"`
 	SKU             string          `gorm:"size:100;unique;not null;index" json:"sku"`
 	PriceAdjustment decimal.Decimal `gorm:"type:decimal(10,2);not null;default:0.00" json:"price_adjustment"`
-	TotalPrice      decimal.Decimal `gorm:"type:decimal(10,2);not null" json:"total_price"` // Computed: BasePrice + PriceAdjustment
-	Discount        decimal.Decimal `gorm:"type:decimal(10,2);not null;default:0.00" json:"discount"` // NEW
-	DiscountType    DiscountType    `gorm:"type:varchar(20);not null;default:''" json:"discount_type"` // NEW
-	FinalPrice      decimal.Decimal `gorm:"type:decimal(10,2);not null;default:0.00" json:"final_price"`            // NEW: TotalPrice - Discount
-	Attributes      AttributesMap `gorm:"type:jsonb;default:'{}'" json:"attributes"` // Use map for simplicity; can change to custom AttributesMap if needed
+	TotalPrice      decimal.Decimal `gorm:"type:decimal(10,2);not null" json:"total_price"`              // Computed: BasePrice + PriceAdjustment
+	Discount        decimal.Decimal `gorm:"type:decimal(10,2);not null;default:0.00" json:"discount"`    // NEW
+	DiscountType    DiscountType    `gorm:"type:varchar(20);not null;default:''" json:"discount_type"`   // NEW
+	FinalPrice      decimal.Decimal `gorm:"type:decimal(10,2);not null;default:0.00" json:"final_price"` // NEW: TotalPrice - Discount
+	Attributes      AttributesMap   `gorm:"type:jsonb;default:'{}'" json:"attributes"`                   // Use map for simplicity; can change to custom AttributesMap if needed
 	IsActive        bool            `gorm:"default:true" json:"is_active"`
 	CreatedAt       time.Time       `json:"created_at"`
 	UpdatedAt       time.Time       `json:"updated_at"`
-	DeletedAt   gorm.DeletedAt  `gorm:"index" json:"deleted_at,omitempty"` // Soft deletes for recovery
+	DeletedAt       gorm.DeletedAt  `gorm:"index" json:"deleted_at,omitempty"` // Soft deletes for recovery
 
 	Product   Product   `gorm:"foreignKey:ProductID;constraint:OnDelete:CASCADE"` // Belongs to Product, cascade from parent
 	Inventory Inventory `gorm:"foreignKey:VariantID;constraint:OnDelete:CASCADE"` // Has one Inventory, cascade delete
-	
+
 }
-
-
 
 type Review struct {
 	ID        uint      `gorm:"primaryKey"`
@@ -162,10 +183,10 @@ type Review struct {
 }
 
 type UserWishlist struct {
-	UserID    uint      `gorm:"primaryKey" json:"user_id"`
-	ProductID string    `gorm:"primaryKey;type:uuid" json:"product_id"`
-	
-	AddedAt   time.Time `json:"added_at"`
+	UserID    uint   `gorm:"primaryKey" json:"user_id"`
+	ProductID string `gorm:"primaryKey;type:uuid" json:"product_id"`
+
+	AddedAt time.Time `json:"added_at"`
 
 	User    User    `gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
 	Product Product `gorm:"foreignKey:ProductID;references:ID;constraint:OnDelete:CASCADE"`
@@ -175,9 +196,6 @@ func (uw *UserWishlist) BeforeCreate(tx *gorm.DB) error {
 	uw.AddedAt = time.Now()
 	return nil
 }
-
-
-
 
 // func (v *Variant) BeforeCreate(tx *gorm.DB) error {
 // 	if v.ID == "" {
@@ -201,7 +219,6 @@ func (uw *UserWishlist) BeforeCreate(tx *gorm.DB) error {
 // 	v.TotalPrice = product.BasePrice.Add(v.PriceAdjustment)
 // 	return nil
 // }
-
 
 func (v *Variant) BeforeCreate(tx *gorm.DB) error {
 	if v.ID == "" {
@@ -247,15 +264,12 @@ type Media struct {
 	ProductID string    `gorm:"type:uuid;index" json:"product_id"`
 	URL       string    `gorm:"not null" json:"url"`
 	Type      MediaType `gorm:"not null" json:"type"` // enum: image, video
-	PublicID  string     `gorm:"index" json:"public_id"`
+	PublicID  string    `gorm:"index" json:"public_id"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 
 	Product Product `gorm:"foreignKey:ProductID;constraint:OnDelete:CASCADE"` // Belongs to Product (bidirectional for easier queries)
 }
-
-
-
 
 func (m *Media) BeforeCreate(tx *gorm.DB) error {
 	if m.ID == "" {
@@ -263,9 +277,6 @@ func (m *Media) BeforeCreate(tx *gorm.DB) error {
 	}
 	return nil
 }
-
-
-
 
 func (p *Product) GenerateSKU(merchantID string) {
 	base := strings.ToUpper(strings.ReplaceAll(p.Name, " ", "-"))
@@ -293,4 +304,30 @@ func (v *Variant) GenerateSKU(productSKU string) {
 		attrStr += fmt.Sprintf("-%s-%s", strings.ToUpper(k), strings.ToUpper(strings.ReplaceAll(val, " ", "-")))
 	}
 	v.SKU = productSKU + attrStr
+}
+
+
+
+
+func BackfillProductSlugs(db *gorm.DB) error {
+    var products []Product
+    if err := db.Model(&Product{}).Where("slug = '' OR slug IS NULL").Find(&products).Error; err != nil {
+        return fmt.Errorf("failed to fetch products for backfill: %w", err)
+    }
+
+    for _, p := range products {
+        // Generate unique slug (handles potential collisions by appending ID suffix)
+        newSlug := GenerateSlug(p.Name, p.ID)
+        // Optional: Check for uniqueness per merchant (if idx_merchant_slug is composite)
+        if err := db.Model(&Product{}).Where("merchant_id = ? AND slug = ? AND id != ?", p.MerchantID, newSlug, p.ID).First(&Product{}).Error; err == nil {
+            // Collision: Append a counter or more of ID
+            newSlug = fmt.Sprintf("%s-%s", newSlug, uuid.NewString()[:4])
+        }
+
+        if err := db.Model(&p).Update("slug", newSlug).Error; err != nil {
+            return fmt.Errorf("failed to update slug for product %s: %w", p.ID, err)
+        }
+    }
+
+    return nil
 }
