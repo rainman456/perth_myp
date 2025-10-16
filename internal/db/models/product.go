@@ -182,6 +182,19 @@ type Review struct {
 	User      User      `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`
 }
 
+
+func (r *Review) AverageRating(db *gorm.DB, productID string) (uint, error) {
+	var avg uint
+	err := db.Model(&Review{}).
+		Select("AVG(rating)").
+		Where("product_id = ?", productID).
+		Scan(&avg).Error
+	if err != nil {
+		return 0, err
+	}
+	return avg, nil
+}
+
 type UserWishlist struct {
 	UserID    uint   `gorm:"primaryKey" json:"user_id"`
 	ProductID string `gorm:"primaryKey;type:uuid" json:"product_id"`

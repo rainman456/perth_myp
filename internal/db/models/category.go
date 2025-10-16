@@ -5,6 +5,8 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
+	"strings"
+	"regexp"
 
 	"gorm.io/gorm"
 )
@@ -41,4 +43,22 @@ type Category struct {
 	ParentID   *uint                  `json:"parent_id"`
 	Attributes Attributes             `gorm:"type:jsonb" json:"attributes"`
 	Parent     *Category              `gorm:"foreignKey:ParentID"`
+}
+
+
+func (c *Category) Slug() string {
+    if c.Name == "" {
+        return ""
+    }
+
+    // Simple slug generation
+    slug := strings.ToLower(strings.TrimSpace(c.Name))
+    // Replace spaces and common special chars with hyphens
+    re := regexp.MustCompile(`[^a-z0-9]+`)
+    slug = re.ReplaceAllString(slug, "-")
+    // Trim leading/trailing hyphens and replace multiple hyphens with single
+    reMulti := regexp.MustCompile(`-+`)
+    slug = reMulti.ReplaceAllString(strings.Trim(slug, "-"), "-")
+
+    return slug
 }

@@ -142,7 +142,8 @@ type ProductResponse struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Slug        string `json:"slug"`
-	CategoryID  uint   `json:"category_id"`
+//	CategoryID  uint   `json:"category_id"`
+	CategorySlug string `json:"category_slug"`
 	CategoryName string `json:"category_name"`
 
 	Pricing   ProductPricingResponse `json:"pricing"`
@@ -154,6 +155,10 @@ type ProductResponse struct {
 
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+
+	AvgRating float64    `json:"average_rating"`
+	ReviewCount int      `json:"review_count"`
+
 }
 
 // ProductPricingResponse - Product pricing
@@ -254,6 +259,7 @@ type ReviewResponseDTO struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 	UserName  string    `json:"user_name"`
+	//AverageRating uint  `json:"average_rating"`
 }
 
 type AddWishlistItemDTO struct {

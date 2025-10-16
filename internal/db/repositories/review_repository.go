@@ -40,6 +40,34 @@ func (r *ReviewRepository) FindByUserID(ctx context.Context, userID uint) ([]mod
 	return reviews, err
 }
 
+
+
+
+// Update this method in ReviewRepository (db/repositories/review_repository.go)
+// Now returns avg and count directly with two efficient queries (avoids extra struct)
+func (r *ReviewRepository) GetAverageRatingByProductID(ctx context.Context, productID string) (float64, int, error) {
+    var avg float64
+    err := r.db.WithContext(ctx).
+        Model(&models.Review{}).
+        Where("product_id = ?", productID).
+        Select("COALESCE(AVG(rating), 0)").
+        Scan(&avg).Error
+    if err != nil {
+        return 0, 0, err
+    }
+
+    var count int64
+    err = r.db.WithContext(ctx).
+        Model(&models.Review{}).
+        Where("product_id = ?", productID).
+        Count(&count).Error
+    if err != nil {
+        return avg, 0, err
+    }
+
+    return avg, int(count), nil
+}
+
 func (r *ReviewRepository) Update(ctx context.Context, review *models.Review) error {
 	return r.db.WithContext(ctx).Save(review).Error
 }

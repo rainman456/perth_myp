@@ -66,6 +66,7 @@ import (
 func SetupProductRoutes(r *gin.Engine) {
 	logger, _ := zap.NewProduction()
 	repo := repositories.NewProductRepository()
+	//reviewRepo := repositories.NewReviewRepository()
 	catrepo:=repositories.NewCategoryRepository()
 	cfg := config.Load()
 	productservice := product.NewProductService(repo, cfg, logger)

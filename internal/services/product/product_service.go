@@ -20,6 +20,7 @@ import (
 	"api-customer-merchant/internal/config"
 	"api-customer-merchant/internal/db/models"
 	"api-customer-merchant/internal/db/repositories"
+	//"api-customer-merchant/internal/services/review"
 
 	"github.com/cloudinary/cloudinary-go/v2"
 	"github.com/cloudinary/cloudinary-go/v2/api/uploader"
@@ -42,6 +43,7 @@ var (
 
 type ProductService struct {
 	productRepo *repositories.ProductRepository
+	//reviewRepo  *repositories.ReviewRepository
 	logger      *zap.Logger
 	validator   *validator.Validate
 	cld         *cloudinary.Cloudinary
@@ -57,6 +59,7 @@ func NewProductService(productRepo *repositories.ProductRepository,  cfg *config
 
 	return &ProductService{
 		productRepo: productRepo,
+		//reviewRepo: reviewRepo,
 		logger:      logger,
 		validator:   validator.New(),
 		cld:         cld,
@@ -150,6 +153,12 @@ if isSimple {
 // GetProductByID fetches a product with optional preloads
 func (s *ProductService) GetProductByID(ctx context.Context, id string, preloads ...string) (*dto.ProductResponse, error) {
 	logger := s.logger.With(zap.String("operation", "GetProductByID"), zap.String("product_id", id))
+	if len(preloads) == 0 {
+		preloads = []string{"Category", "Merchant", "Reviews", "Variants", "Media", "Variants.Inventory", "SimpleInventory",}
+		logger.Debug("Using default preloads", zap.Strings("preloads", preloads))
+	} else {
+		logger.Debug("Custom preloads requested", zap.Strings("preloads", preloads))
+	}
 	product, err := s.productRepo.FindByID(ctx, id, preloads...)  // Fixed: Added ctx
 	if err != nil {
 		if errors.Is(err, repositories.ErrProductNotFound) {
@@ -169,6 +178,10 @@ func (s *ProductService) GetProductByID(ctx context.Context, id string, preloads
 	for i, r := range product.Reviews {
 		reviewDTOs[i] = *helpers.ToReviewResponse(&r)
 	}
+
+if err != nil {
+    return nil, err
+}
 
 	// Use helper with loaded merchant
 	response := helpers.ToProductResponse(product, variantDTOs, reviewDTOs, &product.Merchant)
@@ -246,8 +259,9 @@ func (s *ProductService) GetAllProducts(ctx context.Context, limit, offset int, 
 	if offset < 0 {
 		offset = 0
 	}
+	preloads := []string{"Media", "Merchant" ,"Variants", "Variants.Inventory", "SimpleInventory", "Category", "Reviews", }
 
-	products, total, err := s.productRepo.GetAllProducts(ctx, limit, offset, categoryID, "Media", "Variants", "Variants.Inventory", "SimpleInventory")  // Fixed: Added ctx (resolves type shifts)
+	products, total, err := s.productRepo.GetAllProducts(ctx, limit, offset, categoryID, preloads... )  // Fixed: Added ctx (resolves type shifts)
 	if err != nil {
 		logger.Error("Failed to fetch all products", zap.Error(err))
 		return nil, 0, fmt.Errorf("failed to fetch products: %w", err)
@@ -268,7 +282,7 @@ func (s *ProductService) GetAllProducts(ctx context.Context, limit, offset int, 
 		}
 
 		// Use helper (nil merchant for customer-facing, and set MerchantID = "")
-		resp := helpers.ToProductResponse(&p, variantDTOs, reviewDTOs, nil)
+		resp := helpers.ToProductResponse(&p, variantDTOs, reviewDTOs, &p.Merchant)
 		resp.MerchantID = ""
 		responses[i] = *resp
 	}

@@ -182,7 +182,7 @@ func (h *ProductHandler) GetProductByID(c *gin.Context) {
 	}
 
 	// Call service with preloads
-	response, err := h.productService.GetProductByID(c.Request.Context(), productID, "Media", "Variants", "Variants.Inventory", "SimpleInventory")
+	response, err := h.productService.GetProductByID(c.Request.Context(), productID)
 	if err != nil {
 		logger.Error("Failed to fetch product", zap.Error(err), zap.String("product_id", productID))
 		if errors.Is(err, product.ErrInvalidProduct) {

@@ -1,8 +1,9 @@
 package helpers
 
 import (
-	"api-customer-merchant/internal/db/models"
 	"api-customer-merchant/internal/api/dto"
+	"api-customer-merchant/internal/db/models"
+	"fmt"
 
 	"github.com/shopspring/decimal"
 )
@@ -52,51 +53,76 @@ func ToVariantResponse(v *models.Variant, productBasePrice decimal.Decimal) *dto
 }
 
 func ToProductResponse(
-	p *models.Product,
-	variants []dto.VariantResponse,
-	reviews []dto.ReviewResponseDTO,
-	merchant *models.Merchant,
+    p *models.Product,
+    variants []dto.VariantResponse,
+    reviews []dto.ReviewResponseDTO,
+    merchant *models.Merchant,
 ) *dto.ProductResponse {
-	imageURLs := []string{}
-	for _, media := range p.Media {
-		if media.Type == models.MediaTypeImage {
-			imageURLs = append(imageURLs, media.URL)
-		}
-	}
+    imageURLs := []string{}
+    for _, media := range p.Media {
+        if media.Type == models.MediaTypeImage {
+            imageURLs = append(imageURLs, media.URL)
+        }
+    }
 
-	resp := &dto.ProductResponse{
-		ID:               p.ID,
-		//SKU:              p.SKU,
-		MerchantID:       p.MerchantID,
-		Name:             p.Name,
-		Description:      p.Description,
-		CategoryID:       p.CategoryID,
-		Pricing: dto.ProductPricingResponse{
-			BasePrice:    p.BasePrice.InexactFloat64(),
-			Discount:     p.Discount.InexactFloat64(),
-			//DiscountType: string(p.DiscountType),
-			FinalPrice:   p.FinalPrice.InexactFloat64(),
-		},
-		Images:    imageURLs,
-		Variants:  variants,
-		Slug: p.Slug,
-		Reviews:   reviews,
-		CreatedAt: p.CreatedAt,
-		UpdatedAt: p.UpdatedAt,
-	}
+    // Compute average rating from reviews
+    var totalRating int
+    reviewCount := len(reviews)
+    for _, rev := range reviews {
+        totalRating += rev.Rating
+    }
+    var avgRating float64
+    if reviewCount > 0 {
+        avgRating = float64(totalRating) / float64(reviewCount)
+    }
 
-	// Handle optional merchant
+    resp := &dto.ProductResponse{
+        ID:               p.ID,
+        //SKU:              p.SKU,
+        MerchantID:       p.MerchantID,
+        Name:             p.Name,
+        Description:      p.Description,
+    
+        Pricing: dto.ProductPricingResponse{
+            BasePrice:    p.BasePrice.InexactFloat64(),
+            Discount:     p.Discount.InexactFloat64(),
+            //DiscountType: string(p.DiscountType),
+            FinalPrice:   p.FinalPrice.InexactFloat64(),
+        },
+        Images:     imageURLs,
+        Variants:   variants,
+        Slug:       p.Slug,
+		CategoryName: p.Category.Name,
+        Reviews:    reviews,
+        AvgRating:  avgRating,  // Add this field to dto.ProductResponse if not already present
+		ReviewCount: reviewCount,
+        CreatedAt:  p.CreatedAt,
+        UpdatedAt:  p.UpdatedAt,
+    }
+
+    // Handle optional merchant
 	if merchant != nil {
 		resp.MerchantName = merchant.Name
 		resp.MerchantStoreName = merchant.StoreName
+	} else {
+		fmt.Println("Merchant not provided")  // Debug if empty
 	}
 
-	// Simple product inventory
-	if p.SimpleInventory != nil {
-		resp.Inventory = ToInventoryResponse(p.SimpleInventory)
+    // Simple product inventory
+    if p.SimpleInventory != nil {
+        resp.Inventory = ToInventoryResponse(p.SimpleInventory)
+    }
+	if p.CategoryID != 0 && p.Category.ID != 0 {
+		resp.CategoryName = p.Category.Name
+		resp.CategorySlug = p.Category.Slug()  // Calls your Slug() method
+		fmt.Printf("Category loaded: Name=%s, Slug=%s\n", resp.CategoryName, resp.CategorySlug)  // Debug print
+	} else {
+		fmt.Println("Category not loaded or ID=0")  // This will show if issue persists
+		resp.CategoryName = ""
+		resp.CategorySlug = ""
 	}
 
-	return resp
+    return resp
 }
 
 func ToInventoryResponse(inv *models.Inventory) *dto.InventoryResponse {
@@ -127,6 +153,7 @@ func ToReviewResponse(r *models.Review) *dto.ReviewResponseDTO {
 		Rating:    r.Rating,
 		Comment:   r.Comment,
 		CreatedAt: r.CreatedAt,
+		
 	}
 
 	// Safe access to related data (assume preloaded; add checks if needed)

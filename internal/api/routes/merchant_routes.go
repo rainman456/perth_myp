@@ -26,22 +26,28 @@ package routes
 */
 
 import (
-// "api-customer-merchant/internal/api/handlers"
-// "api-customer-merchant/internal/middleware"
-//"api-customer-merchant/internal/db"
-//"api-customer-merchant/internal/db/models"
-//"api-customer-merchant/internal/db/repositories"
+	"api-customer-merchant/internal/api/handlers" // "api-customer-merchant/internal/api/handlers"
+	// "api-customer-merchant/internal/middleware"
+	//"api-customer-merchant/internal/db"
+	//"api-customer-merchant/internal/db/models"
+	//"api-customer-merchant/internal/db/repositories"
+	"api-customer-merchant/internal/config"
+	"api-customer-merchant/internal/db/repositories"
+	"api-customer-merchant/internal/middleware"
+	"api-customer-merchant/internal/services/merchant"
+	"api-customer-merchant/internal/services/product"
+	//"api-customer-merchant/internal/services/review"
 
-//"api-customer-merchant/internal/middleware"
-// "api-customer-merchant/internal/services/merchant"
-// "api-customer-merchant/internal/services/product"
-
-// "api-customer-merchant/internal/domain/order"
-// "api-customer-merchant/internal/domain/payout"
-//"api-customer-merchant/internal/domain/product"
-//"api-customer-merchant/internal/domain/invent"
-
-//"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
+	//"api-customer-merchant/internal/middleware"
+	// "api-customer-merchant/internal/services/merchant"
+	// "api-customer-merchant/internal/services/product"
+	// "api-customer-merchant/internal/domain/order"
+	// "api-customer-merchant/internal/domain/payout"
+	//"api-customer-merchant/internal/domain/product"
+	//"api-customer-merchant/internal/domain/invent"
+	// "github.com/gin-gonic/gin"
 )
 
 /*
@@ -131,17 +137,6 @@ func RegisterMerchantRoutes(r *gin.Engine) {
 
 }
 */
-import (
-	"api-customer-merchant/internal/api/handlers"
-	"api-customer-merchant/internal/config"
-	"api-customer-merchant/internal/db/repositories"
-	"api-customer-merchant/internal/middleware"
-	"api-customer-merchant/internal/services/merchant"
-	"api-customer-merchant/internal/services/product"
-
-	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
-)
 
 // func SetupMerchantRoutes(r *gin.Engine) {
 // 	cfg := config.Load()
@@ -193,10 +188,12 @@ func SetupMerchantRoutes(r *gin.Engine) {
 
 	appRepo := repositories.NewMerchantApplicationRepository()
 	merchantRepo := repositories.NewMerchantRepository()
+
 	merchantService := merchant.NewMerchantService(appRepo, merchantRepo)
 
 	productRepo := repositories.NewProductRepository()
-	productService := product.NewProductService(productRepo, cfg, logger)
+   // reviewRepo:= repositories.NewReviewRepository()
+	productService := product.NewProductService(productRepo,  cfg, logger)
 
 	merchantAuthHandler := handlers.NewMerchantAuthHandler(merchantService)
 	mediaHandler := handlers.NewProductMediaHandler(productService, logger)

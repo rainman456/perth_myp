@@ -177,7 +177,7 @@ func AutoMigrate() {
 	// &models.Media{},
 	// &models.Cart{},
 	// &models.Order{},
-	 //&models.OrderItem{},
+	// &models.OrderItem{},
 	 //&models.CartItem{},
 	//&models.Category{},
 	 //&models.Inventory{},

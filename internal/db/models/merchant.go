@@ -161,7 +161,6 @@ type Merchant struct {
 	AccountBalance       float64        `gorm:"column:account_balance;default:0.00" json:"account_balance"`
 	TotalSales           float64        `gorm:"column:total_sales;default:0.00" json:"total_sales"`
 	TotalPayouts         float64        `gorm:"column:total_payouts;default:0.00" json:"total_payouts"`
-	StripeAccountID      string         `gorm:"column:stripe_account_id" json:"stripe_account_id"`
 	PayoutSchedule       string         `gorm:"column:payout_schedule;default:weekly" json:"payout_schedule"`
 	LastPayoutDate       *time.Time     `gorm:"column:last_payout_date" json:"last_payout_date"`
 	Banner               string         `gorm:"column:banner;size:255" json:"banner"`

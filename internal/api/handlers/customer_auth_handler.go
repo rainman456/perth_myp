@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	//"fmt"
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 
 	//"net/url"
 	"os"
@@ -15,7 +17,7 @@ import (
 	//"api-customer-merchant/internal/db/models"
 	//"api-customer-merchant/internal/db/repositories"
 	"api-customer-merchant/internal/api/dto"
-//"api-customer-merchant/internal/db/models"
+	//"api-customer-merchant/internal/db/models"
 	services "api-customer-merchant/internal/services/user"
 	"api-customer-merchant/internal/utils"
 
@@ -195,8 +197,64 @@ func (h *AuthHandler) GoogleCallback(c *gin.Context) {
 	//  }
 
 	//c.JSON(http.StatusCreated, gin.H{"token": token, "user": user})
-	frontendURL := "http://localhost:3000"
-	redirectURL := fmt.Sprintf("%s/auth/success?token=%s", frontendURL, token)
+
+
+	// c.SetCookie(
+	// 	"auth_token",        // name
+	// 	token,               // value
+	// 	3600*24,             // max age (1 day)
+	// 	"/",                 // path
+	// 	//".yourdomain.com",
+	// 	 "localhost",                   // domain — change this (see notes below)
+	// 	true,                // secure (HTTPS only)
+	// 	true,                // httpOnly (not accessible to JS)
+	// )
+	// frontendURL := "http://localhost:3000"
+	//redirectURL := fmt.Sprintf("%s/auth/success?token=%s", frontendURL, token)
+
+	frontendURL := os.Getenv("FRONTEND_URL")
+	if frontendURL == "" {
+		frontendURL = "http://localhost:3000"
+	}
+
+	isLocal := strings.Contains(frontendURL, "localhost")
+
+	// --- Domain + Security ---
+	domain := ""
+	secure := false
+	if !isLocal {
+		u, err := url.Parse(frontendURL)
+		if err == nil && u.Host != "" {
+			parts := strings.Split(u.Host, ":")
+			host := parts[0]
+			if !strings.HasPrefix(host, ".") {
+				host = "." + host
+			}
+			domain = host
+		}
+		secure = true
+	}
+
+	// --- Choose SameSite Policy ---
+	// Use Lax in production (most secure)
+	// Use None for localhost (since it's often cross-origin)
+	sameSite := "Lax"
+	if isLocal {
+		sameSite = "None"
+	}
+
+	// --- Build Cookie ---
+	cookie := fmt.Sprintf(
+		"auth_token=%s; Path=/; Max-Age=%d; HttpOnly; Secure=%t; SameSite=%s",
+		token, 3600*24, secure, sameSite,
+	)
+	if domain != "" {
+		cookie += fmt.Sprintf("; Domain=%s", domain)
+	}
+
+	c.Writer.Header().Add("Set-Cookie", cookie)
+
+	redirectURL := fmt.Sprintf("%s/auth/success", frontendURL)
 	c.Redirect(http.StatusTemporaryRedirect, redirectURL)
 }
 
