@@ -180,9 +180,9 @@ func (s *ProductService) GetProductByID(ctx context.Context, id string, preloads
 		reviewDTOs[i] = *helpers.ToReviewResponse(&r)
 	}
 
-if err != nil {
-    return nil, err
-}
+// if err != nil {
+//     return nil, err
+// }
 
 	// Use helper with loaded merchant
 	response := helpers.ToProductResponse(product, variantDTOs, reviewDTOs, &product.Merchant)
@@ -291,6 +291,22 @@ func (s *ProductService) GetAllProducts(ctx context.Context, limit, offset int, 
 	logger.Info("Products fetched for landing page", zap.Int("count", len(responses)), zap.Int64("total", total))
 	return responses, total, nil
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

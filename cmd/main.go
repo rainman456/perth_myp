@@ -70,7 +70,7 @@ func main() {
 	
 	db.Connect()
 	db.AutoMigrate()
-	//models.BackfillProductSlugs(db.DB)
+	//models.BackfillCategorySlugs(db.DB)
 	r := gin.Default()
 	r.Use(gin.Recovery())
 	r.Use(cors.New(cors.Config{

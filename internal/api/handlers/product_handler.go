@@ -476,3 +476,73 @@ func (h *CategoryHandler) GetCategories(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, categories)
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// GetAllProductsWithCategorySlug handles fetching paginated products for the landing page
+// GetAllProductsWithCategorySlug godoc
+// @Summary Get all products using category slug
+// @Description Fetches paginated list of products,  filtered by category slug
+// @Tags Categories
+// @Produce json
+// @Param limit query int false "Limit (default 20)"
+// @Param offset query int false "Offset (default 0)"
+// @Param slug path string true "Category Slug"
+// @Success 200 {object} object{products=[]dto.ProductResponse,total=int64,limit=int,offset=int}
+// @Failure 400 {object} object{error=string}
+// @Failure 500 {object} object{error=string}
+// @Router /categories/{slug} [get]
+func (h *CategoryHandler) GetAllProductsWithCategorySlug(c *gin.Context) {
+	//logger := h.logger.With(zap.String("operation", "GetAllProductsWithCategorySlug"))
+
+	// Parse query parameters
+	limit, err := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	if err != nil || limit <= 0 || limit > 100 {
+		limit = 20
+	}
+	offset, err := strconv.Atoi(c.DefaultQuery("offset", "0"))
+	if err != nil || offset < 0 {
+		offset = 0
+	}
+	//var categorySlug *string
+	categorySlug := c.Param("slug")
+	if categorySlug == "" {
+		//logger.Error("Missing category slug")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "category slug required"})
+		return
+	}
+
+	// Call service
+	products, total, err := h.service.GetAllProductsWithCategorySlug(c.Request.Context(), limit, offset, categorySlug)
+	if err != nil {
+		//logger.Error("Failed to fetch products", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch products"})
+		return
+	}
+
+	//logger.Info("Products fetched successfully", zap.Int("count", len(products)), zap.Int64("total", total))
+	c.JSON(http.StatusOK, gin.H{
+		"products": products,
+		"total":    total,
+		"limit":    limit,
+		"offset":   offset,
+	})
+}

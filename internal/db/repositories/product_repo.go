@@ -241,6 +241,35 @@ func (r *ProductRepository) GetAllProducts(ctx context.Context, limit, offset in
 
 
 
+
+func (r *ProductRepository) GetAllProductsWithCategorySlug(ctx context.Context, limit, offset int, categorySlug string, preloads ...string) ([]models.Product, int64, error) {
+	var products []models.Product
+	query := r.db.WithContext(ctx).Model(&models.Product{}).Where("deleted_at IS NULL")
+	if categorySlug != "" {
+		query = query.Where("category_slug = ?", categorySlug)
+	}
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, fmt.Errorf("failed to count products: %w", err)
+	}
+	for _, preload := range preloads {
+		query = query.Preload(preload)
+	}
+	query = query.Limit(limit).Offset(offset).Order("created_at DESC")
+	err := query.Find(&products).Error
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to fetch products: %w", err)
+	}
+	return products, total, nil
+}
+
+
+
+
+
+
+
+
 func (r *ProductRepository) ProductsFilter(
     ctx context.Context,
     filter ProductFilter,
