@@ -19,6 +19,7 @@ var (
 	ErrDuplicateSKU     = errors.New("duplicate SKU")
 	ErrInvalidInventory = errors.New("invalid inventory setup")
 	ErrMerchantNotFound = errors.New("merchant not found")
+	ErrCategoryNotFound = errors.New("category not found")
 )
 
 
@@ -400,13 +401,13 @@ func (r *ProductRepository) CreateProductWithVariantsAndInventory(ctx context.Co
 	// }
 
 	for _, v := range variants {
-var temp models.Variant
-if err := r.db.WithContext(ctx).Where("sku = ? AND deleted_at IS NULL", v.SKU).First(&temp).Error; err == nil {
-return ErrDuplicateSKU
-} else if !errors.Is(err, gorm.ErrRecordNotFound) {
-return err  // Propagate unexpected errors
-}
-}
+		var temp models.Variant
+		if err := r.db.WithContext(ctx).Where("sku = ? AND deleted_at IS NULL", v.SKU).First(&temp).Error; err == nil {
+			return ErrDuplicateSKU
+		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err  // Propagate unexpected errors
+		}
+	}
 
 	// Validate inputs
 	if isSimple && len(variants) > 0 {
@@ -422,6 +423,28 @@ return err  // Propagate unexpected errors
 	}
 
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Validate and set CategoryName if needed
+		if product.CategoryID > 0 {
+			var cat models.Category
+			if err := tx.First(&cat, product.CategoryID).Error; err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					return ErrCategoryNotFound  // Define this constant, e.g., var ErrCategoryNotFound = errors.New("category not found")
+				}
+				return fmt.Errorf("failed to fetch category: %w", err)
+			}
+
+			if product.CategoryName == "" {
+				// Automatically set from category name
+				product.CategoryName = cat.Name
+			} else if product.CategoryName != cat.Name {
+				// Validate mismatch
+				return fmt.Errorf("category name mismatch: expected '%s', got '%s'", cat.Name, product.CategoryName)
+			}
+		} else if product.CategoryName != "" {
+			// If CategoryID is 0 but CategoryName is set, that's fine (no validation needed)
+			// Or error if you want to enforce CategoryID presence
+		}
+
 		// Create product
 		if err := tx.Create(product).Error; err != nil {
 			if errors.Is(err, gorm.ErrDuplicatedKey) {

@@ -130,8 +130,13 @@ func (h *MerchantHandler) Login(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
 		return
 	}
+	merchantResponse := gin.H{
+        "id":       merchant.ID,  // Assuming merchant.ID is the field; adjust if different (e.g., merchant.Id)
+        "email":    merchant.WorkEmail,  // Map work_email to "email" in response
+        "username": merchant.Name,  // Assuming merchant.Username field
+    }
 
-	c.JSON(http.StatusOK, gin.H{"token": token})
+	c.JSON(http.StatusOK, gin.H{"token": token,"merchant":merchantResponse})
 }
 
 // GetApplication godoc

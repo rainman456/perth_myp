@@ -4600,10 +4600,14 @@ const docTemplate = `{
         "dto.ProductResponse": {
             "type": "object",
             "properties": {
-                "category_id": {
-                    "type": "integer"
+                "average_rating": {
+                    "type": "number"
                 },
                 "category_name": {
+                    "type": "string"
+                },
+                "category_slug": {
+                    "description": "CategoryID  uint   ` + "`" + `json:\"category_id\"` + "`" + `",
                     "type": "string"
                 },
                 "created_at": {
@@ -4644,6 +4648,9 @@ const docTemplate = `{
                 },
                 "pricing": {
                     "$ref": "#/definitions/dto.ProductPricingResponse"
+                },
+                "review_count": {
+                    "type": "integer"
                 },
                 "reviews": {
                     "type": "array",
@@ -4984,9 +4991,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "size": {
-                    "type": "string"
-                },
-                "sku": {
                     "type": "string"
                 },
                 "updated_at": {

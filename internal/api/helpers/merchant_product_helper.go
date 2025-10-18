@@ -19,6 +19,7 @@ func ToMerchantProductResponse(p *models.Product) *dto.MerchantProductResponse {
 		DiscountType: string(p.DiscountType),
 		FinalPrice:  p.FinalPrice.InexactFloat64(),
 		CategoryID:  p.CategoryID,
+		CategoryName: p.Category.Name,
 		CreatedAt:   p.CreatedAt,
 		UpdatedAt:   p.UpdatedAt,
 	}
@@ -45,6 +46,7 @@ func ToMerchantProductResponse(p *models.Product) *dto.MerchantProductResponse {
 	if p.SimpleInventory != nil {
 		resp.SimpleInventory = ToInventoryResponse(p.SimpleInventory)
 	}
+	
 
 	return resp
 }

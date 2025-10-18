@@ -77,6 +77,7 @@ type Product struct {
 	DiscountType    DiscountType    `gorm:"type:varchar(20);not null;default:''" json:"discount_type"` // NEW: fixed/percentage
 	FinalPrice      decimal.Decimal `gorm:"type:decimal(10,2);not null;default:0.00" json:"final_price"`
 	CategoryID      uint            `gorm:"type:int;index" json:"category_id"`
+	CategoryName    string           `gorm:"size:20" json:"category_name"`
 	CreatedAt       time.Time       `json:"created_at"`
 	UpdatedAt       time.Time       `json:"updated_at"`
 	DeletedAt       gorm.DeletedAt  `gorm:"index" json:"deleted_at,omitempty"`                                          // Soft deletes for recovery

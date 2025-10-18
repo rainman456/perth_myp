@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"io/ioutil"
+	//"io/ioutil"
 	"net/http"
 	"os"
 	//"path/filepath"
@@ -56,13 +56,28 @@ func (h *ProductMediaHandler) UploadMedia(c *gin.Context) {
 	}
 	merchantID := merchantIDStr.(string)
 
-	productID := strings.TrimSpace(c.Param("product_id"))
+	productID := strings.TrimSpace(c.Param("id"))
 	if productID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid product ID"})
 		return
 	}
 
-	// Multipart form
+	// Bind multipart form for non-file fields (only 'type')
+	var req dto.MediaUploadRequest
+	if err := c.ShouldBind(&req); err != nil {
+		h.logger.Error("Form validation failed", zap.Error(err))
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Validate the bound fields (Type)
+	if err := h.validate.Struct(&req); err != nil {
+		h.logger.Error("Type validation failed", zap.Error(err))
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Retrieve and validate the file separately
 	file, err := c.FormFile("file")
 	if err != nil {
 		h.logger.Error("No file in request", zap.Error(err))
@@ -70,8 +85,8 @@ func (h *ProductMediaHandler) UploadMedia(c *gin.Context) {
 		return
 	}
 
-	// Temp file
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "upload-*.tmp")
+	// Create temp file for upload
+	tmpFile, err := os.CreateTemp(os.TempDir(), "upload-*.tmp")
 	if err != nil {
 		h.logger.Error("Temp file creation failed", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "upload failed"})
@@ -82,13 +97,6 @@ func (h *ProductMediaHandler) UploadMedia(c *gin.Context) {
 	if err := c.SaveUploadedFile(file, tmpFile.Name()); err != nil {
 		h.logger.Error("File save failed", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "upload failed"})
-		return
-	}
-
-	var req dto.MediaUploadRequest
-	req.Type = c.PostForm("type")
-	if err := h.validate.Struct(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 

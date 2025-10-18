@@ -4593,10 +4593,14 @@
         "dto.ProductResponse": {
             "type": "object",
             "properties": {
-                "category_id": {
-                    "type": "integer"
+                "average_rating": {
+                    "type": "number"
                 },
                 "category_name": {
+                    "type": "string"
+                },
+                "category_slug": {
+                    "description": "CategoryID  uint   `json:\"category_id\"`",
                     "type": "string"
                 },
                 "created_at": {
@@ -4637,6 +4641,9 @@
                 },
                 "pricing": {
                     "$ref": "#/definitions/dto.ProductPricingResponse"
+                },
+                "review_count": {
+                    "type": "integer"
                 },
                 "reviews": {
                     "type": "array",
@@ -4977,9 +4984,6 @@
                     "type": "string"
                 },
                 "size": {
-                    "type": "string"
-                },
-                "sku": {
                     "type": "string"
                 },
                 "updated_at": {

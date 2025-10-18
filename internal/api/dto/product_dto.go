@@ -12,6 +12,7 @@ type ProductInput struct {
 	//SKU          string         `json:"sku" validate:"required,max=100"`
 	BasePrice    float64        `json:"base_price" validate:"required,gt=0"`
 	CategoryID   uint           `json:"category_id" validate:"required"`
+	CategoryName   string           `json:"category_name" validate:"required"`
 	InitialStock *int           `json:"initial_stock" validate:"omitempty,gte=0"` // For simple products
 	Discount     float64        `json:"discount" validate:"gte=0"`
 	DiscountType string         `json:"discount_type" validate:"oneof=fixed percentage ''"`
@@ -45,6 +46,7 @@ type MerchantProductResponse struct {
     DiscountType  string          `json:"discount_type" validate:"oneof=fixed percentage ''"`
 	FinalPrice       float64            `json:"final_price"`
 	CategoryID      uint               `json:"category_id"`
+	CategoryName   string           `json:"category_name" validate:"required"`
 	CreatedAt       time.Time          `json:"created_at"`
 	UpdatedAt       time.Time          `json:"updated_at"`
 	Variants        []ProductVariantResponse  `json:"variants,omitempty"`
@@ -201,8 +203,13 @@ type InventoryResponse struct {
 
 
 
+// type MediaUploadRequest struct {
+// 	File string `form:"file" validate:"required"` // Multipart file key
+// 	Type string `form:"type" validate:"required,oneof=image video"`
+// 	// Optional: Position or other metadata
+// }
+
 type MediaUploadRequest struct {
-	File string `form:"file" validate:"required"` // Multipart file key
 	Type string `form:"type" validate:"required,oneof=image video"`
 	// Optional: Position or other metadata
 }

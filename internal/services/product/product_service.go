@@ -100,6 +100,7 @@ func (s *ProductService) CreateProductWithVariants(ctx context.Context, merchant
 		Discount: decimal.NewFromFloat(input.Discount),
 		DiscountType: models.DiscountType(input.DiscountType),
 		CategoryID:  input.CategoryID,
+		CategoryName: input.CategoryName,
 	}
 	variants := make([]models.Variant, len(input.Variants))
 	for i, v := range input.Variants {
@@ -332,7 +333,7 @@ func (s *ProductService) FilterProducts(ctx context.Context, filter ProductFilte
     MerchantName: filter.MerchantName,
 }
 
-products, total, err := s.productRepo.ProductsFilter(ctx, repoFilter, limit, offset, "Media", "Variants", "Variants.Inventory", "SimpleInventory")
+products, total, err := s.productRepo.ProductsFilter(ctx, repoFilter, limit, offset, "Media", "Variants", "Variants.Inventory", "SimpleInventory","Merchant","Reviews","Category")
 
 	if err != nil {
 		logger.Error("Failed to fetch products", zap.Error(err))
@@ -355,7 +356,7 @@ products, total, err := s.productRepo.ProductsFilter(ctx, repoFilter, limit, off
 		}
 
 		// Use helper (nil merchant for customer-facing, and set MerchantID = "")
-		resp := helpers.ToProductResponse(&p, variantDTOs, reviewDTOs, nil)
+		resp := helpers.ToProductResponse(&p, variantDTOs, reviewDTOs, &p.Merchant)
 		resp.MerchantID = ""
 		responses[i] = *resp
 	}
