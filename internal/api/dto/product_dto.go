@@ -241,7 +241,7 @@ type CategoryResponse struct {
 	ID         uint                   `json:"id"`
 	Name       string                 `json:"name"`
 	ParentID   *uint                  `json:"parent_id"`
-	CategorySlug string                `json:"caetgory_slug"`
+	CategorySlug string                `json:"category_slug"`
 	Attributes map[string]interface{} `json:"attributes"`
 	Parent     *CategoryResponse      `json:"parent"`
 }

@@ -509,6 +509,87 @@ const docTemplate = `{
                 }
             }
         },
+        "/categories/{slug}": {
+            "get": {
+                "description": "Fetches paginated list of products,  filtered by category slug",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Categories"
+                ],
+                "summary": "Get all products using category slug",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Limit (default 20)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Offset (default 0)",
+                        "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Category Slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "limit": {
+                                    "type": "integer"
+                                },
+                                "offset": {
+                                    "type": "integer"
+                                },
+                                "products": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/definitions/dto.ProductResponse"
+                                    }
+                                },
+                                "total": {
+                                    "type": "integer",
+                                    "format": "int64"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/customer/addresses": {
             "get": {
                 "security": [
@@ -4029,6 +4110,9 @@ const docTemplate = `{
                     "type": "object",
                     "additionalProperties": true
                 },
+                "caetgory_slug": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "integer"
                 },
@@ -4342,6 +4426,9 @@ const docTemplate = `{
         },
         "dto.MerchantProductResponse": {
             "type": "object",
+            "required": [
+                "category_name"
+            ],
             "properties": {
                 "base_price": {
                     "description": "SKU             string             ` + "`" + `json:\"sku\"` + "`" + `",
@@ -4349,6 +4436,9 @@ const docTemplate = `{
                 },
                 "category_id": {
                     "type": "integer"
+                },
+                "category_name": {
+                    "type": "string"
                 },
                 "created_at": {
                     "type": "string"
@@ -4533,6 +4623,7 @@ const docTemplate = `{
             "required": [
                 "base_price",
                 "category_id",
+                "category_name",
                 "name"
             ],
             "properties": {
@@ -4542,6 +4633,9 @@ const docTemplate = `{
                 },
                 "category_id": {
                     "type": "integer"
+                },
+                "category_name": {
+                    "type": "string"
                 },
                 "description": {
                     "type": "string",

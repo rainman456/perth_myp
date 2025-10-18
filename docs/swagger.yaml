@@ -131,6 +131,8 @@ definitions:
       attributes:
         additionalProperties: true
         type: object
+      caetgory_slug:
+        type: string
       id:
         type: integer
       name:
@@ -348,6 +350,8 @@ definitions:
         type: number
       category_id:
         type: integer
+      category_name:
+        type: string
       created_at:
         type: string
       description:
@@ -387,6 +391,8 @@ definitions:
         items:
           $ref: '#/definitions/dto.ProductVariantResponse'
         type: array
+    required:
+    - category_name
     type: object
   dto.OrderItemResponse:
     properties:
@@ -474,6 +480,8 @@ definitions:
         type: number
       category_id:
         type: integer
+      category_name:
+        type: string
       description:
         maxLength: 1000
         type: string
@@ -504,6 +512,7 @@ definitions:
     required:
     - base_price
     - category_id
+    - category_name
     - name
     type: object
   dto.ProductPricingResponse:
@@ -1200,6 +1209,59 @@ paths:
                 type: string
             type: object
       summary: Get all categories
+      tags:
+      - Categories
+  /categories/{slug}:
+    get:
+      description: Fetches paginated list of products,  filtered by category slug
+      parameters:
+      - description: Limit (default 20)
+        in: query
+        name: limit
+        type: integer
+      - description: Offset (default 0)
+        in: query
+        name: offset
+        type: integer
+      - description: Category Slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              limit:
+                type: integer
+              offset:
+                type: integer
+              products:
+                items:
+                  $ref: '#/definitions/dto.ProductResponse'
+                type: array
+              total:
+                format: int64
+                type: integer
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Get all products using category slug
       tags:
       - Categories
   /customer/addresses:
