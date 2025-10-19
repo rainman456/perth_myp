@@ -45,7 +45,7 @@ type CartItemResponse struct {
 	ProductID  string            `json:"product_id"`
 	Name      string              `json:"name"`
 	VariantID  *string           `json:"variant_id,omitempty"`
-	Attributes map[string]any `json:"attributes,omitempty"`
+	//Attributes map[string]any `json:"attributes,omitempty"`
 	Product    *ProductResponse  `json:"product,omitempty"`
 	Variant    *VariantResponse  `json:"variant,omitempty"` // Embed for display
 	Quantity   int               `json:"quantity"`
