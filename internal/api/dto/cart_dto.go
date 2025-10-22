@@ -54,12 +54,12 @@ type CartItemResponse struct {
 
 type CartProductResponse struct {
 	ID           string  `json:"id"`
-	Name         string  `json:"name"`
+	//Name         string  `json:"name"`
 	//MerchantID        string `json:"merchant_id"`
-	MerchantName      string `json:"merchant_name"`
-	MerchantStoreName string `json:"merchant_store_name"`
-	Slug         string  `json:"slug"`
-	CategoryName string  `json:"category_name"`
+	//MerchantName      string `json:"merchant_name"`
+	//MerchantStoreName string `json:"merchant_store_name"`
+	//Slug         string  `json:"slug"`
+	//CategoryName string  `json:"category_name"`
 	CategorySlug string  `json:"category_slug"`
 	Pricing   ProductPricingResponse `json:"pricing"`
 	FinalPrice   float64 `json:"final_price"` // Only need final price

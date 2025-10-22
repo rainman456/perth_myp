@@ -169,8 +169,8 @@ func ToCartProductResponse(
 
 	resp := &dto.CartProductResponse{
 		ID:           p.ID,
-		Name:         p.Name,
-		Slug:         p.Slug,
+		//Name:         p.Name,
+		//Slug:         p.Slug,
 		Pricing: dto.ProductPricingResponse{ // Added full pricing
 			BasePrice:    p.BasePrice.InexactFloat64(),
 			Discount:     p.Discount.InexactFloat64(),
@@ -182,18 +182,19 @@ func ToCartProductResponse(
 
 	// Category (use DB-stored slug)
 	if p.CategoryID != 0 && p.Category.ID != 0 {
-		resp.CategoryName = p.Category.Name
+		//resp.CategoryName = p.Category.Name
 		resp.CategorySlug = p.Category.CategorySlug
-		fmt.Printf("Category set for product %s: Name='%s', Slug='%s'\n", p.ID, resp.CategoryName, resp.CategorySlug)
+		// fmt.Printf("Category set for product %s: Name='%s', Slug='%s'\n", p.ID, resp.CategoryName, resp.CategorySlug)
+		fmt.Printf("Category set for product %s: , Slug='%s'\n", p.ID, resp.CategorySlug)
 	} else {
 		fmt.Printf("Category missing for product %s (CategoryID=%d, Loaded=%v)\n", p.ID, p.CategoryID, p.Category.ID != 0)
 	}
 
 	// Merchant
-	if merchant != nil && merchant.ID != "" {
-		resp.MerchantName = merchant.Name
-		resp.MerchantStoreName = merchant.StoreName
-	}
+	// if merchant != nil && merchant.ID != "" {
+	// 	resp.MerchantName = merchant.Name
+	// 	resp.MerchantStoreName = merchant.StoreName
+	// }
 
 	return resp
 }
