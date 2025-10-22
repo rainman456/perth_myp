@@ -35,15 +35,19 @@ func (r *CartRepository) FindByID(ctx context.Context, id uint) (*models.Cart, e
 	var cart models.Cart
 	err := r.db.WithContext(ctx).
 		Preload("User").
-		Preload("CartItems.Product.Media"). // Efficient: preload media for UI
-		Preload("CartItems.Product.Variants.Inventory").
+		Preload("CartItems.Product.Category").  // For category_name/slug
+		Preload("CartItems.Product.Media").      // For images
+		Preload("CartItems.Product.Merchant").   // For merchant_name/store_name
+		Preload("CartItems.Product.Reviews").    // For avg_rating/review_count (or limit: Preload("CartItems.Product.Reviews", func(db *gorm.DB) *gorm.DB { return db.Limit(10).Order("created_at DESC") }))
+		Preload("CartItems.Product.Variants.Inventory"). // Existing + variants for full response
+		Preload("CartItems.Variant").            // For variant details in item
+		Preload("CartItems.Merchant").           // Extra if needed, but Product.Merchant covers
 		First(&cart, id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrCartNotFound
 	}
 	return &cart, err
 }
-
 // FindActiveCart retrieves the user's most recent active cart
 // func (r *CartRepository) FindActiveCart(userID uint) (*models.Cart, error) {
 // 	var cart models.Cart
@@ -54,7 +58,13 @@ func (r *CartRepository) FindByID(ctx context.Context, id uint) (*models.Cart, e
 func (r *CartRepository) FindActiveCart(ctx context.Context, userID uint) (*models.Cart, error) {
 	var cart models.Cart
 	err := r.db.WithContext(ctx).
-		Preload("CartItems.Product.Merchant"). // As before
+		Preload("CartItems.Product.Category").  // For category_name/slug
+		Preload("CartItems.Product.Media").      // For images
+		Preload("CartItems.Product.Merchant").   // For merchant_name/store_name
+		Preload("CartItems.Product.Reviews").    // For avg_rating/review_count (or limit as above)
+		Preload("CartItems.Product.Variants.Inventory"). // For variants
+		Preload("CartItems.Variant").            // For variant details
+		Preload("CartItems.Merchant").           // Existing + extra
 		Where("user_id = ? AND status = ?", userID, models.CartStatusActive).
 		Order("created_at DESC").First(&cart).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {

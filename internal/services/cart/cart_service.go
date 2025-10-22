@@ -3,6 +3,7 @@ package cart
 import (
 	//"api-customer-merchant/internal/db"
 	"api-customer-merchant/internal/api/dto" // Assuming dto.BulkUpdateRequest is defined here with ProductID string, Quantity int
+	"api-customer-merchant/internal/api/helpers"
 	"api-customer-merchant/internal/db"
 	"api-customer-merchant/internal/db/models"
 	"api-customer-merchant/internal/db/repositories"
@@ -73,36 +74,38 @@ func (s *CartService) GetActiveCart(ctx context.Context, userID uint) (*dto.Cart
 		}
 		s.logger.Info("Created new active cart", zap.Uint("cart_id", cart.ID))
 	}
-	response := &dto.CartResponse{
-    ID:        cart.ID,
-    UserID:    cart.UserID,
-    Status:    cart.Status,
-    Items:     make([]dto.CartItemResponse, len(cart.CartItems)),
-    Total:     0,  // Will compute sum of subtotals
-    CreatedAt: cart.CreatedAt,
-    UpdatedAt: cart.UpdatedAt,
-}
-for i, item := range cart.CartItems {
-    subtotal := 0.0
-    // Check if Product is preloaded (avoid empty struct issues)
-    if item.Product.ID != "" {  // Use ID as non-zero check (struct-safe)
-        price := item.Product.FinalPrice.InexactFloat64()  // Convert decimal.Decimal
-        if item.VariantID != nil && item.Variant != nil && item.Variant.ID != "" {
-            price += item.Variant.FinalPrice.InexactFloat64()  // Add adjustment
-        }
-        subtotal = float64(item.Quantity) * price
-    }
-    response.Items[i] = dto.CartItemResponse{
-        ID:        item.ID,
-        ProductID: item.ProductID,
-		Name: item.Product.Name,
-        VariantID: item.VariantID,
-        Quantity:  item.Quantity,
-        Subtotal:  subtotal,  // Computed: quantity * (base + adjustment)
-    }
-    response.Total += subtotal  // Accumulate grand total
-}
-return response, nil
+// 	response := &dto.CartResponse{
+//     ID:        cart.ID,
+//     UserID:    cart.UserID,
+//     Status:    cart.Status,
+//     Items:     make([]dto.CartItemResponse, len(cart.CartItems)),
+//     Total:     0,  // Will compute sum of subtotals
+//     CreatedAt: cart.CreatedAt,
+//     UpdatedAt: cart.UpdatedAt,
+// }
+// for i, item := range cart.CartItems {
+//     subtotal := 0.0
+//     // Check if Product is preloaded (avoid empty struct issues)
+//     if item.Product.ID != "" {  // Use ID as non-zero check (struct-safe)
+//         price := item.Product.FinalPrice.InexactFloat64()  // Convert decimal.Decimal
+//         if item.VariantID != nil && item.Variant != nil && item.Variant.ID != "" {
+//             price += item.Variant.FinalPrice.InexactFloat64()  // Add adjustment
+//         }
+//         subtotal = float64(item.Quantity) * price
+//     }
+//     response.Items[i] = dto.CartItemResponse{
+//         ID:        item.ID,
+//         ProductID: item.ProductID,
+// 		Name: item.Product.Name,
+//         VariantID: item.VariantID,
+//         Quantity:  item.Quantity,
+//         Subtotal:  subtotal,  // Computed: quantity * (base + adjustment)
+//     }
+//     response.Total += subtotal  // Accumulate grand total
+// }
+// return response, nil
+response := helpers.ToCartResponse(cart)
+	return response, nil
 
 }
 
@@ -235,35 +238,38 @@ func (s *CartService) AddItemToCart(ctx context.Context, userID uint, quantity i
         return nil, fmt.Errorf("failed to fetch cart: %w", err)
     }
 
-    response := &dto.CartResponse{
-        ID:        updatedCart.ID,
-        UserID:    updatedCart.UserID,
-        Status:    updatedCart.Status,
-        Items:     make([]dto.CartItemResponse, len(updatedCart.CartItems)),
-        Total:     0,
-        CreatedAt: updatedCart.CreatedAt,
-        UpdatedAt: updatedCart.UpdatedAt,
-    }
-    for i, item := range updatedCart.CartItems {
-        subtotal := 0.0
-        if item.Product.ID != "" {  // Struct-safe check
-            price := item.Product.FinalPrice.InexactFloat64()
-            if item.VariantID != nil && item.Variant != nil && item.Variant.ID != "" {
-                price += item.Variant.FinalPrice.InexactFloat64()
-            }
-            subtotal = float64(item.Quantity) * price
-        }
-        response.Items[i] = dto.CartItemResponse{
-            ID:        item.ID,
-            ProductID: item.ProductID,
-			Name: item.Product.Name,
-            VariantID: item.VariantID,
-            Quantity:  item.Quantity,
-            Subtotal:  subtotal,
-        }
-        response.Total += subtotal
-    }
-    return response, nil
+    // response := &dto.CartResponse{
+    //     ID:        updatedCart.ID,
+    //     UserID:    updatedCart.UserID,
+    //     Status:    updatedCart.Status,
+    //     Items:     make([]dto.CartItemResponse, len(updatedCart.CartItems)),
+    //     Total:     0,
+    //     CreatedAt: updatedCart.CreatedAt,
+    //     UpdatedAt: updatedCart.UpdatedAt,
+    // }
+    // for i, item := range updatedCart.CartItems {
+    //     subtotal := 0.0
+    //     if item.Product.ID != "" {  // Struct-safe check
+    //         price := item.Product.FinalPrice.InexactFloat64()
+    //         if item.VariantID != nil && item.Variant != nil && item.Variant.ID != "" {
+    //             price += item.Variant.FinalPrice.InexactFloat64()
+    //         }
+    //         subtotal = float64(item.Quantity) * price
+    //     }
+    //     response.Items[i] = dto.CartItemResponse{
+    //         ID:        item.ID,
+    //         ProductID: item.ProductID,
+	// 		Name: item.Product.Name,
+    //         VariantID: item.VariantID,
+    //         Quantity:  item.Quantity,
+    //         Subtotal:  subtotal,
+    //     }
+    //     response.Total += subtotal
+    // }
+    // return response, nil
+	response := helpers.ToCartResponse(&updatedCart)
+	return response, nil
+
 }
 
 // UpdateCartItemQuantity updates the quantity of a cart item
@@ -321,35 +327,36 @@ func (s *CartService) UpdateCartItemQuantity(ctx context.Context, cartItemID uin
 		return nil, fmt.Errorf("db error: %w", err)
 	}
 
-	response := &dto.CartResponse{
-		ID:        cart.ID,
-		UserID:    cart.UserID,
-		Status:    cart.Status,
-		Items:     make([]dto.CartItemResponse, len(cart.CartItems)),
-		Total:     0,  // Will compute sum of subtotals
-		CreatedAt: cart.CreatedAt,
-		UpdatedAt: cart.UpdatedAt,
-	}
-	for i, item := range cart.CartItems {
-		subtotal := 0.0
-		// Check if Product is preloaded (avoid empty struct issues)
-		if item.Product.ID != "" {  // Use ID as non-zero check (struct-safe)
-			price := item.Product.FinalPrice.InexactFloat64()  // Convert decimal.Decimal
-			if item.VariantID != nil && item.Variant != nil && item.Variant.ID != "" {
-				price += item.Variant.FinalPrice.InexactFloat64()  // Add adjustment
-			}
-			subtotal = float64(item.Quantity) * price
-		}
-		response.Items[i] = dto.CartItemResponse{
-			ID:        item.ID,
-			ProductID: item.ProductID,
-			Name: item.Product.Name,
-			VariantID: item.VariantID,
-			Quantity:  item.Quantity,
-			Subtotal:  subtotal,  // Computed: quantity * (base + adjustment)
-		}
-		response.Total += subtotal  // Accumulate grand total
-	}
+	// response := &dto.CartResponse{
+	// 	ID:        cart.ID,
+	// 	UserID:    cart.UserID,
+	// 	Status:    cart.Status,
+	// 	Items:     make([]dto.CartItemResponse, len(cart.CartItems)),
+	// 	Total:     0,  // Will compute sum of subtotals
+	// 	CreatedAt: cart.CreatedAt,
+	// 	UpdatedAt: cart.UpdatedAt,
+	// }
+	// for i, item := range cart.CartItems {
+	// 	subtotal := 0.0
+	// 	// Check if Product is preloaded (avoid empty struct issues)
+	// 	if item.Product.ID != "" {  // Use ID as non-zero check (struct-safe)
+	// 		price := item.Product.FinalPrice.InexactFloat64()  // Convert decimal.Decimal
+	// 		if item.VariantID != nil && item.Variant != nil && item.Variant.ID != "" {
+	// 			price += item.Variant.FinalPrice.InexactFloat64()  // Add adjustment
+	// 		}
+	// 		subtotal = float64(item.Quantity) * price
+	// 	}
+	// 	response.Items[i] = dto.CartItemResponse{
+	// 		ID:        item.ID,
+	// 		ProductID: item.ProductID,
+	// 		Name: item.Product.Name,
+	// 		VariantID: item.VariantID,
+	// 		Quantity:  item.Quantity,
+	// 		Subtotal:  subtotal,  // Computed: quantity * (base + adjustment)
+	// 	}
+	// 	response.Total += subtotal  // Accumulate grand total
+	// }
+	response := helpers.ToCartResponse(cart)
 	return response, nil
 	
 }
@@ -417,6 +424,7 @@ func (s *CartService) ClearCart(ctx context.Context, userID uint) error {
 	}
 	cart.Status = models.CartStatusAbandoned
 	return s.cartRepo.Update(ctx, cart)
+	
 }
 
 func (s *CartService) BulkAddItems(ctx context.Context, userID uint, items dto.BulkUpdateRequest) (*models.Cart, error) {

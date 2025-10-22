@@ -114,7 +114,7 @@ func ToProductResponse(
     }
 	if p.CategoryID != 0 && p.Category.ID != 0 {
 		resp.CategoryName = p.Category.Name
-		//resp.CategorySlug = p.Category.Slug()  // Calls your Slug() method
+		resp.CategorySlug = p.Category.CategorySlug  // Calls your Slug() method
 		fmt.Printf("Category loaded: Name=%s, Slug=%s\n", resp.CategoryName, resp.CategorySlug)  // Debug print
 	} else {
 		fmt.Println("Category not loaded or ID=0")  // This will show if issue persists
