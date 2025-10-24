@@ -30,16 +30,16 @@ func NewDisputeHandler(service *dispute.DisputeService) *DisputeHandler {
 // @Produce json
 // @Security BearerAuth
 // @Param body body dto.CreateDisputeDTO true "Dispute details"
-// @Success 201 {object} dto.DisputeResponseDTO
+// @Success 201 {object} dto.CreateDisputeResponseDTO
 // @Failure 400 {object} object{error=string}
 // @Failure 401 {object} object{error=string}
 // @Router /disputes [post]
 func (h *DisputeHandler) CreateDispute(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-		return
-	}
+	userID := getUserIDFromContext(c)
+	// if !exists {
+	// 	c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+	// 	return
+	// }
 
 	var req dto.CreateDisputeDTO
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -52,7 +52,7 @@ func (h *DisputeHandler) CreateDispute(c *gin.Context) {
 		return
 	}
 
-	resp, err := h.service.CreateDispute(c.Request.Context(), userID.(uint), req)
+	resp, err := h.service.CreateDispute(c.Request.Context(), userID, req)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -68,18 +68,74 @@ func (h *DisputeHandler) CreateDispute(c *gin.Context) {
 // @Produce json
 // @Security BearerAuth
 // @Param id path string true "Dispute ID"
-// @Success 200 {object} dto.DisputeResponseDTO
+// @Success 200 {object} dto.CreateDisputeResponseDTO
 // @Failure 404 {object} object{error=string}
 // @Router /disputes/{id} [get]
 func (h *DisputeHandler) GetDispute(c *gin.Context) {
-	userID, _ := c.Get("userID")
+	userID := getUserIDFromContext(c)
 	disputeID := c.Param("id")
 
-	resp, err := h.service.GetDispute(c.Request.Context(), disputeID, userID.(uint))
+	resp, err := h.service.GetDispute(c.Request.Context(), disputeID, userID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, resp)
+}
+
+// GetDisputesByOrderID handles GET /dispute/:orderId
+// @Summary Get disputes for a specific order
+// @Description Retrieve all disputes for a specific order by order ID for the authenticated customer
+// @Tags Disputes
+// @Produce json
+// @Security BearerAuth
+// @Param orderId path string true "Order ID"
+// @Success 200 {object} dto.DisputeResponseDTO
+// @Failure 400 {object} object{error=string}
+// @Failure 404 {object} object{error=string}
+// @Failure 401 {object} object{error=string}
+// @Router /dispute/{orderId} [get]
+func (h *DisputeHandler) GetDisputesByOrderID(c *gin.Context) {
+	userID := getUserIDFromContext(c)
+	// if !exists {
+	// 	c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+	// 	return
+	// }
+
+	orderID := c.Param("orderId")
+
+	resp, err := h.service.GetDisputesByOrderID(c.Request.Context(), orderID, userID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
+}
+
+// ListCustomerDisputes handles GET /disputes
+// @Summary List customer's disputes
+// @Description Retrieve all disputes for the authenticated customer, grouped by order
+// @Tags Disputes
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {array} dto.DisputeResponseDTO
+// @Failure 401 {object} object{error=string}
+// @Failure 500 {object} object{error=string}
+// @Router /disputes [get]
+func (h *DisputeHandler) ListCustomerDisputes(c *gin.Context) {
+	userID := getUserIDFromContext(c)
+	// if !exists {
+	// 	c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+	// 	return
+	// }
+
+	disputes, err := h.service.GetCustomerDisputes(c.Request.Context(), userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, disputes)
 }

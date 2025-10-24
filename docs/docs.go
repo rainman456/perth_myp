@@ -1364,7 +1364,122 @@ const docTemplate = `{
                 }
             }
         },
+        "/dispute/{orderId}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve all disputes for a specific order by order ID for the authenticated customer",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Disputes"
+                ],
+                "summary": "Get disputes for a specific order",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Order ID",
+                        "name": "orderId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.DisputeResponseDTO"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/disputes": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve all disputes for the authenticated customer, grouped by order",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Disputes"
+                ],
+                "summary": "List customer's disputes",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.DisputeResponseDTO"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
             "post": {
                 "security": [
                     {
@@ -1397,7 +1512,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/dto.DisputeResponseDTO"
+                            "$ref": "#/definitions/dto.CreateDisputeResponseDTO"
                         }
                     },
                     "400": {
@@ -1453,7 +1568,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.DisputeResponseDTO"
+                            "$ref": "#/definitions/dto.CreateDisputeResponseDTO"
                         }
                     },
                     "404": {
@@ -3236,7 +3351,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Retrieve all return requests for the authenticated customer",
+                "description": "Retrieve all return requests for the authenticated customer, grouped by order",
                 "produces": [
                     "application/json"
                 ],
@@ -3250,12 +3365,23 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/dto.ReturnRequestResponseDTO"
+                                "$ref": "#/definitions/dto.ReturnResponseDTO"
                             }
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -3299,7 +3425,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/dto.ReturnRequestResponseDTO"
+                            "$ref": "#/definitions/dto.CreateReturnRequestResponseDTO"
                         }
                     },
                     "400": {
@@ -3372,6 +3498,62 @@ const docTemplate = `{
                 }
             }
         },
+        "/return-requests/{orderId}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve all return requests for a specific order by order ID for the authenticated customer",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Return Requests"
+                ],
+                "summary": "Get return requests for a specific order",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Order ID",
+                        "name": "orderId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ReturnResponseDTO"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/review": {
             "post": {
                 "description": "Create a new review by user",
@@ -3416,6 +3598,72 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/reviews": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get list of all user reviews grouped by order",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "reviews"
+                ],
+                "summary": "Get all user reviews",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Limit per order group",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Offset",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.ReviewResponseDTO"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -4037,10 +4285,6 @@ const docTemplate = `{
         "dto.CartItemResponse": {
             "type": "object",
             "properties": {
-                "attributes": {
-                    "type": "object",
-                    "additionalProperties": {}
-                },
                 "id": {
                     "type": "integer"
                 },
@@ -4048,7 +4292,12 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "product": {
-                    "$ref": "#/definitions/dto.ProductResponse"
+                    "description": "Attributes map[string]any ` + "`" + `json:\"attributes,omitempty\"` + "`" + `",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/dto.CartProductResponse"
+                        }
+                    ]
                 },
                 "product_id": {
                     "type": "string"
@@ -4063,11 +4312,34 @@ const docTemplate = `{
                     "description": "Embed for display",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/dto.VariantResponse"
+                            "$ref": "#/definitions/dto.CartVariantResponse"
                         }
                     ]
                 },
                 "variant_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.CartProductResponse": {
+            "type": "object",
+            "properties": {
+                "category_slug": {
+                    "description": "Name         string  ` + "`" + `json:\"name\"` + "`" + `\nMerchantID        string ` + "`" + `json:\"merchant_id\"` + "`" + `\nMerchantName      string ` + "`" + `json:\"merchant_name\"` + "`" + `\nMerchantStoreName string ` + "`" + `json:\"merchant_store_name\"` + "`" + `\nSlug         string  ` + "`" + `json:\"slug\"` + "`" + `\nCategoryName string  ` + "`" + `json:\"category_name\"` + "`" + `",
+                    "type": "string"
+                },
+                "final_price": {
+                    "description": "Only need final price",
+                    "type": "number"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "pricing": {
+                    "$ref": "#/definitions/dto.ProductPricingResponse"
+                },
+                "primary_image": {
+                    "description": "First image",
                     "type": "string"
                 }
             }
@@ -4103,6 +4375,36 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.CartVariantResponse": {
+            "type": "object",
+            "properties": {
+                "available": {
+                    "description": "From inventory",
+                    "type": "integer"
+                },
+                "backorder_allowed": {
+                    "type": "boolean"
+                },
+                "color": {
+                    "type": "string"
+                },
+                "final_price": {
+                    "type": "number"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "pricing": {
+                    "$ref": "#/definitions/dto.VariantPricingResponse"
+                },
+                "product_id": {
+                    "type": "string"
+                },
+                "size": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.CategoryResponse": {
             "type": "object",
             "properties": {
@@ -4110,7 +4412,7 @@ const docTemplate = `{
                     "type": "object",
                     "additionalProperties": true
                 },
-                "caetgory_slug": {
+                "category_slug": {
                     "type": "string"
                 },
                 "id": {
@@ -4177,43 +4479,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.CreateReturnRequestDTO": {
-            "type": "object",
-            "required": [
-                "order_item_id",
-                "reason"
-            ],
-            "properties": {
-                "order_item_id": {
-                    "type": "string"
-                },
-                "reason": {
-                    "type": "string",
-                    "maxLength": 500
-                }
-            }
-        },
-        "dto.CreateReviewDTO": {
-            "type": "object",
-            "required": [
-                "product_id",
-                "rating"
-            ],
-            "properties": {
-                "comment": {
-                    "type": "string"
-                },
-                "product_id": {
-                    "type": "string"
-                },
-                "rating": {
-                    "type": "integer",
-                    "maximum": 5,
-                    "minimum": 1
-                }
-            }
-        },
-        "dto.DisputeResponseDTO": {
+        "dto.CreateDisputeResponseDTO": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -4242,6 +4508,127 @@ const docTemplate = `{
                 },
                 "resolved_at": {
                     "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.CreateReturnRequestDTO": {
+            "type": "object",
+            "required": [
+                "order_item_id",
+                "reason"
+            ],
+            "properties": {
+                "order_item_id": {
+                    "type": "string"
+                },
+                "reason": {
+                    "type": "string",
+                    "maxLength": 500
+                }
+            }
+        },
+        "dto.CreateReturnRequestResponseDTO": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "customer_id": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "order_item_id": {
+                    "type": "string"
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.CreateReviewDTO": {
+            "type": "object",
+            "required": [
+                "product_id",
+                "rating"
+            ],
+            "properties": {
+                "comment": {
+                    "type": "string"
+                },
+                "product_id": {
+                    "type": "string"
+                },
+                "rating": {
+                    "type": "integer",
+                    "maximum": 5,
+                    "minimum": 1
+                }
+            }
+        },
+        "dto.DisputeItemDTO": {
+            "type": "object",
+            "properties": {
+                "category_slug": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "product_id": {
+                    "type": "string"
+                },
+                "product_image_url": {
+                    "type": "string"
+                },
+                "product_name": {
+                    "type": "string"
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "resolution": {
+                    "type": "string"
+                },
+                "resolved_at": {
+                    "description": "Use pointer for nullable field",
+                    "type": "string"
+                }
+            }
+        },
+        "dto.DisputeResponseDTO": {
+            "type": "object",
+            "properties": {
+                "customer_id": {
+                    "type": "integer"
+                },
+                "disputes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.DisputeItemDTO"
+                    }
+                },
+                "merchant_id": {
+                    "type": "string"
+                },
+                "order_created_at": {
+                    "type": "string"
+                },
+                "order_id": {
+                    "type": "integer"
                 },
                 "status": {
                     "type": "string"
@@ -4880,6 +5267,32 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.ReturnItemDTO": {
+            "type": "object",
+            "properties": {
+                "category_slug": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "product_id": {
+                    "type": "string"
+                },
+                "product_image_url": {
+                    "type": "string"
+                },
+                "product_name": {
+                    "type": "string"
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.ReturnRequestResponseDTO": {
             "type": "object",
             "properties": {
@@ -4903,6 +5316,26 @@ const docTemplate = `{
                 },
                 "updated_at": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.ReturnResponseDTO": {
+            "type": "object",
+            "properties": {
+                "customer_id": {
+                    "type": "integer"
+                },
+                "order_created_at": {
+                    "type": "string"
+                },
+                "order_id": {
+                    "type": "integer"
+                },
+                "returns": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ReturnItemDTO"
+                    }
                 }
             }
         },

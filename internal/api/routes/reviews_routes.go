@@ -21,12 +21,15 @@ func SetupReviewRoutes(r *gin.Engine) {
 	//customer := r.Group("/products")
 	{
 		reviewHandler := handlers.NewReviewHandler(service)
+		r.GET("/:productID/reviews",reviewHandler.GetReviewsByProduct)
 
 		protected := r.Group("")
 		protected.Use(middleware.AuthMiddleware("customer"))
 		protected.POST("/review",reviewHandler.CreateReview)
 		protected.GET("/reviews/:id", reviewHandler.GetReview)
-		protected.GET("/:productID/reviews",reviewHandler.GetReviewsByProduct)
+		//protected.GET("/reviews/:id", reviewHandler.GetReview)
+		//protected.GET("/:productID/reviews",reviewHandler.GetReviewsByProduct)
+		protected.GET("/reviews",reviewHandler.GetAllUserReviews)
 		protected.PUT("/reviews/:id", reviewHandler.UpdateReview)
 		protected.DELETE("/reviews/:id", reviewHandler.DeleteReview)
 	}

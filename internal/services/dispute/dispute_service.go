@@ -1,8 +1,10 @@
 package dispute
+
 import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
 
 	"api-customer-merchant/internal/api/dto"
 	"api-customer-merchant/internal/db/models"
@@ -15,6 +17,7 @@ import (
 var (
 	ErrUnauthorized = errors.New("unauthorized")
 	ErrInvalidInput = errors.New("invalid input")
+	ErrNotFound     = errors.New("Not found")
 )
 
 type DisputeService struct {
@@ -36,7 +39,7 @@ func NewDisputeService(
 }
 
 // CreateDispute creates a new dispute
-func (s *DisputeService) CreateDispute(ctx context.Context, userID uint, req dto.CreateDisputeDTO) (*dto.DisputeResponseDTO, error) {
+func (s *DisputeService) CreateDispute(ctx context.Context, userID uint, req dto.CreateDisputeDTO) (*dto.CreateDisputeResponseDTO, error) {
 	logger := s.logger.With(zap.String("operation", "CreateDispute"), zap.Uint("user_id", userID))
 
 	// Verify order exists and belongs to user
@@ -70,7 +73,7 @@ func (s *DisputeService) CreateDispute(ctx context.Context, userID uint, req dto
 }
 
 // GetDispute retrieves a dispute by ID
-func (s *DisputeService) GetDispute(ctx context.Context, disputeID string, userID uint) (*dto.DisputeResponseDTO, error) {
+func (s *DisputeService) GetDispute(ctx context.Context, disputeID string, userID uint) (*dto.CreateDisputeResponseDTO, error) {
 	dispute, err := s.disputeRepo.FindDisputeByID(ctx, disputeID)
 	if err != nil {
 		return nil, err
@@ -83,8 +86,8 @@ func (s *DisputeService) GetDispute(ctx context.Context, disputeID string, userI
 	return mapDisputeToDTO(dispute), nil
 }
 
-func mapDisputeToDTO(d *models.Dispute) *dto.DisputeResponseDTO {
-	return &dto.DisputeResponseDTO{
+func mapDisputeToDTO(d *models.Dispute) *dto.CreateDisputeResponseDTO {
+	return &dto.CreateDisputeResponseDTO{
 		ID:          d.ID,
 		OrderID:     d.OrderID,
 		CustomerID:  d.CustomerID,
@@ -103,4 +106,91 @@ func parseUint(s string) uint {
 	var id uint
 	fmt.Sscanf(s, "%d", &id)
 	return id
+}
+
+
+
+func mapToDisputeResponseDTO(disputes []models.Dispute) *dto.DisputeResponseDTO {
+	if len(disputes) == 0 {
+		return nil
+	}
+
+	first := disputes[0]
+	resp := &dto.DisputeResponseDTO{
+		OrderID:        parseUint(first.OrderID),
+		OrderCreatedAt: first.Order.CreatedAt,
+		Status:         first.Status,
+		CustomerID:     first.CustomerID,
+		MerchantID:     first.MerchantID,
+	}
+
+	resp.Disputes = make([]dto.DisputeItemDTO, len(disputes))
+	for i, d := range disputes {
+		imageURL := ""
+		// Assuming first order item for simplicity; adjust if multiple items needed
+		if len(d.Order.OrderItems) > 0 && len(d.Order.OrderItems[0].Product.Media) > 0 {
+			imageURL = d.Order.OrderItems[0].Product.Media[0].URL // Assuming Media has a URL field
+		}
+
+		resolvedAt := &d.ResolvedAt
+		if d.ResolvedAt.IsZero() {
+			resolvedAt = nil
+		}
+
+		resp.Disputes[i] = dto.DisputeItemDTO{
+			ProductID:       d.Order.OrderItems[0].ProductID,
+			ProductName:     d.Order.OrderItems[0].Product.Name,
+			ProductImageURL: imageURL,
+			CategorySlug:    d.Order.OrderItems[0].Product.Category.CategorySlug, // Assuming Category has a Slug field
+			Reason:          d.Reason,
+			Description:     d.Description,
+			Resolution:      d.Resolution,
+			ResolvedAt:      resolvedAt,
+			CreatedAt:       d.CreatedAt,
+		}
+	}
+
+	return resp
+}
+
+// GetDisputesByOrderID retrieves disputes for a specific order
+func (s *DisputeService) GetDisputesByOrderID(ctx context.Context, orderID string, userID uint) (*dto.DisputeResponseDTO, error) {
+	disputes, err := s.disputeRepo.FindByOrderID(ctx, orderID, userID)
+	if err != nil {
+		return nil, err
+	}
+	if len(disputes) == 0 {
+		return nil, ErrNotFound // Or a custom error like ErrNoDisputesFound
+	}
+	return mapToDisputeResponseDTO(disputes), nil
+}
+
+// GetCustomerDisputes retrieves all disputes for a customer, grouped by order
+func (s *DisputeService) GetCustomerDisputes(ctx context.Context, userID uint) ([]dto.DisputeResponseDTO, error) {
+	disputes, err := s.disputeRepo.FindDisputesByCustomerID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Group by OrderID
+	groups := make(map[string][]models.Dispute)
+	for _, d := range disputes {
+		oid := d.OrderID
+		groups[oid] = append(groups[oid], d)
+	}
+
+	dtos := make([]dto.DisputeResponseDTO, 0, len(groups))
+	for _, disputeGroup := range groups {
+		dto := mapToDisputeResponseDTO(disputeGroup)
+		if dto != nil {
+			dtos = append(dtos, *dto)
+		}
+	}
+
+	// Sort by order created_at descending (most recent first)
+	sort.Slice(dtos, func(i, j int) bool {
+		return dtos[i].OrderCreatedAt.After(dtos[j].OrderCreatedAt)
+	})
+
+	return dtos, nil
 }

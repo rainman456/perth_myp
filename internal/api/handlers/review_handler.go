@@ -19,6 +19,23 @@ func NewReviewHandler(service *review.ReviewService) *ReviewHandler {
 	return &ReviewHandler{service: service}
 }
 
+func getUserIDFromContext(c *gin.Context) uint {
+	userIDInterface, exists := c.Get("userID")
+	if !exists {
+		return 0
+	}
+	userIDStr, ok := userIDInterface.(string)
+	if !ok {
+		return 0
+	}
+	userID, err := strconv.ParseUint(userIDStr, 10, 32)
+	if err != nil {
+		return 0
+	}
+	return uint(userID)
+}
+
+
 // CreateReview godoc
 // @Summary Create a review
 // @Description Create a new review by user
@@ -189,4 +206,47 @@ func (h *ReviewHandler) DeleteReview(c *gin.Context) {
 		return
 	}
 	c.Status(http.StatusNoContent)
+}
+
+
+
+
+
+
+// GetAllReviews godoc
+// @Summary Get all user reviews
+// @Description Get list of all user reviews grouped by order
+// @Tags reviews
+// @Produce json
+// @Param limit query int false "Limit per order group" default(20)
+// @Param offset query int false "Offset" default(0)
+// @Success 200 {array} dto.ReviewResponseDTO
+// @Failure 401 {object} object{error=string}
+// @Failure 500 {object} object{error=string}
+// @Security BearerAuth
+// @Router /reviews [get]
+func (h *ReviewHandler) GetAllUserReviews(c *gin.Context) {
+	userID := getUserIDFromContext(c)
+	if userID == 0 {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in context - authentication required"})
+		return
+	}
+
+	// limit, err := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	// if err != nil {
+	// 	c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid limit"})
+	// 	return
+	// }
+	// offset, err := strconv.Atoi(c.DefaultQuery("offset", "0"))
+	// if err != nil {
+	// 	c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid offset"})
+	// 	return
+	// }
+
+	reviews, err := h.service.GetReviewsByUser(c.Request.Context(), userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get reviews"})
+		return
+	}
+	c.JSON(http.StatusOK, reviews)
 }

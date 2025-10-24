@@ -83,15 +83,14 @@ definitions:
     type: object
   dto.CartItemResponse:
     properties:
-      attributes:
-        additionalProperties: {}
-        type: object
       id:
         type: integer
       name:
         type: string
       product:
-        $ref: '#/definitions/dto.ProductResponse'
+        allOf:
+        - $ref: '#/definitions/dto.CartProductResponse'
+        description: Attributes map[string]any `json:"attributes,omitempty"`
       product_id:
         type: string
       quantity:
@@ -100,9 +99,31 @@ definitions:
         type: number
       variant:
         allOf:
-        - $ref: '#/definitions/dto.VariantResponse'
+        - $ref: '#/definitions/dto.CartVariantResponse'
         description: Embed for display
       variant_id:
+        type: string
+    type: object
+  dto.CartProductResponse:
+    properties:
+      category_slug:
+        description: |-
+          Name         string  `json:"name"`
+          MerchantID        string `json:"merchant_id"`
+          MerchantName      string `json:"merchant_name"`
+          MerchantStoreName string `json:"merchant_store_name"`
+          Slug         string  `json:"slug"`
+          CategoryName string  `json:"category_name"`
+        type: string
+      final_price:
+        description: Only need final price
+        type: number
+      id:
+        type: string
+      pricing:
+        $ref: '#/definitions/dto.ProductPricingResponse'
+      primary_image:
+        description: First image
         type: string
     type: object
   dto.CartResponse:
@@ -126,12 +147,32 @@ definitions:
       user_id:
         type: integer
     type: object
+  dto.CartVariantResponse:
+    properties:
+      available:
+        description: From inventory
+        type: integer
+      backorder_allowed:
+        type: boolean
+      color:
+        type: string
+      final_price:
+        type: number
+      id:
+        type: string
+      pricing:
+        $ref: '#/definitions/dto.VariantPricingResponse'
+      product_id:
+        type: string
+      size:
+        type: string
+    type: object
   dto.CategoryResponse:
     properties:
       attributes:
         additionalProperties: true
         type: object
-      caetgory_slug:
+      category_slug:
         type: string
       id:
         type: integer
@@ -176,32 +217,7 @@ definitions:
     - order_id
     - reason
     type: object
-  dto.CreateReturnRequestDTO:
-    properties:
-      order_item_id:
-        type: string
-      reason:
-        maxLength: 500
-        type: string
-    required:
-    - order_item_id
-    - reason
-    type: object
-  dto.CreateReviewDTO:
-    properties:
-      comment:
-        type: string
-      product_id:
-        type: string
-      rating:
-        maximum: 5
-        minimum: 1
-        type: integer
-    required:
-    - product_id
-    - rating
-    type: object
-  dto.DisputeResponseDTO:
+  dto.CreateDisputeResponseDTO:
     properties:
       created_at:
         type: string
@@ -221,6 +237,87 @@ definitions:
         type: string
       resolved_at:
         type: string
+      status:
+        type: string
+    type: object
+  dto.CreateReturnRequestDTO:
+    properties:
+      order_item_id:
+        type: string
+      reason:
+        maxLength: 500
+        type: string
+    required:
+    - order_item_id
+    - reason
+    type: object
+  dto.CreateReturnRequestResponseDTO:
+    properties:
+      created_at:
+        type: string
+      customer_id:
+        type: integer
+      id:
+        type: string
+      order_item_id:
+        type: string
+      reason:
+        type: string
+      status:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  dto.CreateReviewDTO:
+    properties:
+      comment:
+        type: string
+      product_id:
+        type: string
+      rating:
+        maximum: 5
+        minimum: 1
+        type: integer
+    required:
+    - product_id
+    - rating
+    type: object
+  dto.DisputeItemDTO:
+    properties:
+      category_slug:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      product_id:
+        type: string
+      product_image_url:
+        type: string
+      product_name:
+        type: string
+      reason:
+        type: string
+      resolution:
+        type: string
+      resolved_at:
+        description: Use pointer for nullable field
+        type: string
+    type: object
+  dto.DisputeResponseDTO:
+    properties:
+      customer_id:
+        type: integer
+      disputes:
+        items:
+          $ref: '#/definitions/dto.DisputeItemDTO'
+        type: array
+      merchant_id:
+        type: string
+      order_created_at:
+        type: string
+      order_id:
+        type: integer
       status:
         type: string
     type: object
@@ -652,6 +749,23 @@ definitions:
     - email
     - new_password
     type: object
+  dto.ReturnItemDTO:
+    properties:
+      category_slug:
+        type: string
+      created_at:
+        type: string
+      product_id:
+        type: string
+      product_image_url:
+        type: string
+      product_name:
+        type: string
+      reason:
+        type: string
+      status:
+        type: string
+    type: object
   dto.ReturnRequestResponseDTO:
     properties:
       created_at:
@@ -668,6 +782,19 @@ definitions:
         type: string
       updated_at:
         type: string
+    type: object
+  dto.ReturnResponseDTO:
+    properties:
+      customer_id:
+        type: integer
+      order_created_at:
+        type: string
+      order_id:
+        type: integer
+      returns:
+        items:
+          $ref: '#/definitions/dto.ReturnItemDTO'
+        type: array
     type: object
   dto.ReviewResponseDTO:
     properties:
@@ -1754,7 +1881,81 @@ paths:
       summary: Customer Profile Update
       tags:
       - Customer
+  /dispute/{orderId}:
+    get:
+      description: Retrieve all disputes for a specific order by order ID for the
+        authenticated customer
+      parameters:
+      - description: Order ID
+        in: path
+        name: orderId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.DisputeResponseDTO'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get disputes for a specific order
+      tags:
+      - Disputes
   /disputes:
+    get:
+      description: Retrieve all disputes for the authenticated customer, grouped by
+        order
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.DisputeResponseDTO'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List customer's disputes
+      tags:
+      - Disputes
     post:
       consumes:
       - application/json
@@ -1772,7 +1973,7 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/dto.DisputeResponseDTO'
+            $ref: '#/definitions/dto.CreateDisputeResponseDTO'
         "400":
           description: Bad Request
           schema:
@@ -1807,7 +2008,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/dto.DisputeResponseDTO'
+            $ref: '#/definitions/dto.CreateDisputeResponseDTO'
         "404":
           description: Not Found
           schema:
@@ -2949,7 +3150,8 @@ paths:
       - Products
   /return-requests:
     get:
-      description: Retrieve all return requests for the authenticated customer
+      description: Retrieve all return requests for the authenticated customer, grouped
+        by order
       produces:
       - application/json
       responses:
@@ -2957,10 +3159,17 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/dto.ReturnRequestResponseDTO'
+              $ref: '#/definitions/dto.ReturnResponseDTO'
             type: array
         "401":
           description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal Server Error
           schema:
             properties:
               error:
@@ -2988,7 +3197,7 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/dto.ReturnRequestResponseDTO'
+            $ref: '#/definitions/dto.CreateReturnRequestResponseDTO'
         "400":
           description: Bad Request
           schema:
@@ -3036,6 +3245,42 @@ paths:
       summary: Get return request details
       tags:
       - Return Requests
+  /return-requests/{orderId}:
+    get:
+      description: Retrieve all return requests for a specific order by order ID for
+        the authenticated customer
+      parameters:
+      - description: Order ID
+        in: path
+        name: orderId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ReturnResponseDTO'
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get return requests for a specific order
+      tags:
+      - Return Requests
   /review:
     post:
       consumes:
@@ -3070,6 +3315,48 @@ paths:
                 type: string
             type: object
       summary: Create a review
+      tags:
+      - reviews
+  /reviews:
+    get:
+      description: Get list of all user reviews grouped by order
+      parameters:
+      - default: 20
+        description: Limit per order group
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.ReviewResponseDTO'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get all user reviews
       tags:
       - reviews
   /reviews/{id}:
