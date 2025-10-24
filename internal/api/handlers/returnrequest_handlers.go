@@ -96,10 +96,10 @@ func (h *ReturnRequestHandler) GetReturnRequest(c *gin.Context) {
 // @Success 200 {object} dto.ReturnResponseDTO
 // @Failure 404 {object} object{error=string}
 // @Failure 401 {object} object{error=string}
-// @Router /return-requests/{orderId} [get]
+// @Router /return-requests/order/{id} [get]
 func (h *ReturnRequestHandler) GetReturnRequestsByOrderID(c *gin.Context) {
 	userID := getUserIDFromContext(c)
-	orderIDStr := c.Param("orderId")
+	orderIDStr := c.Param("id")
 	
 	// Convert orderID to uint
 	orderID, err := parseUint(orderIDStr)

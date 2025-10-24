@@ -18,6 +18,6 @@ func SetupReturnRequestRoutes(r *gin.Engine) {
 	protected := returnReqGroup.Use(middleware.AuthMiddleware("customer"))
 	protected.POST("", returnReqHandler.CreateReturnRequest)
 	protected.GET("/:id", returnReqHandler.GetReturnRequest)
-	protected.GET("/:orderId", returnReqHandler.GetReturnRequestsByOrderID)
+	protected.GET("/order/:id", returnReqHandler.GetReturnRequestsByOrderID)
 	protected.GET("", returnReqHandler.ListCustomerReturnRequests)
 }

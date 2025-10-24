@@ -25,4 +25,7 @@ func SetupDisputeRoutes(r *gin.Engine) {
 	protected := disputeGroup.Use(middleware.AuthMiddleware("customer"))
 	protected.POST("", disputeHandler.CreateDispute)
 	protected.GET("/:id", disputeHandler.GetDispute)
+	protected.GET("/order/:id", disputeHandler.GetDisputesByOrderID) // Order-based disputes
+	protected.GET("", disputeHandler.ListCustomerDisputes)
+	
 }

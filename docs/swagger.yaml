@@ -1881,49 +1881,6 @@ paths:
       summary: Customer Profile Update
       tags:
       - Customer
-  /dispute/{orderId}:
-    get:
-      description: Retrieve all disputes for a specific order by order ID for the
-        authenticated customer
-      parameters:
-      - description: Order ID
-        in: path
-        name: orderId
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/dto.DisputeResponseDTO'
-        "400":
-          description: Bad Request
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get disputes for a specific order
-      tags:
-      - Disputes
   /disputes:
     get:
       description: Retrieve all disputes for the authenticated customer, grouped by
@@ -2019,6 +1976,49 @@ paths:
       security:
       - BearerAuth: []
       summary: Get dispute details
+      tags:
+      - Disputes
+  /disputes/order/{id}:
+    get:
+      description: Retrieve all disputes for a specific order by order ID for the
+        authenticated customer
+      parameters:
+      - description: Order ID
+        in: path
+        name: orderId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.DisputeResponseDTO'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get disputes for a specific order
       tags:
       - Disputes
   /merchant/application/{id}:
@@ -3245,7 +3245,7 @@ paths:
       summary: Get return request details
       tags:
       - Return Requests
-  /return-requests/{orderId}:
+  /return-requests/order/{id}:
     get:
       description: Retrieve all return requests for a specific order by order ID for
         the authenticated customer

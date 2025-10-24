@@ -95,7 +95,7 @@ func (h *DisputeHandler) GetDispute(c *gin.Context) {
 // @Failure 400 {object} object{error=string}
 // @Failure 404 {object} object{error=string}
 // @Failure 401 {object} object{error=string}
-// @Router /dispute/{orderId} [get]
+// @Router /disputes/order/{id} [get]
 func (h *DisputeHandler) GetDisputesByOrderID(c *gin.Context) {
 	userID := getUserIDFromContext(c)
 	// if !exists {
@@ -103,7 +103,7 @@ func (h *DisputeHandler) GetDisputesByOrderID(c *gin.Context) {
 	// 	return
 	// }
 
-	orderID := c.Param("orderId")
+	orderID := c.Param("id")
 
 	resp, err := h.service.GetDisputesByOrderID(c.Request.Context(), orderID, userID)
 	if err != nil {
