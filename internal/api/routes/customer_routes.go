@@ -28,10 +28,10 @@ func RegisterCustomerRoutes(r *gin.Engine) {
 		protected.PATCH("/update",authHandler.UpdateProfile)
 		protected.POST("/logout", authHandler.Logout)
 		protected.GET("/profile",authHandler.GetProfile)
-		protected.POST("/customer/addresses", addrHandler.CreateAddress)
-		protected.GET("/customer/addresses", addrHandler.ListAddresses)
-		protected.GET("/customer/addresses/:id", addrHandler.GetAddress)
-		protected.PATCH("/customer/addresses/:id", addrHandler.UpdateAddress)
-		protected.DELETE("/customer/addresses/:id", addrHandler.DeleteAddress)
+		protected.POST("/addresses", addrHandler.CreateAddress)
+		protected.GET("/addresses", addrHandler.ListAddresses)
+		protected.GET("/addresses/:id", addrHandler.GetAddress)
+		protected.PATCH("/addresses/:id", addrHandler.UpdateAddress)
+		protected.DELETE("/addresses/:id", addrHandler.DeleteAddress)
 	}
 }
