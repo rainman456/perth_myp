@@ -57,10 +57,12 @@ type LoginRequest struct {
 	Address               string `json:"address" binding:"required"`
 	PhoneNumber           string `json:"phone_number" binding:"omitempty"`
 	AdditionalPhoneNumber string `json:"additional_phone_number" binding:"omitempty"`
+	AdditionalInfo        string  `json:"additional_info" binding:"omitempty"`
 	DeliveryAddress       string `json:"delivery_address" binding:"omitempty"`
 	ShippingAddress       string `json:"shipping_address" binding:"omitempty"`
 	State                 string `json:"state" binding:"omitempty"`
 	LGA                   string `json:"lga" binding:"omitempty"`
+	IsDefault             bool   `json:"is_default" binding:"omitempty"`
 	// Type string `json:"type" binding:"omitempty,oneof=home work billing shipping"`
 }
 
@@ -69,10 +71,12 @@ type UpdateAddressRequest struct {
 	Address               *string `json:"address" binding:"omitempty"`
 	PhoneNumber           *string `json:"phone_number" binding:"omitempty"`
 	AdditionalPhoneNumber *string `json:"additional_phone_number" binding:"omitempty"`
+	AdditionalInfo        string  `json:"additional_info" binding:"omitempty"`
 	DeliveryAddress       *string `json:"delivery_address" binding:"omitempty"`
 	ShippingAddress       *string `json:"shipping_address" binding:"omitempty"`
 	State                 *string `json:"state" binding:"omitempty"`
 	LGA                   *string `json:"lga" binding:"omitempty"`
+	IsDefault             bool   `json:"is_default" binding:"omitempty"`
 }
 
 // AddressResponse returned to clients
@@ -81,10 +85,12 @@ type AddressResponse struct {
 	Address               string    `json:"address,omitempty"`
 	PhoneNumber           string    `json:"phone_number,omitempty"`
 	AdditionalPhoneNumber string    `json:"additional_phone_number,omitempty"`
+	AdditionalInfo        string  `json:"additional_info" binding:"omitempty"`
 	DeliveryAddress       string    `json:"delivery_address,omitempty"`
 	ShippingAddress       string    `json:"shipping_address,omitempty"`
 	State                 string    `json:"state,omitempty"`
 	LGA                   string    `json:"lga,omitempty"`
+	IsDefault             bool   `json:"is_default" binding:"omitempty"`
 
 }
 

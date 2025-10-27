@@ -65,7 +65,7 @@ func (h *AddressHandler) CreateAddress(c *gin.Context) {
 	}
 
 	resp := dto.AddressResponse{
-		ID:                    addr.ID,
+		ID: addr.ID,
 		//Address:               addr.Address,
 		PhoneNumber:           addr.PhoneNumber,
 		AdditionalPhoneNumber: addr.AdditionalPhoneNumber,
@@ -73,7 +73,6 @@ func (h *AddressHandler) CreateAddress(c *gin.Context) {
 		ShippingAddress:       addr.ShippingAddress,
 		State:                 addr.State,
 		LGA:                   addr.LGA,
-		
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"address": resp})
@@ -128,14 +127,16 @@ func (h *AddressHandler) ListAddresses(c *gin.Context) {
 	out := make([]dto.AddressResponse, 0, len(addrs))
 	for _, a := range addrs {
 		out = append(out, dto.AddressResponse{
-			ID:                    a.ID,
+			ID: a.ID,
 			//Address:               a.Address,
 			PhoneNumber:           a.PhoneNumber,
 			AdditionalPhoneNumber: a.AdditionalPhoneNumber,
+			AdditionalInfo:        a.AdditionalInfo,
 			DeliveryAddress:       a.DeliveryAddress,
 			ShippingAddress:       a.ShippingAddress,
 			State:                 a.State,
 			LGA:                   a.LGA,
+			IsDefault:             a.IsDefault,
 		})
 	}
 
@@ -197,15 +198,16 @@ func (h *AddressHandler) GetAddress(c *gin.Context) {
 	}
 
 	resp := dto.AddressResponse{
-		ID:                    addr.ID,
+		ID: addr.ID,
 		//Address:               addr.Address,
 		PhoneNumber:           addr.PhoneNumber,
 		AdditionalPhoneNumber: addr.AdditionalPhoneNumber,
+		AdditionalInfo:        addr.AdditionalInfo,
 		DeliveryAddress:       addr.DeliveryAddress,
 		ShippingAddress:       addr.ShippingAddress,
 		State:                 addr.State,
 		LGA:                   addr.LGA,
-		
+		IsDefault:             addr.IsDefault,
 	}
 	c.JSON(http.StatusOK, gin.H{"address": resp})
 }
@@ -273,15 +275,16 @@ func (h *AddressHandler) UpdateAddress(c *gin.Context) {
 	}
 
 	resp := dto.AddressResponse{
-		ID:                    addr.ID,
+		ID: addr.ID,
 		//Address:               addr.Address,
 		PhoneNumber:           addr.PhoneNumber,
 		AdditionalPhoneNumber: addr.AdditionalPhoneNumber,
+		AdditionalInfo:        addr.AdditionalInfo,
 		DeliveryAddress:       addr.DeliveryAddress,
 		ShippingAddress:       addr.ShippingAddress,
 		State:                 addr.State,
 		LGA:                   addr.LGA,
-		
+		IsDefault:             addr.IsDefault,
 	}
 	c.JSON(http.StatusOK, gin.H{"address": resp})
 }

@@ -22,6 +22,8 @@ type UserAddress struct {
 	AdditionalPhoneNumber string `gorm:"type:varchar(20)" json:"additional_phone_number,omitempty"` // secondary phone
 	DeliveryAddress       string `gorm:"type:text" json:"delivery_address,omitempty"`             // delivery address (freeform)
 	ShippingAddress       string `gorm:"type:text" json:"shipping_address,omitempty"`             // shipping address (freeform)
+	AdditionalInfo       string `gorm:"type:text" json:"additional_info,omitempty"`             // shipping address (freeform)
+	IsDefault bool             `gorm:"default:true" json:"is_default,omitempty" `
 	State                 string `gorm:"type:varchar(100)" json:"state,omitempty"`
 	LGA                   string `gorm:"type:varchar(100)" json:"lga,omitempty"`
 	User             User   `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`
