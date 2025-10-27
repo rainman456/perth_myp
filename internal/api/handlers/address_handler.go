@@ -114,10 +114,12 @@ func (h *AddressHandler) ListAddresses(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	if addrs == nil {
-		c.JSON(http.StatusOK, gin.H{"empty": []any{}})
+	if len(addrs) == 0 {
+		empty := make([]dto.AddressResponse, 0)
+		c.JSON(http.StatusOK, gin.H{"addresses": dto.ListAddressesResponse{Items: empty, Count: 0}})
 		return
 	}
+
 	// if addrs.UserID != userID {
 	// 	c.JSON(http.StatusForbidden, gin.H{"error": "address does not belong to user"})
 	// 	return
