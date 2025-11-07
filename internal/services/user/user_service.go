@@ -95,7 +95,13 @@ func (s *AuthService) RegisterUser(email, name, password, country string) (*mode
 		//Addresses: addressList, // Use the converted slice
 	}
 
-	return user, nil
+
+
+	err = s.userRepo.Create(user)
+if err != nil {
+    return nil, err
+}
+return user, nil
 }
 
 func (s *AuthService) LoginUser(email, password string) (*models.User, error) {
