@@ -1,7 +1,7 @@
 package db
 
 import (
-	"api-customer-merchant/internal/db/models"
+	//"api-customer-merchant/internal/db/models"
 
 	"log"
 	"os"
@@ -170,7 +170,7 @@ func AutoMigrate() {
 	//&models.ReturnRequest{},
 	//&models.MerchantBankDetails{},
 	//&models.User{},
-    &models.UserAddress{},
+    //&models.UserAddress{},
 	//&models.MerchantApplication{},
 	// &models.Product{},
 	// &models.Variant{},
