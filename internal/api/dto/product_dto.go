@@ -280,9 +280,12 @@ type WishlistItemResponseDTO struct {
 	Name         string    `json:"name"`
 	FinalPrice   float64   `json:"total_price"`
 	Discount     float64   `json:"discount" validate:"gte=0"`
-	DiscountType string    `json:"discount_type" validate:"oneof=fixed percentage ''"`
-	SKU          string    `json:"sku"`
-	MerchantID   string    `json:"merchant_id"`
+	//DiscountType string    `json:"discount_type" validate:"oneof=fixed percentage ''"`
+	CategorySlug string  `json:"category_slug"`
+	PrimaryImage string  `json:"primary_image,omitempty"` 
+
+	//SKU          string    `json:"sku"`
+	//MerchantID   string    `json:"merchant_id"`
 	AddedAt      time.Time `json:"added_at"`
 }
 

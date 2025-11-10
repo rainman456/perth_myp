@@ -6,6 +6,7 @@ import (
 
 	"api-customer-merchant/internal/api/dto"
 	//"api-customer-merchant/internal/db/models"
+	"api-customer-merchant/internal/db/models"
 	"api-customer-merchant/internal/db/repositories"
 
 	"go.uber.org/zap"
@@ -57,14 +58,26 @@ func (s *WishlistService) GetWishlist(ctx context.Context, userID uint) (*dto.Wi
 	}
 
 	items := make([]dto.WishlistItemResponseDTO, len(wishlists))
+	
 	for i, w := range wishlists {
+		primaryImage := ""
+	for _, media := range w.Product.Media {
+		if media.Type == models.MediaTypeImage {
+			primaryImage = media.URL
+			break // Only first image
+		}
+	}
 		items[i] = dto.WishlistItemResponseDTO{
+			
 			ProductID:  w.ProductID,
 			Name:       w.Product.Name,
-			SKU: w.Product.SKU,
+			//SKU: w.Product.SKU,
+			CategorySlug: w.Product.Category.CategorySlug,
+			PrimaryImage: primaryImage,
 			Discount: w.Product.Discount.InexactFloat64(),
 			FinalPrice: w.Product.FinalPrice.InexactFloat64(),
-			DiscountType: string(w.Product.DiscountType),
+
+			//DiscountType: string(w.Product.DiscountType),
 		}
 	}
 
