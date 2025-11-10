@@ -54,7 +54,7 @@ type LoginRequest struct {
 
 
   type CreateAddressRequest struct {
-	Address               string `json:"address" binding:"required"`
+	//Address               string `json:"address" binding:"required"`
 	PhoneNumber           string `json:"phone_number" binding:"omitempty"`
 	AdditionalPhoneNumber string `json:"additional_phone_number" binding:"omitempty"`
 	AdditionalInfo        string  `json:"additional_info" binding:"omitempty"`
@@ -68,7 +68,7 @@ type LoginRequest struct {
 
 // UpdateAddressRequest payload for updating an address
 type UpdateAddressRequest struct {
-	Address               *string `json:"address" binding:"omitempty"`
+	//Address               *string `json:"address" binding:"omitempty"`
 	PhoneNumber           *string `json:"phone_number" binding:"omitempty"`
 	AdditionalPhoneNumber *string `json:"additional_phone_number" binding:"omitempty"`
 	AdditionalInfo        string  `json:"additional_info" binding:"omitempty"`
@@ -82,7 +82,7 @@ type UpdateAddressRequest struct {
 // AddressResponse returned to clients
 type AddressResponse struct {
 	ID                    uint      `json:"id"`
-	Address               string    `json:"address,omitempty"`
+	//Address               string    `json:"address,omitempty"`
 	PhoneNumber           string    `json:"phone_number,omitempty"`
 	AdditionalPhoneNumber string    `json:"additional_phone_number,omitempty"`
 	AdditionalInfo        string  `json:"additional_info" binding:"omitempty"`
