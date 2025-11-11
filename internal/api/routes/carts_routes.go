@@ -17,7 +17,7 @@ func SetupCartRoutes(r *gin.Engine) {
 	if err != nil {
 		panic("Failed to initialize logger: " + err.Error())
 	}
-	defer logger.Sync() // Ensure logger flushes logs
+	//defer logger.Sync() // Ensure logger flushes logs
 	inventoryRepo := repositories.NewInventoryRepository()
 	cartitemRepo := repositories.NewCartItemRepository()
 	cartRepo := repositories.NewCartRepository()
@@ -30,5 +30,6 @@ func SetupCartRoutes(r *gin.Engine) {
 	r.GET("/cart/items/:id", protected, cartHandlers.GetCartItem)
 	r.PUT("/cart/items/:id",protected, cartHandlers.UpdateCartItemQuantity)
 	r.DELETE("/cart/items/:id", protected, cartHandlers.RemoveCartItem)
-	//r.POST("/cart/clear", protected, customerHandlers.ClearCart)
+	r.POST("/cart/clear", protected, cartHandlers.ClearCart)
+	r.POST("/cart/bulk", protected, cartHandlers.BulkAddItems)
 }

@@ -7,10 +7,9 @@ import (
 
 //import "api-customer-merchant/internal/db/models"
 
-// CreateOrderRequest defines the request body for creating an order.
+//CreateOrderRequest defines the request body for creating an order.
 type CreateOrderRequest struct {
-	UserID uint `json:"user_id"` // The ID of the user placing the order.
-	//UserID uint `json:"user_id"` // The ID of the user placing the order
+	ShippingAddress string             `json:"shipping_address"`
 }
 
 // OrderResponse defines the structure for order-related responses.
@@ -36,7 +35,7 @@ type OrderResponse struct {
 	Status       OrderStatus         `json:"status"`
 	OrderItems   []OrderItemResponse `json:"order_items"`
 	TotalAmount  float64             `json:"total_amount"`
-	PaymentStatus string             `json:"payment_status"`
+	ShippingAddress string             `json:"shipping_address"`
 	CreatedAt    time.Time           `json:"created_at"`
 	UpdatedAt time.Time         `json:"updated_at"`
 

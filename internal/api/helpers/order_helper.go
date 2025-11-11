@@ -13,6 +13,7 @@ func ToOrderResponse(p *models.Order) *dto.OrderResponse {
 		ID:         p.ID,
         UserID:     p.UserID,
         Status:     dto.OrderStatus(p.Status),
+		TotalAmount:   p.TotalAmount.InexactFloat64(),
 		CreatedAt: p.CreatedAt,
 		UpdatedAt: p.UpdatedAt,
 	}
@@ -33,6 +34,10 @@ func ToOrderItemResponse(v *models.OrderItem) *dto.OrderItemResponse {
 		Name: v.Product.Name,
 		Quantity:  v.Quantity,
 		Price:     v.Price,
+		Image:  "",
+	}
+	if len(v.Product.Media) > 0 {
+		resp.Image = v.Product.Media[0].URL // Assume Media has URL field
 	}
 
 	// Inventory (check if set)

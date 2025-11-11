@@ -25,7 +25,7 @@ func (s PayoutStatus) Valid() error {
 
 type Payout struct {
 	gorm.Model
-	MerchantID      uint         `gorm:"not null" json:"merchant_id"`
+	MerchantID      string         `gorm:"not null" json:"merchant_id"`
 	Amount          float64      `gorm:"type:decimal(10,2);not null" json:"amount"`
 	Status          PayoutStatus `gorm:"type:varchar(20);not null;default:'Pending'" json:"status"`
 	PayoutAccountID string       `gorm:"size:255;not null" json:"payout_account_id"`

@@ -34,14 +34,14 @@ func (r *CartRepository) Create(ctx context.Context, cart *models.Cart) error {
 func (r *CartRepository) FindByID(ctx context.Context, id uint) (*models.Cart, error) {
 	var cart models.Cart
 	err := r.db.WithContext(ctx).
-		Preload("User").
+		//Preload("User").
 		Preload("CartItems.Product.Category").  // For category_name/slug
 		Preload("CartItems.Product.Media").      // For images
-		Preload("CartItems.Product.Merchant").   // For merchant_name/store_name
-		Preload("CartItems.Product.Reviews").    // For avg_rating/review_count (or limit: Preload("CartItems.Product.Reviews", func(db *gorm.DB) *gorm.DB { return db.Limit(10).Order("created_at DESC") }))
-		Preload("CartItems.Product.Variants.Inventory"). // Existing + variants for full response
-		Preload("CartItems.Variant").            // For variant details in item
-		Preload("CartItems.Merchant").           // Extra if needed, but Product.Merchant covers
+		//Preload("CartItems.Product.Merchant").   // For merchant_name/store_name
+		//Preload("CartItems.Product.Reviews").    // For avg_rating/review_count (or limit: Preload("CartItems.Product.Reviews", func(db *gorm.DB) *gorm.DB { return db.Limit(10).Order("created_at DESC") }))
+		Preload("CartItems.Variant.Inventory"). // Existing + variants for full response
+		//Preload("CartItems.Variant").            // For variant details in item
+		//Preload("CartItems.Merchant").           // Extra if needed, but Product.Merchant covers
 		First(&cart, id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrCartNotFound
@@ -60,11 +60,11 @@ func (r *CartRepository) FindActiveCart(ctx context.Context, userID uint) (*mode
 	err := r.db.WithContext(ctx).
 		Preload("CartItems.Product.Category").  // For category_name/slug
 		Preload("CartItems.Product.Media").      // For images
-		Preload("CartItems.Product.Merchant").   // For merchant_name/store_name
-		Preload("CartItems.Product.Reviews").    // For avg_rating/review_count (or limit as above)
-		Preload("CartItems.Product.Variants.Inventory"). // For variants
-		Preload("CartItems.Variant").            // For variant details
-		Preload("CartItems.Merchant").           // Existing + extra
+		//Preload("CartItems.Product.Merchant").   // For merchant_name/store_name
+		//Preload("CartItems.Product.Reviews").    // For avg_rating/review_count (or limit as above)
+		Preload("CartItems.Variant.Inventory"). // For variants
+		//Preload("CartItems.Variant").            // For variant details
+		//Preload("CartItems.Merchant").           // Existing + extra
 		Where("user_id = ? AND status = ?", userID, models.CartStatusActive).
 		Order("created_at DESC").First(&cart).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -96,4 +96,12 @@ func (r *CartRepository) Update(ctx context.Context, cart *models.Cart) error {
 // Delete removes a cart by ID
 func (r *CartRepository) Delete(ctx context.Context, id uint) error {
 	return r.db.WithContext(ctx).Delete(&models.Cart{}, id).Error
+}
+
+func (r *CartRepository) FindActiveCartLight(ctx context.Context, userID uint) (*models.Cart, error) {
+    var cart models.Cart
+    err := r.db.WithContext(ctx).
+        Where("user_id = ? AND status = ?", userID, models.CartStatusActive).
+        Order("created_at DESC").First(&cart).Error
+    return &cart, err
 }

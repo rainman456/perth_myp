@@ -94,6 +94,7 @@ func main() {
 	routes.SetupReturnRequestRoutes(r)
 	routes.SetupReviewRoutes(r)
 	routes.SetupWishlistRoutes(r)
+	routes.RegisterPaymentRoutes(r)
 	
 
 	// Swagger endpoint

@@ -27,8 +27,8 @@ func (s CartStatus) Valid() error {
 
 type Cart struct {
 	gorm.Model
-	UserID     uint       `gorm:"not null" json:"user_id"`
-	Status     CartStatus `gorm:"type:varchar(20);not null;default:'Active'" json:"status"`
+	UserID     uint       `gorm:"not null;index:idx_cart_user_status" json:"user_id"` // Composite index
+    Status     CartStatus `gorm:"type:varchar(20);not null;default:'Active';index:idx_cart_user_status" json:"status"`
 	SubTotal   float64    `gorm:"-" json:"subtotal"` // Computed
 	TaxTotal   float64    `gorm:"-" json:"tax_total"`
 	ShipTotal  float64    `gorm:"-" json:"shipping_total"`

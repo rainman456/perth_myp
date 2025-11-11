@@ -21,7 +21,7 @@ type UpdateItemRequest struct {
 
 // BulkUpdateRequest: For POST /cart/bulk (add/update multiple—extension for prod)
 type BulkUpdateRequest struct {
-	UserID uint
+	
 	Items  []struct {
 		ProductID string    `json:"product_id" validate:"required"`
 		VariantID *string `json:"variant_id,omitempty"`

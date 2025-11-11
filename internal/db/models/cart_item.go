@@ -6,11 +6,11 @@ import (
 
 type CartItem struct {
 	gorm.Model
-	CartID     uint     `gorm:"not null" json:"cart_id"`
-	VariantID  *string  `gorm:"type:uuid;index"`
-	ProductID  string   `gorm:"not null" json:"product_id"`
-	Quantity   int      `gorm:"not null" json:"quantity"`
-	MerchantID string   `gorm:"not null" json:"merchant_id"`
+	CartID     uint     `gorm:"not null;index:idx_cartitem_cart_product" json:"cart_id"` // Composite for common WHERE
+    VariantID  *string  `gorm:"type:uuid;index:idx_cartitem_cart_product" json:"variant_id"`
+    ProductID  string   `gorm:"not null;index:idx_cartitem_cart_product" json:"product_id"`
+    Quantity   int      `gorm:"not null" json:"quantity"`
+    MerchantID string   `gorm:"not null;index" json:"merchant_id"`
 	Cart       Cart     `gorm:"foreignKey:CartID"`
 	Product    Product  `gorm:"foreignKey:ProductID"`
 	Merchant   Merchant `gorm:"foreignKey:MerchantID;references:MerchantID"`

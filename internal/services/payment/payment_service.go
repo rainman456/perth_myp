@@ -1,6 +1,5 @@
 package payment
 
-
 import (
 	"context"
 	"errors"
@@ -16,6 +15,7 @@ import (
 	m "github.com/gray-adeyi/paystack/models"
 	"github.com/shopspring/decimal"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 var (
@@ -26,23 +26,32 @@ var (
 
 
 type PaymentService struct {
-	paymentRepo repositories.PaymentRepository
-	orderRepo   repositories.OrderRepository
+	paymentRepo *repositories.PaymentRepository
+	orderRepo   *repositories.OrderRepository
+	payoutRepo   *repositories.PayoutRepository
+	//splitRepo    repositories.O
+	merchantRepo *repositories.MerchantRepository
 	//client      *paystack.Client
 	config      *config.Config
 	logger      *zap.Logger
 }
 
 func NewPaymentService(
-	paymentRepo repositories.PaymentRepository,
-	orderRepo repositories.OrderRepository,
+	paymentRepo *repositories.PaymentRepository,
+	orderRepo *repositories.OrderRepository,
+	payoutRepo *repositories.PayoutRepository,
+	//splitRepo repositories.SplitRepository,
+	merchantRepo *repositories.MerchantRepository,
 	conf *config.Config,
 	logger *zap.Logger,
 ) *PaymentService {
-	//client := paystack.NewClient(paystack.WithSecretKey(conf.PaystackSecretKey))
+	
 	return &PaymentService{
 		paymentRepo: paymentRepo,
 		orderRepo:   orderRepo,
+		payoutRepo:   payoutRepo,
+		//splitRepo:    splitRepo,
+		merchantRepo: merchantRepo,
 		//client:      client,
 		config:      conf,
 		logger:      logger,
@@ -346,4 +355,112 @@ func (s *PaymentService) UpdatePaymentStatus(ctx context.Context,paymentID uint,
 	}
 
 	return s.paymentRepo.FindByID(ctx ,paymentID)
+}
+
+// HandleWebhook processes the forwarded Paystack event
+func (s *PaymentService) HandleWebhook(ctx context.Context, event map[string]interface{}) error {
+	eventType, ok := event["event"].(string)
+	if !ok {
+		return errors.New("invalid event type")
+	}
+
+	data, ok := event["data"].(map[string]interface{})
+	if !ok {
+		return errors.New("invalid event data")
+	}
+
+	s.logger.Info("Received Paystack webhook", zap.String("event", eventType))
+
+	switch eventType {
+	case "transfer.success":
+		return s.handleTransferSuccess(ctx, data)
+	case "transfer.failed", "transfer.reversed":
+		return s.handleTransferFailure(ctx,  data)
+	case "charge.success":
+		// Handle if needed for order processing
+		s.logger.Info("Charge success event received", zap.Any("reference", data["reference"]))
+		return nil
+	default:
+		s.logger.Info("Unhandled webhook event", zap.String("event", eventType))
+		return nil
+	}
+}
+
+// handleTransferSuccess handles transfer.success event
+func (s *PaymentService) handleTransferSuccess(ctx context.Context, data map[string]interface{}) error {
+	transferCode, ok := data["transfer_code"].(string)
+	if !ok {
+		return errors.New("invalid transfer_code")
+	}
+
+	payout, err := s.payoutRepo.FindByPaystackTransferID(ctx, transferCode)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			s.logger.Warn("No payout found for transfer code", zap.String("transfer_code", transferCode))
+			return nil
+		}
+		return err
+	}
+
+	payout.Status = "completed"
+	if err := s.payoutRepo.Update(ctx, payout); err != nil {
+		return err
+	}
+
+	// Mark related splits as paid
+	// if err := s.splitRepo.UpdateStatusByMerchantAndStatus(ctx, payout.MerchantID, "processing", "paid"); err != nil {
+	// 	return err
+	// }
+
+	// Update merchant totals
+	merchant, err := s.merchantRepo.GetByMerchantID(ctx, payout.MerchantID)
+	if err != nil {
+		return err
+	}
+
+	merchant.TotalPayouts = merchant.TotalPayouts +  payout.Amount
+	merchant.LastPayoutDate = func() *time.Time { t := time.Now(); return &t }()	// if err := s.merchantRepo.Update(ctx, merchant); err != nil {
+	// 	return err
+	// }
+
+	s.logger.Info("Payout completed successfully", zap.Uint("payout_id", payout.ID))
+	return nil
+}
+
+// handleTransferFailure handles transfer.failed or reversed
+func (s *PaymentService) handleTransferFailure(ctx context.Context, data map[string]interface{}) error {
+	transferCode, ok := data["transfer_code"].(string)
+	if !ok {
+		return errors.New("invalid transfer_code")
+	}
+
+	payout, err := s.payoutRepo.FindByPaystackTransferID(ctx, transferCode)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			s.logger.Warn("No payout found for transfer code", zap.String("transfer_code", transferCode))
+			return nil
+		}
+		return err
+	}
+
+	payout.Status = "failed"
+	if err := s.payoutRepo.Update(ctx, payout); err != nil {
+		return err
+	}
+
+	// Reset splits to payout_requested
+	// if err := s.splitRepo.UpdateStatusByMerchantAndStatus(ctx, payout.MerchantID, "processing", "payout_requested"); err != nil {
+	// 	return err
+	// }
+
+	// Send notification (implement if needed)
+	reason, _ := data["reason"].(string)
+	// merchant, err := s.merchantRepo.FindByID(ctx, payout.MerchantID)
+	// if err == nil {
+	// 	// Call sendPayoutFailedEmail(merchant.WorkEmail, merchant.StoreName, payout.Amount.InexactFloat64(), reason)
+	// 	// Stub or implement the email function
+	// }
+
+	s.logger.Error("Payout failed", zap.Uint("payout_id", payout.ID), zap.String("reason", reason))
+	return nil
 }

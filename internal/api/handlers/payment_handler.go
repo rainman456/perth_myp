@@ -1,23 +1,33 @@
 package handlers
 
 import (
+	"bytes"
+	"crypto/hmac"
+	"crypto/sha512"
+	"encoding/hex"
+	"io"
+	//"io/ioutil"
 	"net/http"
+
 	//"strconv"
 
 	"api-customer-merchant/internal/api/dto"
+	"api-customer-merchant/internal/config"
 	"api-customer-merchant/internal/services/payment"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 type PaymentHandler struct {
 	service *payment.PaymentService
+	config  *config.Config // Add config to access PaystackSecretKey
+	logger  *zap.Logger    // Add logger if needed
 }
 
-func NewPaymentHandler(s *payment.PaymentService) *PaymentHandler {
-	return &PaymentHandler{service: s}
+func NewPaymentHandler(s *payment.PaymentService, conf *config.Config, logger *zap.Logger) *PaymentHandler {
+	return &PaymentHandler{service: s, config: conf, logger: logger}
 }
-
 
 // Initialize payment
 // @Summary Initialize payment
@@ -72,4 +82,69 @@ func (h *PaymentHandler) Verify(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, resp)
+}
+
+
+
+
+
+// Webhook handles POST /payments/webhook for Paystack events
+// @Summary Paystack webhook
+// @Description Receives and processes forwarded Paystack events
+// @Tags Payments
+// @Accept json
+// @Produce json
+// @Success 200 {object} object{status=string}
+// @Failure 400 {object} object{error=string}
+// @Failure 500 {object} object{error=string}
+// @Router /payments/webhook [post]
+func (h *PaymentHandler) Webhook(c *gin.Context) {
+	// Verify Paystack signature
+	if !h.verifyPaystackSignature(c) {
+		h.logger.Warn("Invalid Paystack webhook signature")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid signature"})
+		return
+	}
+
+	var event map[string]interface{}
+	if err := c.ShouldBindJSON(&event); err != nil {
+		h.logger.Error("Failed to bind webhook event", zap.Error(err))
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid payload"})
+		return
+	}
+
+	// Process the event
+	if err := h.service.HandleWebhook(c.Request.Context(), event); err != nil {
+		h.logger.Error("Failed to handle webhook", zap.Error(err))
+		// Return 200 to acknowledge, as per Paystack recommendation
+		c.JSON(http.StatusOK, gin.H{"status": "error", "message": err.Error()})
+		return
+	}
+
+	// Always acknowledge with 200
+	c.JSON(http.StatusOK, gin.H{"status": "success"})
+}
+
+
+// verifyPaystackSignature verifies the x-paystack-signature header
+func (h *PaymentHandler) verifyPaystackSignature(c *gin.Context) bool {
+	signature := c.GetHeader("x-paystack-signature")
+	if signature == "" {
+		return false
+	}
+
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		h.logger.Error("Failed to read webhook body", zap.Error(err))
+		return false
+	}
+	// Reset body for ShouldBindJSON
+	c.Request.Body = io.NopCloser(bytes.NewBuffer(body))
+
+	key := []byte(h.config.PaystackSecretKey)
+	hash := hmac.New(sha512.New, key)
+	hash.Write(body)
+	expected := hex.EncodeToString(hash.Sum(nil))
+
+	return hmac.Equal([]byte(signature), []byte(expected))
 }
