@@ -76,6 +76,8 @@ func (r *WishlistRepository) GetWishlist(ctx context.Context, userID uint) ([]mo
 	var wishlists []models.UserWishlist
 	err := r.db.WithContext(ctx).
 		Preload("Product").
+		Preload("Product.Category").  // For category_name/slug
+		Preload("Product.Media"). 
 		Where("user_id = ?", userID).
 		Find(&wishlists).Error
 	if err != nil {

@@ -18,11 +18,19 @@ func ToOrderResponse(p *models.Order) *dto.OrderResponse {
 		UpdatedAt: p.UpdatedAt,
 	}
 
+
+	for _, addr := range p.User.Addresses {
+		if addr.IsDefault {
+			resp.DeliveryAddress = addr.DeliveryAddress
+			break // Use the first default if multiple (though typically only one)
+		}
+	}
 	
 	resp.OrderItems= make([]dto.OrderItemResponse, len(p.OrderItems))
 	for i,v:= range p.OrderItems{
 		resp.OrderItems[i]=*ToOrderItemResponse(&v)
 	}
+
 
 	return resp
 }

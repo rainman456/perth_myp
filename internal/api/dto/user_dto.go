@@ -90,7 +90,7 @@ type AddressResponse struct {
 	ShippingAddress       string    `json:"shipping_address,omitempty"`
 	State                 string    `json:"state,omitempty"`
 	LGA                   string    `json:"lga,omitempty"`
-	//IsDefault             bool   `json:"is_default" binding:"omitempty"`
+	IsDefault             bool   `json:"is_default" binding:"omitempty"`
 
 }
 

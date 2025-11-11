@@ -28,6 +28,7 @@ func (s *AddressService) CreateAddress(ctx context.Context, userID uint, req dto
 		ShippingAddress:       req.ShippingAddress,
 		State:                 req.State,
 		LGA:                   req.LGA,
+		IsDefault: req.IsDefault,
 	}
 	if err := s.repo.Create(addr); err != nil {
 		return nil, err
@@ -80,6 +81,11 @@ func (s *AddressService) UpdateAddress(ctx context.Context, userID uint, id uint
 	if req.LGA != nil {
 		addr.LGA = *req.LGA
 	}
+	// if req.IsDefault != false {
+	// 	addr.IsDefault = *req.IsDefault
+	// }
+
+	addr.IsDefault= req.IsDefault
 
 	if err := s.repo.Update(addr); err != nil {
 		return nil, err

@@ -8,9 +8,9 @@ import (
 //import "api-customer-merchant/internal/db/models"
 
 //CreateOrderRequest defines the request body for creating an order.
-type CreateOrderRequest struct {
-	ShippingAddress string             `json:"shipping_address"`
-}
+// type CreateOrderRequest struct {
+// 	ShippingAddress string             `json:"shipping_address"`
+// }
 
 // OrderResponse defines the structure for order-related responses.
 // OrderStatus describes the status of an order.
@@ -35,7 +35,7 @@ type OrderResponse struct {
 	Status       OrderStatus         `json:"status"`
 	OrderItems   []OrderItemResponse `json:"order_items"`
 	TotalAmount  float64             `json:"total_amount"`
-	ShippingAddress string             `json:"shipping_address"`
+	DeliveryAddress string             `json:"delivery_address"`
 	CreatedAt    time.Time           `json:"created_at"`
 	UpdatedAt time.Time         `json:"updated_at"`
 
