@@ -137,7 +137,7 @@ func (h *AddressHandler) ListAddresses(c *gin.Context) {
 			//ShippingAddress:       a.ShippingAddress,
 			State:                 a.State,
 			LGA:                   a.LGA,
-			//IsDefault:             a.IsDefault,
+			IsDefault:             a.IsDefault,
 		})
 	}
 
@@ -208,7 +208,7 @@ func (h *AddressHandler) GetAddress(c *gin.Context) {
 		//ShippingAddress:       addr.ShippingAddress,
 		State:                 addr.State,
 		LGA:                   addr.LGA,
-		//IsDefault:             addr.IsDefault,
+		IsDefault:             addr.IsDefault,
 	}
 	c.JSON(http.StatusOK, gin.H{"address": resp})
 }
@@ -285,7 +285,7 @@ func (h *AddressHandler) UpdateAddress(c *gin.Context) {
 		//ShippingAddress:       addr.ShippingAddress,
 		State:                 addr.State,
 		LGA:                   addr.LGA,
-		//IsDefault:             addr.IsDefault,
+		IsDefault:             addr.IsDefault,
 	}
 	c.JSON(http.StatusOK, gin.H{"address": resp})
 }
