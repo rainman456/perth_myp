@@ -73,6 +73,7 @@ func (h *AddressHandler) CreateAddress(c *gin.Context) {
 		ShippingAddress:       addr.ShippingAddress,
 		State:                 addr.State,
 		LGA:                   addr.LGA,
+		IsDefault: addr.IsDefault,
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"address": resp})
