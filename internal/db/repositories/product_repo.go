@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
+
 	//"strings"
 	"time"
 
@@ -360,6 +362,48 @@ func (r *ProductRepository) FilterProducts(ctx context.Context, filter ProductFi
 
     // Variant attribute filters (same as before)...
     // Sorting block: qualify order columns where needed (products.final_price, products.name, products.created_at)
+	hasVariantFilter := (filter.Color != nil && *filter.Color != "") ||
+		(filter.Size != nil && *filter.Size != "") ||
+		(filter.Material != nil && *filter.Material != "") ||
+		(filter.Pattern != nil && *filter.Pattern != "")
+
+	if hasVariantFilter {
+		variantQuery := `EXISTS (
+			SELECT 1 FROM variants 
+			WHERE variants.product_id = products.id 
+			AND variants.deleted_at IS NULL
+			AND variants.is_active = true`
+
+		conditions := []string{}
+		args := []interface{}{}
+
+		if filter.Color != nil && *filter.Color != "" {
+			conditions = append(conditions, "variants.attributes->>'color' ILIKE ?")
+			args = append(args, "%"+*filter.Color+"%")
+		}
+
+		if filter.Size != nil && *filter.Size != "" {
+			conditions = append(conditions, "variants.attributes->>'size' ILIKE ?")
+			args = append(args, "%"+*filter.Size+"%")
+		}
+
+		if filter.Material != nil && *filter.Material != "" {
+			conditions = append(conditions, "variants.attributes->>'material' ILIKE ?")
+			args = append(args, "%"+*filter.Material+"%")
+		}
+
+		if filter.Pattern != nil && *filter.Pattern != "" {
+			conditions = append(conditions, "variants.attributes->>'pattern' ILIKE ?")
+			args = append(args, "%"+*filter.Pattern+"%")
+		}
+
+		if len(conditions) > 0 {
+			variantQuery += " AND (" + strings.Join(conditions, " OR ") + ")"
+			variantQuery += ")"
+			query = query.Where(variantQuery, args...)
+		}
+	}
+
 
     // Count total before applying limit/offset
     var total int64

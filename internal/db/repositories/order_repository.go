@@ -116,7 +116,7 @@ func (r *OrderRepository) HasUserPurchasedProduct(ctx context.Context, userID ui
 	err := r.db.WithContext(ctx).
 		Table("orders").
 		Joins("JOIN order_items ON order_items.order_id = orders.id").
-		Where("orders.user_id = ? AND order_items.product_id = ? AND orders.status = ?", userID, productID, models.OrderStatusCompleted).
+		Where("orders.user_id = ? AND order_items.product_id = ? AND orders.status = ? OR orders.status = ?", userID, productID, models.OrderStatusCompleted ,models.OrderStatusPaid).
 		Count(&count).Error
 	if err != nil {
 		return false, err
