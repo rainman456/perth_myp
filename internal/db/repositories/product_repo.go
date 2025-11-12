@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"api-customer-merchant/internal/api/dto"
@@ -26,13 +27,25 @@ var (
 
 
 type ProductFilter struct {
-    CategoryName   *string
-    CategoryID     *uint
-    MinPrice       *decimal.Decimal
-    MaxPrice       *decimal.Decimal
-    InStock        *bool
-    VariantAttrs   map[string]interface{}
-    MerchantName   *string
+	CategoryID   *uint
+	CategoryName *string
+	CategorySlug *string
+	MerchantID   *string
+	MerchantName *string
+	MinPrice     *decimal.Decimal
+	MaxPrice     *decimal.Decimal
+	InStock      *bool
+	SearchTerm   *string
+	OnSale       *bool
+	
+	// Variant attributes
+	Color    *string
+	Size     *string
+	Material *string
+	Pattern  *string
+	
+	// Sorting
+	SortBy string // "price", "price_desc", "name", "name_desc", "created", "newest", "oldest", "rating"
 }
 
 
@@ -70,21 +83,29 @@ func (r *ProductRepository) FindBySKU(ctx context.Context, sku string) (*models.
 
 
 // AutocompleteProducts fetches products matching a name prefix.
-func (r *ProductRepository) AutocompleteProducts(ctx context.Context, prefix string, limit int) ([]models.Product, error) {
+type AutocompleteResult struct {
+    ID          string
+    Name        string
+    SKU         string
+    Description string
+    FinalPrice  float64
+}
+func (r *ProductRepository) AutocompleteProducts(ctx context.Context, prefix string, limit int) ([]AutocompleteResult, error) {
     if limit <= 0 || limit > 20 { // Sanity check
         limit = 10
     }
 
-    var suggestions []models.Product
-    err := r.db.WithContext(ctx).
-        Where("LOWER(name) LIKE LOWER(?)", prefix+"%").
-        Where("deleted_at IS NULL"). // Soft delete handling
-        Order("name ASC").
+    var suggestions []AutocompleteResult
+     err := r.db.WithContext(ctx).
+        Table("products").
+        Select("id, name, sku, description, final_price").
+        Where("deleted_at IS NULL").
+        Where("name ILIKE ?", prefix+"%").
+        Order(gorm.Expr("similarity(name, ?) DESC, name ASC", prefix)).  // Requires pg_trgm extension
         Limit(limit).
-        Find(&suggestions).Error
-    if err != nil {
-        return nil, fmt.Errorf("failed to fetch autocomplete products: %w", err)
-    }
+        Scan(&suggestions).Error
+    
+    return suggestions, err
 
     // Map to DTO
     // suggestions := make([]dto.ProductAutocompleteResponse, len(products))
@@ -97,7 +118,7 @@ func (r *ProductRepository) AutocompleteProducts(ctx context.Context, prefix str
     //     }
     // }
 
-    return suggestions, nil
+    //return suggestions, nil
 }
 
 func (r *ProductRepository) FindByName(ctx context.Context, name string) (*models.Product, error) {
@@ -135,7 +156,9 @@ func (r *ProductRepository) FindByName(ctx context.Context, name string) (*model
 
 func (r *ProductRepository) FindByID(ctx context.Context, id string, preloads ...string) (*models.Product, error) {
 	var product models.Product
-	query := r.db.WithContext(ctx).Where("id = ? AND deleted_at IS NULL", id)
+	query := r.db.WithContext(ctx).
+	Scopes(product.Scope()).
+	Where("id = ? AND deleted_at IS NULL", id)
 	for _, preload := range preloads {
 		query = query.Preload(preload)
 	}
@@ -270,77 +293,175 @@ func (r *ProductRepository) GetAllProductsWithCategorySlug(ctx context.Context, 
 
 
 
-func (r *ProductRepository) ProductsFilter(
-    ctx context.Context,
-    filter ProductFilter,
-    limit, offset int,
-    preloads ...string,
-) ([]models.Product, int64, error) {
-    var products []models.Product
+func (r *ProductRepository) FilterProducts(ctx context.Context, filter ProductFilter, limit, offset int) ([]models.Product, int64, error) {
+	query := r.db.WithContext(ctx).Model(&models.Product{}).Where("deleted_at IS NULL")
 
-    query := r.db.WithContext(ctx).
-        Model(&models.Product{}).
-        Joins("LEFT JOIN categories ON categories.id = products.category_id").
-        Joins("LEFT JOIN merchants ON merchants.id = products.merchant_id").
-        Joins("LEFT JOIN variants ON variants.product_id = products.id").
-        Joins("LEFT JOIN inventories ON inventories.product_id = products.id OR inventories.variant_id = variants.id").
-        Where("products.deleted_at IS NULL")
+	// Category filters
+	if filter.CategoryID != nil {
+		query = query.Where("category_id = ?", *filter.CategoryID)
+	}
 
-    // --- Apply filters ---
-    if filter.CategoryID != nil {
-        query = query.Where("products.category_id = ?", *filter.CategoryID)
-    }
-    if filter.CategoryName != nil {
-        query = query.Where("categories.name ILIKE ?", "%"+*filter.CategoryName+"%")
-    }
-    if filter.MinPrice != nil {
-        query = query.Where("products.base_price >= ?", *filter.MinPrice)
-    }
-    if filter.MaxPrice != nil {
-        query = query.Where("products.base_price <= ?", *filter.MaxPrice)
-    }
-    if filter.InStock != nil {
-        if *filter.InStock {
-            query = query.Where("(inventories.quantity - inventories.reserved_quantity) > 0")
-        } else {
-            query = query.Where("(inventories.quantity - inventories.reserved_quantity) <= 0")
-        }
-    }
-    if filter.MerchantName != nil {
-        query = query.Where("merchant.store_name ILIKE ?", "%"+*filter.MerchantName+"%")
-    }
-    if len(filter.VariantAttrs) > 0 {
-        for key, val := range filter.VariantAttrs {
-            // Postgres JSONB query on variant.attributes
-            query = query.Where("variants.attributes ->> ? = ?", key, fmt.Sprintf("%v", val))
-        }
-    }
+	if filter.CategorySlug != nil && *filter.CategorySlug != "" {
+		query = query.Joins("JOIN categories ON categories.id = products.category_id").
+			Where("categories.category_slug = ?", *filter.CategorySlug)
+	}
 
-    // --- Count total ---
-    var total int64
-    if err := query.Distinct("products.id").Count(&total).Error; err != nil {
-        return nil, 0, fmt.Errorf("failed to count products: %w", err)
-    }
+	if filter.CategoryName != nil && *filter.CategoryName != "" {
+		query = query.Joins("JOIN categories ON categories.id = products.category_id").
+			Where("categories.name ILIKE ?", "%"+*filter.CategoryName+"%")
+	}
 
-    // --- Preloads ---
-    for _, preload := range preloads {
-        query = query.Preload(preload)
-    }
+	// Merchant filters
+	if filter.MerchantID != nil {
+		query = query.Where("merchant_id = ?", *filter.MerchantID)
+	}
 
-    // --- Fetch results ---
-    err := query.Distinct("products.id").
-        Limit(limit).
-        Offset(offset).
-        Order("products.created_at DESC").
-        Find(&products).Error
+	if filter.MerchantName != nil && *filter.MerchantName != "" {
+		query = query.Joins("JOIN merchants ON merchants.merchant_id = products.merchant_id").
+			Where("merchants.store_name ILIKE ?", "%"+*filter.MerchantName+"%")
+	}
 
-    if err != nil {
-        return nil, 0, fmt.Errorf("failed to fetch products: %w", err)
-    }
+	// Price range
+	if filter.MinPrice != nil {
+		query = query.Where("final_price >= ?", *filter.MinPrice)
+	}
 
-    return products, total, nil
+	if filter.MaxPrice != nil {
+		query = query.Where("final_price <= ?", *filter.MaxPrice)
+	}
+
+	// On sale filter
+	if filter.OnSale != nil && *filter.OnSale {
+		query = query.Where("discount > 0")
+	}
+
+	// Search term
+	if filter.SearchTerm != nil && *filter.SearchTerm != "" {
+		searchPattern := "%" + *filter.SearchTerm + "%"
+		query = query.Where("name ILIKE ? OR description ILIKE ?", searchPattern, searchPattern)
+	}
+
+	// In stock filter - use EXISTS for better performance
+	if filter.InStock != nil && *filter.InStock {
+		query = query.Where(`EXISTS (
+			SELECT 1 FROM inventories 
+			WHERE (inventories.product_id = products.id 
+				OR inventories.variant_id IN (
+					SELECT id FROM variants 
+					WHERE variants.product_id = products.id 
+					AND variants.deleted_at IS NULL
+				))
+			AND (inventories.quantity - inventories.reserved_quantity) > 0
+		)`)
+	}
+
+	// Variant attribute filters
+	hasVariantFilter := (filter.Color != nil && *filter.Color != "") ||
+		(filter.Size != nil && *filter.Size != "") ||
+		(filter.Material != nil && *filter.Material != "") ||
+		(filter.Pattern != nil && *filter.Pattern != "")
+
+	if hasVariantFilter {
+		variantQuery := `EXISTS (
+			SELECT 1 FROM variants 
+			WHERE variants.product_id = products.id 
+			AND variants.deleted_at IS NULL
+			AND variants.is_active = true`
+
+		conditions := []string{}
+		args := []interface{}{}
+
+		if filter.Color != nil && *filter.Color != "" {
+			conditions = append(conditions, "variants.attributes->>'color' ILIKE ?")
+			args = append(args, "%"+*filter.Color+"%")
+		}
+
+		if filter.Size != nil && *filter.Size != "" {
+			conditions = append(conditions, "variants.attributes->>'size' ILIKE ?")
+			args = append(args, "%"+*filter.Size+"%")
+		}
+
+		if filter.Material != nil && *filter.Material != "" {
+			conditions = append(conditions, "variants.attributes->>'material' ILIKE ?")
+			args = append(args, "%"+*filter.Material+"%")
+		}
+
+		if filter.Pattern != nil && *filter.Pattern != "" {
+			conditions = append(conditions, "variants.attributes->>'pattern' ILIKE ?")
+			args = append(args, "%"+*filter.Pattern+"%")
+		}
+
+		if len(conditions) > 0 {
+			variantQuery += " AND (" + strings.Join(conditions, " OR ") + ")"
+			variantQuery += ")"
+			query = query.Where(variantQuery, args...)
+		}
+	}
+
+	// Count total before applying limit/offset
+	var total int64
+	countQuery := query.Session(&gorm.Session{}) // Clone query
+	if err := countQuery.Count(&total).Error; err != nil {
+		return nil, 0, fmt.Errorf("failed to count products: %w", err)
+	}
+
+	// Apply sorting
+	switch filter.SortBy {
+	case "price":
+		query = query.Order("final_price ASC")
+	case "price_desc":
+		query = query.Order("final_price DESC")
+	case "name":
+		query = query.Order("name ASC")
+	case "name_desc":
+		query = query.Order("name DESC")
+	case "oldest":
+		query = query.Order("created_at ASC")
+	case "rating":
+		// Sort by average rating (requires subquery)
+		query = query.Select("products.*, COALESCE(review_stats.avg_rating, 0) as avg_rating").
+			Joins(`LEFT JOIN (
+				SELECT product_id, AVG(rating) as avg_rating 
+				FROM reviews 
+				GROUP BY product_id
+			) review_stats ON review_stats.product_id = products.id`).
+			Order("avg_rating DESC")
+	case "newest", "created":
+		fallthrough
+	default:
+		query = query.Order("created_at DESC")
+	}
+
+	// Fetch products with selective preloads
+	var products []models.Product
+	err := query.
+		Preload("Category", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, name, category_slug")
+		}).
+		Preload("Media", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, product_id, url, type").
+				Where("type = ?", "image").
+				Order("created_at ASC").
+				Limit(3) // Only first 3 images for list view
+		}).
+		Preload("Merchant", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, merchant_id, store_name, name")
+		}).
+		Preload("Variants", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, product_id, attributes, final_price, is_active").
+				Where("is_active = ?", true).
+				Limit(5) // Limit variants in list view
+		}).
+		Limit(limit).
+		Offset(offset).
+		Find(&products).Error
+
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to fetch products: %w", err)
+	}
+
+	return products, total, nil
 }
-
 
 
 
@@ -544,6 +665,18 @@ func (r *ProductRepository) CreateProductWithVariantsAndInventory(ctx context.Co
 	})
 }
 
+func (r *ProductRepository) GetReviewStats(ctx context.Context, productID string) (float64, int, error) {
+    var result struct {
+        AvgRating   float64
+        ReviewCount int
+    }
+    err := r.db.WithContext(ctx).
+        Table("reviews").
+        Select("COALESCE(AVG(rating), 0) as avg_rating, COUNT(*) as review_count").
+        Where("product_id = ?", productID).
+        Scan(&result).Error
+    return result.AvgRating, result.ReviewCount, err
+}
 
 
 

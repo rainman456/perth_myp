@@ -93,7 +93,7 @@ func (r *InventoryRepository) FindByProductOrVariantID(ctx context.Context, id, 
 }
 
 // UpdateStock adjusts quantity (can be negative for reservations)
-func (r *InventoryRepository) UpdateStock(ctx context.Context, invID uint, delta int) error {
+func (r *InventoryRepository) UpdateStock(ctx context.Context, invID string, delta int) error {
 	return r.db.WithContext(ctx).
 		Model(&models.Inventory{}).
 		Where("id = ?", invID).
@@ -102,7 +102,7 @@ func (r *InventoryRepository) UpdateStock(ctx context.Context, invID uint, delta
 }
 
 // ReserveStock increments reserved quantity
-func (r *InventoryRepository) ReserveStock(ctx context.Context, invID uint, qty int) error {
+func (r *InventoryRepository) ReserveStock(ctx context.Context, invID string, qty int) error {
 	return r.db.WithContext(ctx).
 		Model(&models.Inventory{}).
 		Where("id = ?", invID).
@@ -111,7 +111,7 @@ func (r *InventoryRepository) ReserveStock(ctx context.Context, invID uint, qty 
 }
 
 // ReleaseStock decrements reserved quantity
-func (r *InventoryRepository) ReleaseStock(ctx context.Context, invID uint, qty int) error {
+func (r *InventoryRepository) ReleaseStock(ctx context.Context, invID string, qty int) error {
 	return r.db.WithContext(ctx).
 		Model(&models.Inventory{}).
 		Where("id = ?", invID).
@@ -120,7 +120,7 @@ func (r *InventoryRepository) ReleaseStock(ctx context.Context, invID uint, qty 
 }
 
 // Delete removes a vendor inventory record by ID
-func (r *InventoryRepository) Delete(ctx context.Context, id uint) error {
+func (r *InventoryRepository) Delete(ctx context.Context, id string) error {
 	return r.db.WithContext(ctx).Delete(&models.Inventory{}, id).Error
 }
 
@@ -164,3 +164,29 @@ func (r *InventoryRepository) UpdateInventory(ctx context.Context, id string, de
 			"reserved_quantity": gorm.Expr("GREATEST(reserved_quantity - ?, 0)", delta),
 		}).Error
 }
+
+
+
+
+
+
+// func (r *InventoryRepository) UpdateStockWithDB(db *gorm.DB, invID string, delta int) error {
+//     return db.Model(&models.Inventory{}).
+//              Where("id = ?", invID).
+//              Update("quantity", gorm.Expr("quantity + ?", delta)).
+//              Error
+// }
+
+
+// func (r *InventoryRepository) ReserveStockWithDB(db *gorm.DB, invID string, qty int) error {
+//     return db.Model(&models.Inventory{}).
+//         Where("id = ?", invID).
+//         Update("reserved_quantity", gorm.Expr("reserved_quantity + ?", qty)).
+//         Error
+// }
+// func (r *InventoryRepository) ReleaseStockWithDB(db *gorm.DB, invID string, qty int) error {
+//     return db.Model(&models.Inventory{}).
+//         Where("id = ?", invID).
+//         Update("reserved_quantity", gorm.Expr("reserved_quantity - ?", qty)).
+//         Error
+// }

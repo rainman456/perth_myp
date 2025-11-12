@@ -77,6 +77,7 @@ func SetupProductRoutes(r *gin.Engine) {
 	r.GET("/products", productHandler.GetAllProducts)
 	r.GET("/products/:id", productHandler.GetProductByID)
 	r.GET("/products/by-name/:name", productHandler.GetProductByName)
+	r.GET("/products/filter", productHandler.FilterProducts) 
 	r.GET("/categories", cathandler.GetCategories)
 	r.GET("/categories/:slug", cathandler.GetAllProductsWithCategorySlug)
 	r.GET("/products/autocomplete", productHandler.AutocompleteHandler)

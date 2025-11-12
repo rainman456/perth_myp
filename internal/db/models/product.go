@@ -110,6 +110,12 @@ func (p *Product) BeforeCreate(tx *gorm.DB) error {
 	return nil
 }
 
+func (p *Product) Scope() func(*gorm.DB) *gorm.DB {
+    return func(db *gorm.DB) *gorm.DB {
+        return db.Where("deleted_at IS NULL")
+    }
+}
+
 // Helper function to generate slug
 func GenerateSlug(name, id string) string {
 	// Convert to lowercase, replace spaces with hyphens, remove special chars

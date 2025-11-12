@@ -3,16 +3,23 @@ package handlers
 import (
 	//"encoding/csv"
 	"errors"
+	"fmt"
+	"time"
+
 	//"fmt"
 	//"io"
 	"net/http"
 	"strconv"
 
 	"api-customer-merchant/internal/api/dto" // Assuming this exists for VariantInput
+	"api-customer-merchant/internal/db/repositories"
+	"api-customer-merchant/internal/utils"
+
 	//"api-customer-merchant/internal/db/models"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"github.com/shopspring/decimal"
 	"go.uber.org/zap"
 
 	"api-customer-merchant/internal/services/product"
@@ -544,5 +551,133 @@ func (h *CategoryHandler) GetAllProductsWithCategorySlug(c *gin.Context) {
 		"total":    total,
 		"limit":    limit,
 		"offset":   offset,
+	})
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// FilterProducts godoc
+// @Summary Filter products with advanced options
+// @Description Filter and search products by multiple criteria including price, category, attributes, etc.
+// @Tags Products
+// @Produce json
+// @Param category_id query int false "Category ID"
+// @Param category_name query string false "Category Name"
+// @Param category_slug query string false "Category Slug"
+// @Param min_price query number false "Minimum Price"
+// @Param max_price query number false "Maximum Price"
+// @Param in_stock query bool false "In Stock Only"
+// @Param search query string false "Search Term"
+// @Param color query string false "Color Filter"
+// @Param size query string false "Size Filter"
+// @Param material query string false "Material Filter"
+// @Param pattern query string false "Pattern Filter"
+// @Param on_sale query bool false "On Sale Only"
+// @Param sort_by query string false "Sort By" Enums(price, price_desc, name, name_desc, newest, oldest, rating)
+// @Param page query int false "Page Number" default(1)
+// @Param limit query int false "Items Per Page" default(20)
+// @Success 200 {object} object{products=[]dto.ProductResponse,total=int64,page=int,limit=int}
+// @Failure 400 {object} object{error=string}
+// @Failure 500 {object} object{error=string}
+// @Router /products/filter [get]
+func (h *ProductHandler) FilterProducts(c *gin.Context) {
+	logger := h.logger.With(zap.String("operation", "FilterProducts"))
+
+	// Bind query parameters
+	var req dto.ProductFilterRequest
+	if err := c.ShouldBindQuery(&req); err != nil {
+		logger.Error("Failed to bind query params", zap.Error(err))
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Generate cache key
+	cacheKey := fmt.Sprintf("product:filter:%s:p%d:l%d", req.Hash(), req.Page, req.Limit)
+
+	type CachedResult struct {
+		Products []dto.ProductResponse `json:"products"`
+		Total    int64                 `json:"total"`
+	}
+
+	result, err := utils.GetOrSetCacheJSON(c.Request.Context(), cacheKey, 2*time.Minute, func() (*CachedResult, error) {
+		logger.Debug("Cache miss - filtering products from DB")
+
+		// Build filter
+		filter := repositories.ProductFilter{
+			CategoryID:   req.CategoryID,
+			CategoryName: req.CategoryName,
+			CategorySlug: req.CategorySlug,
+			MerchantName: req.MerchantName,
+			SearchTerm:   req.SearchTerm,
+			InStock:      req.InStock,
+			OnSale:       req.OnSale,
+			Color:        req.Color,
+			Size:         req.Size,
+			Material:     req.Material,
+			Pattern:      req.Pattern,
+			SortBy:       *req.SortBy,
+		}
+
+		if req.MinPrice != nil {
+			minPrice := decimal.NewFromFloat(*req.MinPrice)
+			filter.MinPrice = &minPrice
+		}
+
+		if req.MaxPrice != nil {
+			maxPrice := decimal.NewFromFloat(*req.MaxPrice)
+			filter.MaxPrice = &maxPrice
+		}
+
+		// Fetch products
+		products, total, err := h.productService.FilterProducts(
+			c.Request.Context(),
+			filter,
+			req.GetLimit(),
+			req.GetOffset(),
+		)
+
+		if err != nil {
+			return nil, err
+		}
+
+		return &CachedResult{
+			Products: products,
+			Total:    total,
+		}, nil
+	})
+
+	if err != nil {
+		logger.Error("Failed to filter products", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to filter products"})
+		return
+	}
+
+	logger.Info("Products filtered successfully",
+		zap.Int("count", len(result.Products)),
+		zap.Int64("total", result.Total))
+
+	c.JSON(http.StatusOK, gin.H{
+		"products": result.Products,
+		"total":    result.Total,
+		"page":     req.Page,
+		"limit":    req.Limit,
 	})
 }

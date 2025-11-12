@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
+	"time"
 
 	//"os"
 	"path/filepath"
@@ -20,6 +22,8 @@ import (
 	"api-customer-merchant/internal/config"
 	"api-customer-merchant/internal/db/models"
 	"api-customer-merchant/internal/db/repositories"
+	"api-customer-merchant/internal/utils"
+
 	//"api-customer-merchant/internal/services/review"
 
 	"github.com/cloudinary/cloudinary-go/v2"
@@ -145,6 +149,7 @@ if isSimple {
 	}
 
 	// Map to response DTO
+	go utils.InvalidateCachePattern(context.Background(), "product:list:*")
 	response := helpers.ToMerchantProductResponse(product)
 
 	logger.Info("Product created successfully", zap.String("product_id", product.ID))
@@ -154,40 +159,53 @@ if isSimple {
 // GetProductByID fetches a product with optional preloads
 func (s *ProductService) GetProductByID(ctx context.Context, id string, preloads ...string) (*dto.ProductResponse, error) {
 	logger := s.logger.With(zap.String("operation", "GetProductByID"), zap.String("product_id", id))
-	if len(preloads) == 0 {
-		preloads = []string{"Category", "Merchant", "Reviews", "Variants", "Media", "Variants.Inventory", "SimpleInventory",}
-		logger.Debug("Using default preloads", zap.Strings("preloads", preloads))
-	} else {
-		logger.Debug("Custom preloads requested", zap.Strings("preloads", preloads))
-	}
-	product, err := s.productRepo.FindByID(ctx, id, preloads...)  // Fixed: Added ctx
-	if err != nil {
-		if errors.Is(err, repositories.ErrProductNotFound) {
+
+	// Try cache first
+	cacheKey := utils.ProductCacheKey(id)
+
+	response, err := utils.GetOrSetCacheJSON(ctx, cacheKey, 5*time.Minute, func() (*dto.ProductResponse, error) {
+		logger.Debug("Cache miss - fetching from DB")
+
+		// Set default preloads if none provided (exclude Reviews for list view)
+		if len(preloads) == 0 {
+			preloads = []string{
+				"Category",
+				"Merchant",
+				"Variants",
+				"Media",
+				"Variants.Inventory",
+				"SimpleInventory",
+			}
+		}
+
+		product, err := s.productRepo.FindByID(ctx, id, preloads...)
+		if err != nil {
 			return nil, err
 		}
+
+		// Build variant DTOs
+		variantDTOs := make([]dto.VariantResponse, len(product.Variants))
+		for i, v := range product.Variants {
+			variantDTOs[i] = *helpers.ToVariantResponse(&v, product.BasePrice)
+		}
+
+		// Fetch review stats separately (aggregated, not all reviews)
+		avgRating, reviewCount,_ := s.productRepo.GetReviewStats(ctx, id)
+
+		// Build response
+		response := helpers.ToProductResponse(product, variantDTOs, nil, &product.Merchant)
+		response.AvgRating = avgRating
+		response.ReviewCount = reviewCount
+
+		return response, nil
+	})
+
+	if err != nil {
 		logger.Error("Failed to fetch product", zap.Error(err))
-		return nil, fmt.Errorf("failed to fetch product: %w", err)
+		return nil, err
 	}
 
-	variantDTOs := make([]dto.VariantResponse, len(product.Variants))
-	for i, v := range product.Variants {
-		variantDTOs[i] = *helpers.ToVariantResponse(&v, product.BasePrice)
-	}
-
-	// Prepare reviews DTOs
-	reviewDTOs := make([]dto.ReviewResponseDTO, len(product.Reviews))
-	for i, r := range product.Reviews {
-		reviewDTOs[i] = *helpers.ToReviewResponse(&r)
-	}
-
-// if err != nil {
-//     return nil, err
-// }
-
-	// Use helper with loaded merchant
-	response := helpers.ToProductResponse(product, variantDTOs, reviewDTOs, &product.Merchant)
-
-	logger.Info("Product fetched successfully")
+	logger.Info("Product fetched successfully", zap.Bool("from_cache", err == nil))
 	return response, nil
 }
 
@@ -254,42 +272,90 @@ func (s *ProductService) Autocomplete(ctx context.Context, prefix string, limit 
 // GetAllProducts fetches all active products for the landing page
 func (s *ProductService) GetAllProducts(ctx context.Context, limit, offset int, categoryID *uint) ([]dto.ProductResponse, int64, error) {
 	logger := s.logger.With(zap.String("operation", "GetAllProducts"))
+
 	if limit <= 0 || limit > 100 {
 		limit = 20
 	}
 	if offset < 0 {
 		offset = 0
 	}
-	preloads := []string{"Media", "Merchant" ,"Variants", "Variants.Inventory", "SimpleInventory", "Category", "Reviews", }
 
-	products, total, err := s.productRepo.GetAllProducts(ctx, limit, offset, categoryID, preloads... )  // Fixed: Added ctx (resolves type shifts)
+	// Generate cache key
+	filterHash := fmt.Sprintf("cat%v", categoryID)
+	cacheKey := utils.ProductListCacheKey(offset/limit+1, limit, filterHash)
+
+	type CachedResult struct {
+		Products []dto.ProductResponse `json:"products"`
+		Total    int64                 `json:"total"`
+	}
+
+	result, err := utils.GetOrSetCacheJSON(ctx, cacheKey, 2*time.Minute, func() (*CachedResult, error) {
+		logger.Debug("Cache miss - fetching products from DB")
+
+		// Selective preloads - no Reviews in list view
+		preloads := []string{
+			"Media",
+			"Merchant",
+			"Variants",
+			"Variants.Inventory",
+			"SimpleInventory",
+			"Category",
+		}
+
+		products, total, err := s.productRepo.GetAllProducts(ctx, limit, offset, categoryID, preloads...)
+		if err != nil {
+			return nil, err
+		}
+
+		responses := make([]dto.ProductResponse, len(products))
+		for i, p := range products {
+			// Prepare variants DTOs
+			variantDTOs := make([]dto.VariantResponse, len(p.Variants))
+			for j, v := range p.Variants {
+				variantDTOs[j] = *helpers.ToVariantResponse(&v, p.BasePrice)
+			}
+
+			// Get review stats (cached separately)
+			avgRating, reviewCount,_ := s.productRepo.GetReviewStats(ctx, p.ID)
+
+			resp := helpers.ToProductResponse(&p, variantDTOs, nil, &p.Merchant)
+			resp.MerchantID = "" // Hide for customer view
+			resp.AvgRating = avgRating
+			resp.ReviewCount = reviewCount
+
+			responses[i] = *resp
+		}
+
+		return &CachedResult{
+			Products: responses,
+			Total:    total,
+		}, nil
+	})
+
 	if err != nil {
-		logger.Error("Failed to fetch all products", zap.Error(err))
-		return nil, 0, fmt.Errorf("failed to fetch products: %w", err)
+		logger.Error("Failed to fetch products", zap.Error(err))
+		return nil, 0, err
 	}
 
-	responses := make([]dto.ProductResponse, len(products))
-	for i, p := range products {
-		// Prepare variants DTOs
-		variantDTOs := make([]dto.VariantResponse, len(p.Variants))
-		for j, v := range p.Variants {
-			variantDTOs[j] = *helpers.ToVariantResponse(&v, p.BasePrice)
-		}
+	logger.Info("Products fetched successfully", zap.Int("count", len(result.Products)), zap.Int64("total", result.Total))
+	return result.Products, result.Total, nil
+}
 
-		// Prepare reviews DTOs
-		reviewDTOs := make([]dto.ReviewResponseDTO, len(p.Reviews))
-		for j, r := range p.Reviews {
-			reviewDTOs[j] = *helpers.ToReviewResponse(&r)
-		}
-
-		// Use helper (nil merchant for customer-facing, and set MerchantID = "")
-		resp := helpers.ToProductResponse(&p, variantDTOs, reviewDTOs, &p.Merchant)
-		resp.MerchantID = ""
-		responses[i] = *resp
+// Invalidate cache when product is updated
+func (s *ProductService) InvalidateProductCache(ctx context.Context, productID string) {
+	// Delete product detail cache
+	err :=utils.InvalidateCache(ctx, utils.ProductCacheKey(productID))
+	if err!=nil{
+		log.Fatal(err)
 	}
 
-	logger.Info("Products fetched for landing page", zap.Int("count", len(responses)), zap.Int64("total", total))
-	return responses, total, nil
+	// Delete list caches (all pages might contain this product)
+	err=utils.InvalidateCachePattern(ctx, "product:list:*")
+	if err!=nil{
+		log.Fatal(err)
+	}
+
+	s.logger.Info("Product cache invalidated", zap.String("product_id", productID))
 }
 
 
@@ -314,49 +380,15 @@ func (s *ProductService) GetAllProducts(ctx context.Context, limit, offset int, 
 
 // GetAllProducts fetches all active products for the landing page
 // Assumes ProductFilter is defined in the same package or imported.
- type ProductFilter struct {
-     CategoryName   *string
-     CategoryID     *uint
-     MinPrice       *decimal.Decimal
-     MaxPrice       *decimal.Decimal
-     InStock        *bool
-     VariantAttrs   map[string]interface{}
-     MerchantName   *string
- }
-
-func (s *ProductService) FilterProducts(ctx context.Context, filter ProductFilter, limit, offset int) ([]dto.ProductResponse, int64, error) {
+func (s *ProductService) FilterProducts(ctx context.Context, filter repositories.ProductFilter, limit, offset int) ([]dto.ProductResponse, int64, error) {
 	logger := s.logger.With(zap.String("operation", "FilterProducts"))
 
-	// --- pagination sanitization ---
-	if limit <= 0 || limit > 100 {
-		limit = 20
-	}
-	if offset < 0 {
-		offset = 0
-	}
-
-
-
-
-	// --- fetch products from repository using the provided filter ---
-	repoFilter := repositories.ProductFilter{
-    CategoryName: filter.CategoryName,
-    CategoryID:   filter.CategoryID,
-    MinPrice:     filter.MinPrice,
-    MaxPrice:     filter.MaxPrice,
-    InStock:      filter.InStock,
-    VariantAttrs: filter.VariantAttrs,
-    MerchantName: filter.MerchantName,
-}
-
-products, total, err := s.productRepo.ProductsFilter(ctx, repoFilter, limit, offset, "Media", "Variants", "Variants.Inventory", "SimpleInventory","Merchant","Reviews","Category")
-
+	products, total, err := s.productRepo.FilterProducts(ctx, filter, limit, offset)
 	if err != nil {
-		logger.Error("Failed to fetch products", zap.Error(err))
-		return nil, 0, fmt.Errorf("failed to fetch products: %w", err)
+		logger.Error("Failed to filter products", zap.Error(err))
+		return nil, 0, err
 	}
 
-	// --- map DB models -> DTOs ---
 	responses := make([]dto.ProductResponse, len(products))
 	for i, p := range products {
 		// Prepare variants DTOs
@@ -365,22 +397,20 @@ products, total, err := s.productRepo.ProductsFilter(ctx, repoFilter, limit, off
 			variantDTOs[j] = *helpers.ToVariantResponse(&v, p.BasePrice)
 		}
 
-		// Prepare reviews DTOs
-		reviewDTOs := make([]dto.ReviewResponseDTO, len(p.Reviews))
-		for j, r := range p.Reviews {
-			reviewDTOs[j] = *helpers.ToReviewResponse(&r)
-		}
+		// Get review stats
+		avgRating, reviewCount,_ := s.productRepo.GetReviewStats(ctx, p.ID)
 
-		// Use helper (nil merchant for customer-facing, and set MerchantID = "")
-		resp := helpers.ToProductResponse(&p, variantDTOs, reviewDTOs, &p.Merchant)
-		resp.MerchantID = ""
+		resp := helpers.ToProductResponse(&p, variantDTOs, nil, &p.Merchant)
+		resp.MerchantID = "" // Hide for customer view
+		resp.AvgRating = avgRating
+		resp.ReviewCount = reviewCount
+
 		responses[i] = *resp
 	}
 
-	logger.Info("Products fetched for filter", zap.Int("count", len(responses)), zap.Int64("total", total))
+	logger.Info("Products filtered successfully", zap.Int("count", len(responses)), zap.Int64("total", total))
 	return responses, total, nil
 }
-
 
 
 // GetProductByID fetches a product by name
@@ -437,6 +467,9 @@ func (s *ProductService) DeleteProduct(ctx context.Context, id string) error {
 		return fmt.Errorf("failed to delete product: %w", err)
 	}
 	logger.Info("Product deleted successfully")
+	go func() {
+		s.InvalidateProductCache(context.Background(), id)
+	}()
 	return nil
 }
 

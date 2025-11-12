@@ -56,7 +56,7 @@ func RegisterPaymentRoutes(r *gin.Engine) {
 	protectedGroup := payment.Group("")
 	protectedGroup.Use(middleware.AuthMiddleware("customer"), middleware.RateLimitMiddleware())
 	{
-		protectedGroup.POST("/initialize", paymentHandler.Initialize)
+		//protectedGroup.POST("/initialize", paymentHandler.Initialize)
 		protectedGroup.GET("/verify/:reference", paymentHandler.Verify)
 	}
 }

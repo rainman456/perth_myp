@@ -4,12 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	//"strings"
 
 	"api-customer-merchant/internal/api/dto"
 	"api-customer-merchant/internal/api/helpers"
 	"api-customer-merchant/internal/db"
 	"api-customer-merchant/internal/db/models"
 	"api-customer-merchant/internal/db/repositories"
+	"api-customer-merchant/internal/services/payment"
 
 	//"go.uber.org/zap"
 	//"github.com/go-playground/validator/v10"
@@ -26,6 +28,8 @@ type OrderService struct {
 	cartItemRepo  *repositories.CartItemRepository
 	productRepo   *repositories.ProductRepository
 	inventoryRepo *repositories.InventoryRepository
+	userRepo       *repositories.UserRepository       // ADD THIS
+    paymentService *payment.PaymentService   
 	logger      *zap.Logger
 	//validator   *validator.Validate
 	db            *gorm.DB
@@ -39,6 +43,9 @@ func NewOrderService(
 	cartItemRepo *repositories.CartItemRepository,
 	productRepo *repositories.ProductRepository,
 	inventoryRepo *repositories.InventoryRepository,
+	userRepo *repositories.UserRepository,              // ADD THIS
+    paymentService *payment.PaymentService,  
+	logger *zap.Logger,
 ) *OrderService {
 	return &OrderService{
 		orderRepo:     orderRepo,
@@ -47,6 +54,9 @@ func NewOrderService(
 		cartItemRepo:  cartItemRepo,
 		productRepo:   productRepo,
 		inventoryRepo: inventoryRepo,
+		userRepo:       userRepo,
+        paymentService: paymentService,
+		logger:        logger,
 		db:            db.DB,
 	}
 }
@@ -72,9 +82,189 @@ var (
 
 
 
+// func (s *OrderService) CreateOrder(ctx context.Context, userID uint) (*dto.OrderResponse, error) {
+//     if userID == 0 {
+//         return nil, errors.New("invalid user ID")
+//     }
+
+//     cart, err := s.cartRepo.FindActiveCart(ctx, userID)
+//     if err != nil {
+//         if errors.Is(err, repositories.ErrCartNotFound) {
+//             return nil, errors.New("no active cart found")
+//         }
+//         return nil, err
+//     }
+
+//     if len(cart.CartItems) == 0 {
+//         return nil, errors.New("cart is empty")
+//     }
+
+//     var newOrder *models.Order
+//     var totalAmount decimal.Decimal
+// 	type inventoryUpdate struct {
+// 		ID       string
+// 		Quantity int
+// 	}
+// 	var updates []inventoryUpdate
+
+//     // Use a transaction to ensure atomicity
+//     err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+
+// 		defer func() {
+// 			if r := recover(); r != nil {
+// 				s.logger.Error("Transaction panic", zap.Any("panic", r))
+// 			}
+// 		}()
+//         // Calculate total and create order items
+//         var orderItems []models.OrderItem
+//         for _, item := range cart.CartItems {
+//             // Determine price: variant if present, else product
+//             price := item.Product.FinalPrice
+//             if item.VariantID != nil && item.Variant != nil {
+//                 price = item.Variant.FinalPrice
+//             }
+//             priceFloat := price.InexactFloat64()
+//             subtotal := decimal.NewFromInt(int64(item.Quantity)).Mul(price)
+//             totalAmount = totalAmount.Add(subtotal)
+
+//             orderItem := models.OrderItem{
+//                 ProductID:         item.ProductID,
+//                 VariantID:         item.VariantID, // Set variant if present
+//                 MerchantID:        item.MerchantID,
+//                 Quantity:          item.Quantity,
+//                 Price:             priceFloat,
+//                 FulfillmentStatus: models.FulfillmentStatusNew,
+//             }
+
+//             orderItems = append(orderItems, orderItem)
+
+//             // Commit inventory: subtract from quantity and reserved
+//             // Use inventory repo for consistency, but since tx, use tx directly
+//             inventoryQuery := "merchant_id = ?"
+// 			args := []interface{}{item.MerchantID}
+// 			if item.VariantID != nil {
+// 				inventoryQuery += " AND variant_id = ?"
+// 				args = append(args, *item.VariantID)
+// 			} else {
+// 				inventoryQuery += " AND product_id = ?"
+// 				args = append(args, item.ProductID)
+// 			}
+
+// 			var inv models.Inventory
+// 			if err := tx.Where(inventoryQuery, args...).First(&inv).Error; err != nil {
+// 				return fmt.Errorf("inventory not found: %w", err)
+// 			}
+// 			updates = append(updates, inventoryUpdate{ID: inv.ID, Quantity: item.Quantity})
+// 			}
+
+// 			// Batch update using CASE WHEN
+// 			if len(updates) > 0 {
+// 			ids := make([]string, len(updates))
+// 			casesQty := make([]string, len(updates))
+// 			casesRes := make([]string, len(updates))
+
+// 			for i, u := range updates {
+// 				ids[i] = u.ID
+// 				casesQty[i] = fmt.Sprintf("WHEN id = '%s' THEN quantity - %d", u.ID, u.Quantity)
+// 				casesRes[i] = fmt.Sprintf("WHEN id = '%s' THEN reserved_quantity - %d", u.ID, u.Quantity)
+// 			}
+
+// 			sql := fmt.Sprintf(`
+// 				UPDATE inventories 
+// 				SET quantity = CASE %s END,
+// 					reserved_quantity = CASE %s END
+// 				WHERE id IN (?)
+// 			`, strings.Join(casesQty, " "), strings.Join(casesRes, " "))
+
+// 			if err := tx.Exec(sql, ids).Error; err != nil {
+// 				return fmt.Errorf("failed to batch commit stock: %w", err)
+// 			}
+// 				}
+
+//         // Create the order
+//         newOrder = &models.Order{
+//             UserID:      userID,
+//             SubTotal:    totalAmount, // Assuming SubTotal is before tax/shipping
+//             TotalAmount: totalAmount, // Update if tax/shipping added later
+//             Status:      models.OrderStatusPending,
+//             Currency:    "NGN", // Default; make configurable
+//         }
+//         if err := tx.Create(newOrder).Error; err != nil {
+//             return fmt.Errorf("failed to create order: %w", err)
+//         }
+
+//         // Associate and create order items
+//         for i := range orderItems {
+//             orderItems[i].OrderID = newOrder.ID
+//         }
+//         if err := tx.Create(&orderItems).Error; err != nil {
+//             return fmt.Errorf("failed to create order items: %w", err)
+//         }
+
+//         // Reload order with items for response
+//         if err := tx.Preload("OrderItems").First(newOrder, "id = ?", newOrder.ID).Error; err != nil {
+//             return fmt.Errorf("failed to reload order: %w", err)
+//         }
+
+//         // Clear cart items
+//         if err := tx.Where("cart_id = ?", cart.ID).Delete(&models.CartItem{}).Error; err != nil {
+//             return fmt.Errorf("failed to clear cart items: %w", err)
+//         }
+
+//         // Mark cart as converted
+//         cart.Status = models.CartStatusConverted
+//         if err := tx.Save(cart).Error; err != nil {
+//             return fmt.Errorf("failed to update cart status: %w", err)
+//         }
+
+//         return nil
+//     })
+
+//     if err != nil {
+//         //s.logger.Error("Transaction failed", zap.Error(err))
+//         return nil, fmt.Errorf("transaction failed: %w", err)
+//     }
+
+
+//     // Convert to DTO for response
+// 	response := helpers.ToOrderResponse(newOrder)
+
+// 	//  user, _ := userRepo.FindByID(userID)  // Assume userRepo injected
+//     // authURL, ref, err := paymentService.InitiateTransaction(ctx, order, user.Email)
+//     // if err != nil {
+//     //     return nil, err
+//     // }
+//     // Return order with authURL in response
+
+//     return response, nil
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 func (s *OrderService) CreateOrder(ctx context.Context, userID uint) (*dto.OrderResponse, error) {
     if userID == 0 {
         return nil, errors.New("invalid user ID")
+    }
+
+    // Fetch user for payment initialization
+    user, err := s.userRepo.FindByID(ctx, userID)
+    if err != nil {
+        s.logger.Error("Failed to fetch user", zap.Uint("user_id", userID), zap.Error(err))
+        return nil, fmt.Errorf("failed to fetch user: %w", err)
     }
 
     cart, err := s.cartRepo.FindActiveCart(ctx, userID)
@@ -94,8 +284,15 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID uint) (*dto.Order
 
     // Use a transaction to ensure atomicity
     err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-        // Calculate total and create order items
+        defer func() {
+            if r := recover(); r != nil {
+                s.logger.Error("Transaction panic", zap.Any("panic", r))
+            }
+        }()
+
+        // Calculate total and create order items (DO NOT commit inventory yet)
         var orderItems []models.OrderItem
+        
         for _, item := range cart.CartItems {
             // Determine price: variant if present, else product
             price := item.Product.FinalPrice
@@ -108,7 +305,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID uint) (*dto.Order
 
             orderItem := models.OrderItem{
                 ProductID:         item.ProductID,
-                VariantID:         item.VariantID, // Set variant if present
+                VariantID:         item.VariantID,
                 MerchantID:        item.MerchantID,
                 Quantity:          item.Quantity,
                 Price:             priceFloat,
@@ -117,29 +314,18 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID uint) (*dto.Order
 
             orderItems = append(orderItems, orderItem)
 
-            // Commit inventory: subtract from quantity and reserved
-            // Use inventory repo for consistency, but since tx, use tx directly
-            inventoryQuery := tx.Model(&models.Inventory{}).Where("merchant_id = ?", item.MerchantID)
-            if item.VariantID != nil {
-                inventoryQuery = inventoryQuery.Where("variant_id = ?", *item.VariantID)
-            } else {
-                inventoryQuery = inventoryQuery.Where("product_id = ?", item.ProductID)
-            }
-            if err := inventoryQuery.Updates(map[string]interface{}{
-                "quantity":          gorm.Expr("quantity - ?", item.Quantity),
-                "reserved_quantity": gorm.Expr("reserved_quantity - ?", item.Quantity),
-            }).Error; err != nil {
-                return fmt.Errorf("failed to commit stock for %s: %w", item.ProductID, err)
-            }
+            // IMPORTANT: DO NOT commit inventory here
+            // Inventory is already reserved in cart
+            // It will only be committed after successful payment
         }
 
         // Create the order
         newOrder = &models.Order{
             UserID:      userID,
-            SubTotal:    totalAmount, // Assuming SubTotal is before tax/shipping
-            TotalAmount: totalAmount, // Update if tax/shipping added later
+            SubTotal:    totalAmount,
+            TotalAmount: totalAmount, // Add tax/shipping calculation if needed
             Status:      models.OrderStatusPending,
-            Currency:    "NGN", // Default; make configurable
+            Currency:    "NGN",
         }
         if err := tx.Create(newOrder).Error; err != nil {
             return fmt.Errorf("failed to create order: %w", err)
@@ -153,43 +339,80 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID uint) (*dto.Order
             return fmt.Errorf("failed to create order items: %w", err)
         }
 
-        // Reload order with items for response
-        if err := tx.Preload("OrderItems").First(newOrder, "id = ?", newOrder.ID).Error; err != nil {
+        // Reload order with items and user for response
+        if err := tx.Preload("OrderItems.Product.Media").
+            Preload("OrderItems.Product").
+            Preload("User.Addresses").
+            First(newOrder, "id = ?", newOrder.ID).Error; err != nil {
             return fmt.Errorf("failed to reload order: %w", err)
         }
 
-        // Clear cart items
-        if err := tx.Where("cart_id = ?", cart.ID).Delete(&models.CartItem{}).Error; err != nil {
-            return fmt.Errorf("failed to clear cart items: %w", err)
-        }
-
-        // Mark cart as converted
-        cart.Status = models.CartStatusConverted
-        if err := tx.Save(cart).Error; err != nil {
-            return fmt.Errorf("failed to update cart status: %w", err)
-        }
+        // DO NOT clear cart items yet - keep them until payment succeeds
+        // DO NOT mark cart as converted yet
 
         return nil
     })
 
     if err != nil {
-        //s.logger.Error("Transaction failed", zap.Error(err))
+        s.logger.Error("Transaction failed", zap.Uint("user_id", userID), zap.Error(err))
         return nil, fmt.Errorf("transaction failed: %w", err)
     }
 
+    // Initialize payment with Paystack
+    paymentReq := dto.InitializePaymentRequest{
+        OrderID:  newOrder.ID,
+        Amount:   totalAmount.InexactFloat64(),
+        Email:    user.Email,
+        Currency: "NGN",
+    }
+
+    paymentResp, err := s.paymentService.InitializeCheckout(ctx, paymentReq)
+    if err != nil {
+        s.logger.Error("Payment initialization failed",
+            zap.Uint("order_id", newOrder.ID),
+            zap.Error(err))
+        
+        // Rollback order creation if payment initialization fails
+        if deleteErr := s.db.Delete(newOrder).Error; deleteErr != nil {
+            s.logger.Error("Failed to rollback order", zap.Error(deleteErr))
+        }
+        
+        return nil, fmt.Errorf("payment initialization failed: %w", err)
+    }
 
     // Convert to DTO for response
-	response := helpers.ToOrderResponse(newOrder)
+    response := helpers.ToOrderResponse(newOrder)
+    response.PaymentAuthorizationURL = paymentResp.AuthorizationURL
+    response.PaymentReference = paymentResp.TransactionID
 
-	//  user, _ := userRepo.FindByID(userID)  // Assume userRepo injected
-    // authURL, ref, err := paymentService.InitiateTransaction(ctx, order, user.Email)
-    // if err != nil {
-    //     return nil, err
-    // }
-    // Return order with authURL in response
+    s.logger.Info("Order created successfully",
+        zap.Uint("order_id", newOrder.ID),
+        zap.Uint("user_id", userID),
+        zap.String("payment_reference", paymentResp.TransactionID))
 
     return response, nil
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -339,15 +562,6 @@ func (s *OrderService) CancelOrder(ctx context.Context, orderID uint, userID uin
 
 
 
-
-
-
-
-
-
-
-
-
 func (s *OrderService) GetUserOrders(ctx context.Context, userID uint) ([]dto.OrdersResponse, error) {
 	orders, err := s.orderRepo.FindByUserID(ctx, userID)
 	if err != nil {
@@ -367,9 +581,9 @@ func (s *OrderService) GetUserOrders(ctx context.Context, userID uint) ([]dto.Or
 			itemDTO := dto.OrdersItemResponse{
 				ID:        item.ID,
 				OrderID:   item.OrderID,
-				ProductID: item.ProductID,
+				//ProductID: item.ProductID,
 				Quantity:  uint(item.Quantity),
-				MerchantID: item.MerchantID,
+				//MerchantID: item.MerchantID,
 			}
 			if item.Product.ID != "" {
 				itemDTO.Product = dto.OrderProductResponse{
@@ -377,6 +591,9 @@ func (s *OrderService) GetUserOrders(ctx context.Context, userID uint) ([]dto.Or
 					Name:        item.Product.Name,
 					Description: item.Product.Description,
 					Price:       item.Product.BasePrice.InexactFloat64(),
+				}
+				if len(item.Product.Media) > 0 {
+					itemDTO.Product.Image = item.Product.Media[0].URL // Assume Media has URL field
 				}
 			}
 			if item.Merchant.MerchantID != "" {

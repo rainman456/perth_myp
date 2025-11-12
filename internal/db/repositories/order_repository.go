@@ -44,7 +44,19 @@ func (r *OrderRepository) FindByID(ctx context.Context, id uint) (*models.Order,
 // FindByUserID retrieves all orders for a user
 func (r *OrderRepository) FindByUserID(ctx context.Context, userID uint) ([]models.Order, error) {
 	var orders []models.Order
-	err := r.db.WithContext(ctx).Preload("OrderItems.Product.Merchant").Where("user_id = ?", userID).Find(&orders).Error
+	err := r.db.WithContext(ctx).
+		Preload("OrderItems", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, order_id, product_id, variant_id, merchant_id, quantity, price, fulfillment_status")
+		}).
+		Preload("OrderItems.Product", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, name, description, base_price")
+		}).
+		Preload("OrderItems.Merchant", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, merchant_id, store_name")
+		}).
+		Where("user_id = ?", userID).
+		Order("created_at DESC").
+		Find(&orders).Error
 	return orders, err
 }
 
@@ -111,3 +123,21 @@ func (r *OrderRepository) HasUserPurchasedProduct(ctx context.Context, userID ui
 	}
 	return count > 0, nil
 }
+
+
+
+
+
+// func (r *OrderRepository) FindByIDWithDB(db *gorm.DB, id uint) (*models.Order, error) {
+//     var order models.Order
+//     err := db.Preload("User").
+//              Preload("OrderItems").
+//              Preload("OrderItems.Product").
+//              Preload("OrderItems.Merchant").
+//              First(&order, id).Error
+//     return &order, err
+// }
+
+// func (r *OrderRepository) UpdateWithDB(db *gorm.DB, order *models.Order) error {
+//     return db.Save(order).Error
+// }

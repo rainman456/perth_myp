@@ -2834,15 +2834,6 @@ const docTemplate = `{
                     "Orders"
                 ],
                 "summary": "Create order from cart",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "User ID (for testing)",
-                        "name": "user_id",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -3084,6 +3075,56 @@ const docTemplate = `{
                 }
             }
         },
+        "/payments/webhook": {
+            "post": {
+                "description": "Receives and processes forwarded Paystack events",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Payments"
+                ],
+                "summary": "Paystack webhook",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/products": {
             "get": {
                 "description": "Fetches paginated list of products, optionally filtered by category",
@@ -3259,6 +3300,169 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/products/filter": {
+            "get": {
+                "description": "Filter and search products by multiple criteria including price, category, attributes, etc.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Products"
+                ],
+                "summary": "Filter products with advanced options",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Category ID",
+                        "name": "category_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Category Name",
+                        "name": "category_name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Category Slug",
+                        "name": "category_slug",
+                        "in": "query"
+                    },
+                    {
+                        "type": "number",
+                        "description": "Minimum Price",
+                        "name": "min_price",
+                        "in": "query"
+                    },
+                    {
+                        "type": "number",
+                        "description": "Maximum Price",
+                        "name": "max_price",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "In Stock Only",
+                        "name": "in_stock",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search Term",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Color Filter",
+                        "name": "color",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Size Filter",
+                        "name": "size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Material Filter",
+                        "name": "material",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pattern Filter",
+                        "name": "pattern",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "On Sale Only",
+                        "name": "on_sale",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "price",
+                            "price_desc",
+                            "name",
+                            "name_desc",
+                            "newest",
+                            "oldest",
+                            "rating"
+                        ],
+                        "type": "string",
+                        "description": "Sort By",
+                        "name": "sort_by",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page Number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Items Per Page",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "limit": {
+                                    "type": "integer"
+                                },
+                                "page": {
+                                    "type": "integer"
+                                },
+                                "products": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/definitions/dto.ProductResponse"
+                                    }
+                                },
+                                "total": {
+                                    "type": "integer",
+                                    "format": "int64"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -4181,10 +4385,10 @@ const docTemplate = `{
         "dto.AddressResponse": {
             "type": "object",
             "properties": {
-                "additional_phone_number": {
+                "additional_info": {
                     "type": "string"
                 },
-                "address": {
+                "additional_phone_number": {
                     "type": "string"
                 },
                 "delivery_address": {
@@ -4193,10 +4397,14 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
+                "is_default": {
+                    "type": "boolean"
+                },
                 "lga": {
                     "type": "string"
                 },
                 "phone_number": {
+                    "description": "Address               string    ` + "`" + `json:\"address,omitempty\"` + "`" + `",
                     "type": "string"
                 },
                 "shipping_address": {
@@ -4266,9 +4474,6 @@ const docTemplate = `{
                             }
                         }
                     }
-                },
-                "userID": {
-                    "type": "integer"
                 }
             }
         },
@@ -4431,23 +4636,24 @@ const docTemplate = `{
         },
         "dto.CreateAddressRequest": {
             "type": "object",
-            "required": [
-                "address"
-            ],
             "properties": {
-                "additional_phone_number": {
+                "additional_info": {
                     "type": "string"
                 },
-                "address": {
+                "additional_phone_number": {
                     "type": "string"
                 },
                 "delivery_address": {
                     "type": "string"
                 },
+                "is_default": {
+                    "type": "boolean"
+                },
                 "lga": {
                     "type": "string"
                 },
                 "phone_number": {
+                    "description": "Address               string ` + "`" + `json:\"address\" binding:\"required\"` + "`" + `",
                     "type": "string"
                 },
                 "shipping_address": {
@@ -4914,6 +5120,9 @@ const docTemplate = `{
                 "created_at": {
                     "type": "string"
                 },
+                "delivery_address": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "integer"
                 },
@@ -4923,7 +5132,10 @@ const docTemplate = `{
                         "$ref": "#/definitions/dto.OrderItemResponse"
                     }
                 },
-                "payment_status": {
+                "payment_authorization_url": {
+                    "type": "string"
+                },
+                "payment_reference": {
                     "type": "string"
                 },
                 "status": {
@@ -5367,19 +5579,23 @@ const docTemplate = `{
         "dto.UpdateAddressRequest": {
             "type": "object",
             "properties": {
-                "additional_phone_number": {
+                "additional_info": {
                     "type": "string"
                 },
-                "address": {
+                "additional_phone_number": {
                     "type": "string"
                 },
                 "delivery_address": {
                     "type": "string"
                 },
+                "is_default": {
+                    "type": "boolean"
+                },
                 "lga": {
                     "type": "string"
                 },
                 "phone_number": {
+                    "description": "Address               *string ` + "`" + `json:\"address\" binding:\"omitempty\"` + "`" + `",
                     "type": "string"
                 },
                 "shipping_address": {
@@ -5529,30 +5745,24 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "added_at": {
+                    "description": "SKU          string    ` + "`" + `json:\"sku\"` + "`" + `\nMerchantID   string    ` + "`" + `json:\"merchant_id\"` + "`" + `",
+                    "type": "string"
+                },
+                "category_slug": {
+                    "description": "DiscountType string    ` + "`" + `json:\"discount_type\" validate:\"oneof=fixed percentage ''\"` + "`" + `",
                     "type": "string"
                 },
                 "discount": {
                     "type": "number",
                     "minimum": 0
                 },
-                "discount_type": {
-                    "type": "string",
-                    "enum": [
-                        "fixed",
-                        "percentage",
-                        ""
-                    ]
-                },
-                "merchant_id": {
-                    "type": "string"
-                },
                 "name": {
                     "type": "string"
                 },
-                "product_id": {
+                "primary_image": {
                     "type": "string"
                 },
-                "sku": {
+                "product_id": {
                     "type": "string"
                 },
                 "total_price": {

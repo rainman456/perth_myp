@@ -11,20 +11,23 @@ import (
 type OrderStatus string
 
 const (
-	OrderStatusPending   OrderStatus = "Pending"
-	OrderStatusCompleted OrderStatus = "Completed"
-	OrderStatusCancelled OrderStatus = "Cancelled"
+	OrderStatusPending    OrderStatus = "Pending"
+	OrderStatusPaid       OrderStatus = "Paid"
+	OrderStatusProcessing OrderStatus = "Processing"
+	OrderStatusCompleted  OrderStatus = "Completed"
+	OrderStatusCancelled  OrderStatus = "Cancelled"
 )
 
 // Valid checks if the status is one of the allowed values
 func (s OrderStatus) Valid() error {
 	switch s {
-	case OrderStatusPending, OrderStatusCompleted, OrderStatusCancelled:
+	case OrderStatusPending, OrderStatusPaid, OrderStatusProcessing, OrderStatusCompleted, OrderStatusCancelled:
 		return nil
 	default:
 		return fmt.Errorf("invalid order status: %s", s)
 	}
 }
+
 
 // type Order struct {
 // 	gorm.Model
@@ -35,23 +38,19 @@ func (s OrderStatus) Valid() error {
 // 	OrderItems  []OrderItem `gorm:"foreignKey:OrderID"`
 // }
 
-
-
- type Order struct {
-     gorm.Model
-     UserID         uint              `gorm:"not null"`
-    SubTotal       decimal.Decimal   `gorm:"type:decimal(10,2)" json:"sub_total"`
-     TotalAmount    decimal.Decimal   `gorm:"type:decimal(10,2)" json:"total_amount"`
-     Status         OrderStatus      `gorm:"type:varchar(20);not null;default:'Pending'" json:"status"`
-     ShippingMethod string            `gorm:"type:varchar(50)" json:"shipping_method"`
-     CouponCode     *string           `gorm:"type:varchar(50)" json:"coupon_code"`
-    Currency       string            `gorm:"type:varchar(3);default:'NGN'" json:"currency"`
-     User           User              `gorm:"foreignKey:UserID"`
-     OrderItems     []OrderItem       `gorm:"foreignKey:OrderID"`
-    Payments       []Payment         `gorm:"foreignKey:OrderID"`
- }
-
-
+type Order struct {
+	gorm.Model
+	UserID         uint            `gorm:"not null"`
+	SubTotal       decimal.Decimal `gorm:"type:decimal(10,2)" json:"sub_total"`
+	TotalAmount    decimal.Decimal `gorm:"type:decimal(10,2)" json:"total_amount"`
+	Status         OrderStatus     `gorm:"type:varchar(20);not null;default:'Pending'" json:"status"`
+	ShippingMethod string          `gorm:"type:varchar(50)" json:"shipping_method"`
+	CouponCode     *string         `gorm:"type:varchar(50)" json:"coupon_code"`
+	Currency       string          `gorm:"type:varchar(3);default:'NGN'" json:"currency"`
+	User           User            `gorm:"foreignKey:UserID"`
+	OrderItems     []OrderItem     `gorm:"foreignKey:OrderID"`
+	Payments       []Payment       `gorm:"foreignKey:OrderID"`
+}
 
 // BeforeCreate validates the Status field
 func (o *Order) BeforeCreate(tx *gorm.DB) error {

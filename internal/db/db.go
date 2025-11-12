@@ -184,6 +184,7 @@ func AutoMigrate() {
 	// &models.Promotion{},
 	// &models.ReturnRequest{},
 	// &models.Payout{},
+	//&models.Payment{},
 	//&models.Review{},
 	//&models.UserWishlist{},
 	

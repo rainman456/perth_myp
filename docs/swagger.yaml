@@ -15,17 +15,20 @@ definitions:
     type: object
   dto.AddressResponse:
     properties:
-      additional_phone_number:
+      additional_info:
         type: string
-      address:
+      additional_phone_number:
         type: string
       delivery_address:
         type: string
       id:
         type: integer
+      is_default:
+        type: boolean
       lga:
         type: string
       phone_number:
+        description: Address               string    `json:"address,omitempty"`
         type: string
       shipping_address:
         type: string
@@ -71,8 +74,6 @@ definitions:
           - quantity
           type: object
         type: array
-      userID:
-        type: integer
     type: object
   dto.CancelOrderRequest:
     properties:
@@ -185,22 +186,23 @@ definitions:
     type: object
   dto.CreateAddressRequest:
     properties:
-      additional_phone_number:
+      additional_info:
         type: string
-      address:
+      additional_phone_number:
         type: string
       delivery_address:
         type: string
+      is_default:
+        type: boolean
       lga:
         type: string
       phone_number:
+        description: Address               string `json:"address" binding:"required"`
         type: string
       shipping_address:
         type: string
       state:
         type: string
-    required:
-    - address
     type: object
   dto.CreateDisputeDTO:
     properties:
@@ -508,13 +510,17 @@ definitions:
     properties:
       created_at:
         type: string
+      delivery_address:
+        type: string
       id:
         type: integer
       order_items:
         items:
           $ref: '#/definitions/dto.OrderItemResponse'
         type: array
-      payment_status:
+      payment_authorization_url:
+        type: string
+      payment_reference:
         type: string
       status:
         $ref: '#/definitions/dto.OrderStatus'
@@ -817,15 +823,18 @@ definitions:
     type: object
   dto.UpdateAddressRequest:
     properties:
-      additional_phone_number:
+      additional_info:
         type: string
-      address:
+      additional_phone_number:
         type: string
       delivery_address:
         type: string
+      is_default:
+        type: boolean
       lga:
         type: string
       phone_number:
+        description: Address               *string `json:"address" binding:"omitempty"`
         type: string
       shipping_address:
         type: string
@@ -929,23 +938,22 @@ definitions:
   dto.WishlistItemResponseDTO:
     properties:
       added_at:
+        description: |-
+          SKU          string    `json:"sku"`
+          MerchantID   string    `json:"merchant_id"`
+        type: string
+      category_slug:
+        description: DiscountType string    `json:"discount_type" validate:"oneof=fixed
+          percentage ''"`
         type: string
       discount:
         minimum: 0
         type: number
-      discount_type:
-        enum:
-        - fixed
-        - percentage
-        - ""
-        type: string
-      merchant_id:
-        type: string
       name:
         type: string
-      product_id:
+      primary_image:
         type: string
-      sku:
+      product_id:
         type: string
       total_price:
         type: number
@@ -2814,12 +2822,6 @@ paths:
       consumes:
       - application/json
       description: Converts user's active cart into an order
-      parameters:
-      - description: User ID (for testing)
-        in: query
-        name: user_id
-        required: true
-        type: string
       produces:
       - application/json
       responses:
@@ -2977,6 +2979,38 @@ paths:
                 type: string
             type: object
       summary: Verify payment
+      tags:
+      - Payments
+  /payments/webhook:
+    post:
+      consumes:
+      - application/json
+      description: Receives and processes forwarded Paystack events
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              status:
+                type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Paystack webhook
       tags:
       - Payments
   /products:
@@ -3146,6 +3180,117 @@ paths:
                 type: string
             type: object
       summary: Get product by Name
+      tags:
+      - Products
+  /products/filter:
+    get:
+      description: Filter and search products by multiple criteria including price,
+        category, attributes, etc.
+      parameters:
+      - description: Category ID
+        in: query
+        name: category_id
+        type: integer
+      - description: Category Name
+        in: query
+        name: category_name
+        type: string
+      - description: Category Slug
+        in: query
+        name: category_slug
+        type: string
+      - description: Minimum Price
+        in: query
+        name: min_price
+        type: number
+      - description: Maximum Price
+        in: query
+        name: max_price
+        type: number
+      - description: In Stock Only
+        in: query
+        name: in_stock
+        type: boolean
+      - description: Search Term
+        in: query
+        name: search
+        type: string
+      - description: Color Filter
+        in: query
+        name: color
+        type: string
+      - description: Size Filter
+        in: query
+        name: size
+        type: string
+      - description: Material Filter
+        in: query
+        name: material
+        type: string
+      - description: Pattern Filter
+        in: query
+        name: pattern
+        type: string
+      - description: On Sale Only
+        in: query
+        name: on_sale
+        type: boolean
+      - description: Sort By
+        enum:
+        - price
+        - price_desc
+        - name
+        - name_desc
+        - newest
+        - oldest
+        - rating
+        in: query
+        name: sort_by
+        type: string
+      - default: 1
+        description: Page Number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Items Per Page
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              limit:
+                type: integer
+              page:
+                type: integer
+              products:
+                items:
+                  $ref: '#/definitions/dto.ProductResponse'
+                type: array
+              total:
+                format: int64
+                type: integer
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Filter products with advanced options
       tags:
       - Products
   /return-requests:

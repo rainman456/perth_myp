@@ -38,7 +38,8 @@ type OrderResponse struct {
 	DeliveryAddress string             `json:"delivery_address"`
 	CreatedAt    time.Time           `json:"created_at"`
 	UpdatedAt time.Time         `json:"updated_at"`
-
+	PaymentAuthorizationURL string              `json:"payment_authorization_url,omitempty"` 
+    PaymentReference        string              `json:"payment_reference,omitempty"`         
 }
 
 // OrderItemResponse defines the structure for individual items in an order.
@@ -71,9 +72,7 @@ type OrdersResponse struct {
 type OrdersItemResponse struct {
 	ID        uint   `json:"id"`
 	OrderID   uint   `json:"order_id"`
-	ProductID string   `json:"product_id"`
 	Product   OrderProductResponse `json:"product"`
-	MerchantID string  `json:"merchant_id"`
 	Merchant  OrderMerchantResponse `json:"merchant"`
 	Quantity  uint   `json:"quantity"`
 }
@@ -83,6 +82,7 @@ type OrderProductResponse struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Price       float64 `json:"price"`
+	Image   string    `json:"image_url"`
 }
 
 type OrderMerchantResponse struct {

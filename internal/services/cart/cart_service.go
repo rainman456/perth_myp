@@ -400,119 +400,227 @@ func (s *CartService) BulkAddItems(ctx context.Context, userID uint, items dto.B
     }
 
     // Get or create cart model (light, no full preloads)
-    cartModel, err := s.getOrCreateActiveCartModel(ctx, userID) // New helper, see below
+    cartModel, err := s.getOrCreateActiveCartModel(ctx, userID)
     if err != nil {
         return nil, err
     }
 
-	err = db.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-        for i, item := range items.Items {
-            if _, err := s.AddItemToCart(ctx, userID, item.Quantity, item.ProductID, item.VariantID); err != nil {  // Optional: if keeping single add, but better inline
-                s.logger.Error("Failed to add item", zap.String("product_id", item.ProductID), zap.Stringp("variant_id", item.VariantID), zap.Error(err))
-                return fmt.Errorf("failed to add item %d (product %s): %w", i+1, item.ProductID, err)
-            }
-            product, err := s.productRepo.FindByID(ctx, item.ProductID, "Variants.Inventory", "SimpleInventory")
-            if err != nil {
-                s.logger.Error("Product not found", zap.String("product_id", item.ProductID), zap.Error(err))
-                return ErrProductNotFound
-            }
+    // OPTIMIZATION 1: Batch fetch all products upfront
+    productIDs := make([]string, len(items.Items))
+    for i, item := range items.Items {
+        productIDs[i] = item.ProductID
+    }
+
+    var productList []models.Product
+    err = db.DB.WithContext(ctx).
+        Preload("Variants.Inventory").
+        Preload("SimpleInventory").
+        Where("id IN ? AND deleted_at IS NULL", productIDs).
+        Find(&productList).Error
+    if err != nil {
+        s.logger.Error("Failed to fetch products", zap.Error(err))
+        return nil, fmt.Errorf("failed to fetch products: %w", err)
+    }
+
+    // Create product lookup map
+    productsMap := make(map[string]*models.Product)
+    for i := range productList {
+        productsMap[productList[i].ID] = &productList[i]
+    }
+
+    // Validate all products exist upfront
+    for _, item := range items.Items {
+        if _, exists := productsMap[item.ProductID]; !exists {
+            return nil, fmt.Errorf("product %s not found", item.ProductID)
+        }
+    }
+
+    err = db.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+        // OPTIMIZATION 2: Batch lock all inventories upfront
+        inventoryIDs := make([]string, 0, len(items.Items))
+        inventoryMap := make(map[string]*models.Inventory)
+        
+        for _, item := range items.Items {
+            product := productsMap[item.ProductID]
+            
             if product.DeletedAt.Valid {
                 s.logger.Error("Product is soft-deleted", zap.String("product_id", item.ProductID))
                 return ErrProductNotFound
             }
 
-            // Determine inventory and price
+            // Determine inventory ID
             var inventory *models.Inventory
-            var price decimal.Decimal = product.BasePrice
-            var variantID *string = item.VariantID
-            if variantID != nil && len(product.Variants) > 0 {
-                for _, v := range product.Variants {
-                    if v.ID == *variantID && v.IsActive {
-                        inventory = &v.Inventory
-                        price = price.Add(v.PriceAdjustment)
+            if item.VariantID != nil && len(product.Variants) > 0 {
+                for i := range product.Variants {
+                    if product.Variants[i].ID == *item.VariantID && product.Variants[i].IsActive {
+                        inventory = &product.Variants[i].Inventory
                         break
                     }
                 }
-            } else if variantID == nil && product.SimpleInventory != nil {
+            } else if item.VariantID == nil && product.SimpleInventory != nil {
                 inventory = product.SimpleInventory
-            } else {
-                s.logger.Error("No valid inventory", zap.String("product_id", item.ProductID), zap.Stringp("variant_id", variantID))
-                return ErrInventoryNotFound
             }
-            if inventory == nil {
-                s.logger.Error("No valid inventory", zap.String("product_id", item.ProductID), zap.Stringp("variant_id", variantID))
+
+            if inventory == nil || inventory.ID == "" {
+                s.logger.Error("No valid inventory", 
+                    zap.String("product_id", item.ProductID), 
+                    zap.Stringp("variant_id", item.VariantID))
                 return ErrInventoryNotFound
             }
 
-            // Transaction: Update cart item and reserve inventory
-            // Lock inventory
-            var lockedInventory models.Inventory
-            if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&lockedInventory, "id = ?", inventory.ID).Error; err != nil {
-                return fmt.Errorf("failed to lock inventory: %w", err)
+            inventoryIDs = append(inventoryIDs, inventory.ID)
+            inventoryMap[inventory.ID] = inventory
+        }
+
+        // Batch lock all inventories
+        var lockedInventories []models.Inventory
+        if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+            Where("id IN ?", inventoryIDs).
+            Find(&lockedInventories).Error; err != nil {
+            return fmt.Errorf("failed to lock inventories: %w", err)
+        }
+
+        // Create locked inventory lookup map
+        lockedInvMap := make(map[string]*models.Inventory)
+        for i := range lockedInventories {
+            lockedInvMap[lockedInventories[i].ID] = &lockedInventories[i]
+        }
+
+        // OPTIMIZATION 3: Process each item with already-fetched and locked data
+        for _, item := range items.Items {
+            product := productsMap[item.ProductID]
+
+            // Determine inventory and price
+            var inventory *models.Inventory
+            var lockedInv *models.Inventory
+            var price decimal.Decimal = product.BasePrice
+            
+            if item.VariantID != nil && len(product.Variants) > 0 {
+                for i := range product.Variants {
+                    if product.Variants[i].ID == *item.VariantID && product.Variants[i].IsActive {
+                        inventory = &product.Variants[i].Inventory
+                        lockedInv = lockedInvMap[inventory.ID]
+                        price = price.Add(product.Variants[i].PriceAdjustment)
+                        break
+                    }
+                }
+            } else if item.VariantID == nil && product.SimpleInventory != nil {
+                inventory = product.SimpleInventory
+                lockedInv = lockedInvMap[inventory.ID]
             }
 
-            available := lockedInventory.Quantity - lockedInventory.ReservedQuantity
+            if lockedInv == nil {
+                return ErrInventoryNotFound
+            }
+
+            // Check availability
+            available := lockedInv.Quantity - lockedInv.ReservedQuantity
             if item.Quantity > available {
+                s.logger.Error("Insufficient stock", 
+                    zap.String("product_id", item.ProductID),
+                    zap.Int("requested", item.Quantity),
+                    zap.Int("available", available))
                 return ErrInsufficientStock
             }
 
-            // Find and lock existing cart item
+            // Find existing cart item (with lock)
             var existing models.CartItem
-            query := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("cart_id = ? AND product_id = ?", cartModel.ID, item.ProductID)
-            if variantID != nil {
-                query = query.Where("variant_id = ?", *variantID)
+            query := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+                Where("cart_id = ? AND product_id = ?", cartModel.ID, item.ProductID)
+            
+            if item.VariantID != nil {
+                query = query.Where("variant_id = ?", *item.VariantID)
             } else {
                 query = query.Where("variant_id IS NULL")
             }
-            err = query.First(&existing).Error
+            
+            err := query.First(&existing).Error
+            
             if err == nil {
                 // Update existing item
                 newQty := existing.Quantity + item.Quantity
-                if err := tx.Model(&models.CartItem{}).Where("id = ?", existing.ID).Update("quantity", newQty).Error; err != nil {
+                
+                // Re-check availability with new quantity
+                totalNeeded := newQty
+                if totalNeeded > lockedInv.Quantity - lockedInv.ReservedQuantity + existing.Quantity {
+                    s.logger.Error("Insufficient stock for quantity update",
+                        zap.String("product_id", item.ProductID),
+                        zap.Int("total_needed", totalNeeded),
+                        zap.Int("available", available))
+                    return ErrInsufficientStock
+                }
+                
+                if err := tx.Model(&models.CartItem{}).
+                    Where("id = ?", existing.ID).
+                    Update("quantity", newQty).Error; err != nil {
                     return fmt.Errorf("failed to update cart item: %w", err)
                 }
-                // Adjust reserved quantity
-                if err := tx.Model(&models.Inventory{}).Where("id = ?", inventory.ID).
+                
+                // Reserve additional inventory
+                if err := tx.Model(&models.Inventory{}).
+                    Where("id = ?", lockedInv.ID).
                     Update("reserved_quantity", gorm.Expr("reserved_quantity + ?", item.Quantity)).Error; err != nil {
                     return fmt.Errorf("failed to adjust inventory reservation: %w", err)
                 }
-                // NO return nil HERE! Let the loop continue
-            } else if !errors.Is(err, gorm.ErrRecordNotFound) {
-                return fmt.Errorf("failed to check existing cart item: %w", err)
-            } else {
+                
+                s.logger.Info("Updated existing cart item",
+                    zap.Uint("cart_item_id", existing.ID),
+                    zap.Int("new_quantity", newQty))
+                
+            } else if errors.Is(err, gorm.ErrRecordNotFound) {
                 // Create new cart item
                 cartItem := &models.CartItem{
                     CartID:     cartModel.ID,
                     ProductID:  item.ProductID,
-                    VariantID:  variantID,
+                    VariantID:  item.VariantID,
                     Quantity:   item.Quantity,
                     MerchantID: product.MerchantID,
                 }
+                
                 if err := tx.Create(cartItem).Error; err != nil {
                     return fmt.Errorf("failed to create cart item: %w", err)
                 }
-                if err := tx.Model(&models.Inventory{}).Where("id = ?", inventory.ID).
+                
+                // Reserve inventory
+                if err := tx.Model(&models.Inventory{}).
+                    Where("id = ?", lockedInv.ID).
                     Update("reserved_quantity", gorm.Expr("reserved_quantity + ?", item.Quantity)).Error; err != nil {
                     return fmt.Errorf("failed to reserve inventory: %w", err)
                 }
-                // NO return nil HERE either!
+                
+                s.logger.Info("Created new cart item",
+                    zap.Uint("cart_item_id", cartItem.ID),
+                    zap.String("product_id", item.ProductID))
+                
+            } else {
+                // Unexpected error
+                return fmt.Errorf("failed to check existing cart item: %w", err)
             }
         }
-        return nil  // Success—only return AFTER the entire for loop
+        
+        return nil // Success - all items processed
     })
+    
     if err != nil {
         s.logger.Error("Transaction failed", zap.Uint("user_id", userID), zap.Error(err))
         return nil, fmt.Errorf("%w: %v", ErrTransactionFailed, err)
     }
 
-    // Load full once at end
+    // Load full cart with all preloads for response
     fullCart, err := s.cartRepo.FindByID(ctx, cartModel.ID)
     if err != nil {
-        return nil, err
+        s.logger.Error("Failed to fetch updated cart", zap.Uint("cart_id", cartModel.ID), zap.Error(err))
+        return nil, fmt.Errorf("failed to fetch cart: %w", err)
     }
-    return helpers.ToCartResponse(fullCart), nil
+    
+    response := helpers.ToCartResponse(fullCart)
+    s.logger.Info("Bulk items added successfully",
+        zap.Uint("user_id", userID),
+        zap.Uint("cart_id", cartModel.ID),
+        zap.Int("items_count", len(items.Items)))
+    
+    return response, nil
 }
-
 // New helper: Light get/create without preloads
 func (s *CartService) getOrCreateActiveCartModel(ctx context.Context, userID uint) (*models.Cart, error) {
     cart, err := s.cartRepo.FindActiveCartLight(ctx, userID) // New light repo method, see below

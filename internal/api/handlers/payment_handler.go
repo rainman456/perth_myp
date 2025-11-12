@@ -52,6 +52,7 @@ func (h *PaymentHandler) Initialize(c *gin.Context) {
 		return
 	}
 	resp, err := h.service.InitializeCheckout(ctx, req)
+	h.logger.Info("Initializing payment", zap.Uint("order_id", req.OrderID))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

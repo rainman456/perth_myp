@@ -54,9 +54,18 @@ func (r *PaymentRepository) FindByOrderID(ctx context.Context ,orderID uint) (*m
 }
 
 // FindByUserID retrieves all payments for a user
-func (r *PaymentRepository) FindByUserID(ctx context.Context ,userID uint) ([]models.Payment, error) {
+func (r *PaymentRepository) FindByUserID(ctx context.Context, userID uint) ([]models.Payment, error) {
 	var payments []models.Payment
-	err := r.db.WithContext(ctx).Preload("Order.User").Joins("JOIN orders ON orders.id = payments.order_id").Where("orders.user_id = ?", userID).Find(&payments).Error
+	// Use subquery instead of JOIN
+	err := r.db.WithContext(ctx).
+		Where("order_id IN (?)", 
+			r.db.Table("orders").Select("id").Where("user_id = ?", userID),
+		).
+		Preload("Order", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, user_id, total_amount, status")
+		}).
+		Order("created_at DESC").
+		Find(&payments).Error
 	return payments, err
 }
 
@@ -68,4 +77,27 @@ func (r *PaymentRepository) Update(ctx context.Context,payment *models.Payment) 
 // Delete removes a payment by ID
 func (r *PaymentRepository) Delete(ctx context.Context,id uint) error {
 	return r.db.WithContext(ctx).Delete(&models.Payment{}, id).Error
+}
+
+
+
+
+
+
+
+
+
+func (r *PaymentRepository) UpdateWithDB(db *gorm.DB, payment *models.Payment) error {
+    return db.Save(payment).Error
+}
+
+func (r *PaymentRepository) FindByTransactionIDWithDB(db *gorm.DB, txID string) (*models.Payment, error) {
+    var payment models.Payment
+    if err := db.Where("transaction_id = ?", txID).First(&payment).Error; err != nil {
+        if errors.Is(err, gorm.ErrRecordNotFound) {
+            return nil, ErrPaymentNotFound
+        }
+        return nil, err
+    }
+    return &payment, nil
 }

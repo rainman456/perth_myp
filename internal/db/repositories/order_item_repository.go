@@ -24,7 +24,10 @@ func (r *OrderItemRepository) Create(orderItem *models.OrderItem) error {
 // FindByID retrieves an order item by ID with associated Order, Product, and Merchant
 func (r *OrderItemRepository) FindByID(id uint) (*models.OrderItem, error) {
 	var orderItem models.OrderItem
-	err := r.db.Preload("Order.User").Preload("Product.Merchant").Preload("Merchant").First(&orderItem, id).Error
+	err := r.db.Preload("Order.User").
+	Preload("Product.Merchant").
+	Preload("Product.Media").
+	Preload("Merchant").First(&orderItem, id).Error
 	return &orderItem, err
 }
 

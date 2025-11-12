@@ -1,6 +1,9 @@
 package dto
 
 import (
+	"crypto/md5"
+	"encoding/hex"
+	"encoding/json"
 	"time"
 	//"github.com/shopspring/decimal"
 )
@@ -306,4 +309,59 @@ type ProductAutocompleteResponse struct {
 // AutocompleteResponse is the full response with a list of suggestions.
 type AutocompleteResponse struct {
 	Suggestions []ProductAutocompleteResponse `json:"suggestions"`
+}
+
+
+
+
+
+
+type ProductFilterRequest struct {
+	CategoryID   *uint    `form:"category_id"`
+	CategoryName *string  `form:"category_name"`
+	CategorySlug *string  `form:"category_slug"`
+	MinPrice     *float64 `form:"min_price"`
+	MaxPrice     *float64 `form:"max_price"`
+	InStock      *bool    `form:"in_stock"`
+	SearchTerm   *string  `form:"search" binding:"omitempty,max=100"`
+	MerchantName *string  `form:"merchant_name"`
+
+	// NEW: Variant attribute filters
+	Color    *string `form:"color"`
+	Size     *string `form:"size"`
+	Material *string `form:"material"`
+	Pattern  *string `form:"pattern"`
+
+	// NEW: Sorting
+	SortBy    *string `form:"sort_by" binding:"omitempty,oneof=price price_desc name name_desc created newest oldest rating"`
+	OnSale    *bool   `form:"on_sale"` // Products with discounts
+	Featured  *bool   `form:"featured"`
+
+	// Pagination
+	Page  int `form:"page" binding:"omitempty,min=1"`
+	Limit int `form:"limit" binding:"omitempty,min=1,max=100"`
+}
+
+func (f *ProductFilterRequest) GetOffset() int {
+	if f.Page <= 0 {
+		f.Page = 1
+	}
+	if f.Limit <= 0 {
+		f.Limit = 20
+	}
+	return (f.Page - 1) * f.Limit
+}
+
+func (f *ProductFilterRequest) GetLimit() int {
+	if f.Limit <= 0 || f.Limit > 100 {
+		return 20
+	}
+	return f.Limit
+}
+
+// Generate hash for cache key
+func (f *ProductFilterRequest) Hash() string {
+	data, _ := json.Marshal(f)
+	hash := md5.Sum(data)
+	return hex.EncodeToString(hash[:])
 }

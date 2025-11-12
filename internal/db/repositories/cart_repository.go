@@ -58,15 +58,26 @@ func (r *CartRepository) FindByID(ctx context.Context, id uint) (*models.Cart, e
 func (r *CartRepository) FindActiveCart(ctx context.Context, userID uint) (*models.Cart, error) {
 	var cart models.Cart
 	err := r.db.WithContext(ctx).
-		Preload("CartItems.Product.Category").  // For category_name/slug
-		Preload("CartItems.Product.Media").      // For images
-		//Preload("CartItems.Product.Merchant").   // For merchant_name/store_name
-		//Preload("CartItems.Product.Reviews").    // For avg_rating/review_count (or limit as above)
-		Preload("CartItems.Variant.Inventory"). // For variants
-		//Preload("CartItems.Variant").            // For variant details
-		//Preload("CartItems.Merchant").           // Existing + extra
-		Where("user_id = ? AND status = ?", userID, models.CartStatusActive).
-		Order("created_at DESC").First(&cart).Error
+	Preload("CartItems", func(db *gorm.DB) *gorm.DB {
+		return db.Select("id, cart_id, product_id, variant_id, quantity, merchant_id")
+	}).
+	Preload("CartItems.Product", func(db *gorm.DB) *gorm.DB {
+		return db.Select("id, name, base_price, final_price, merchant_id, category_id")
+	}).
+	Preload("CartItems.Product.Category", func(db *gorm.DB) *gorm.DB {
+		return db.Select("id, name, category_slug")
+	}).
+	Preload("CartItems.Product.Media", func(db *gorm.DB) *gorm.DB {
+		return db.Select("id, product_id, url, type").Where("type = ?", "image").Limit(1)
+	}).
+	Preload("CartItems.Variant.Inventory", func(db *gorm.DB) *gorm.DB {
+		return db.Select("id, variant_id, quantity, reserved_quantity, backorder_allowed")
+	}).
+	Preload("CartItems.Merchant", func(db *gorm.DB) *gorm.DB {
+		return db.Select("id, merchant_id, name, store_name")
+	}).
+	Where("user_id = ? AND status = ?", userID, models.CartStatusActive).
+	Order("created_at DESC").First(&cart).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, gorm.ErrRecordNotFound //ErrCartNotFound
 	}
