@@ -37,62 +37,79 @@ func InitRedis(conf *config.Config) {
 
 // Helper to get cached value or fetch and cache
 func GetOrSetCache(ctx context.Context, key string, ttl time.Duration, fetch func() (any, error)) (any, error) {
-	val, err := RedisClient.Get(ctx, key).Result()
-	if err == nil {
-		return val, nil // Deserialize if needed (e.g., JSON)
-	}
-	if err != redis.Nil {
-		return nil, err
-	}
+    if RedisClient == nil {
+        log.Printf("redis not initialized, skipping cache for key %s", key)
+        return fetch()
+    }
 
-	data, err := fetch()
-	if err != nil {
-		return nil, err
-	}
+    val, err := RedisClient.Get(ctx, key).Result()
+    if err == nil {
+        return val, nil
+    }
+    if err != redis.Nil {
+        log.Printf("redis GET error for key %s: %v", key, err)
+    }
 
-	// Serialize if complex (e.g., JSON marshal)
-	if err := RedisClient.Set(ctx, key, data, ttl).Err(); err != nil {
-		return nil, err
-	}
-	return data, nil
+    data, err := fetch()
+    if err != nil {
+        return nil, err
+    }
+
+    go func(k string, d any) {
+        if RedisClient == nil {
+            return
+        }
+        _ = RedisClient.Set(context.Background(), k, d, ttl).Err()
+    }(key, data)
+
+    return data, nil
 }
 
 
 func GetOrSetCacheJSON[T any](ctx context.Context, key string, ttl time.Duration, fetch func() (T, error)) (T, error) {
-	var result T
+    var result T
 
-	// Try to get from cache
-	val, err := RedisClient.Get(ctx, key).Result()
-	if err == nil {
-		// Cache hit - deserialize
-		if err := json.Unmarshal([]byte(val), &result); err == nil {
-			return result, nil
-		}
-		// If unmarshal fails, continue to fetch fresh data
-	}
+    // If Redis isn't initialized, just fetch and return (no cache)
+    if RedisClient == nil {
+        // Optional: log once for visibility (don't spam)
+        log.Printf("redis not initialized, skipping cache for key %s", key)
+        return fetch()
+    }
 
-	if err != nil && err != redis.Nil {
-		// Redis error (not just cache miss)
-		// Continue to fetch from DB but log the error
-	}
+    // Try to get from cache
+    val, err := RedisClient.Get(ctx, key).Result()
+    if err == nil {
+        if err := json.Unmarshal([]byte(val), &result); err == nil {
+            return result, nil
+        }
+        // If unmarshal fails, fallthrough to fetch fresh
+        log.Printf("failed to unmarshal cached value for key %s: %v", key, err)
+    } else if err != redis.Nil {
+        // Real Redis error — log and continue to fetch fresh data
+        log.Printf("redis GET error for key %s: %v", key, err)
+    }
 
-	// Cache miss or error - fetch fresh data
-	result, err = fetch()
-	if err != nil {
-		return result, err
-	}
+    // Cache miss or error — fetch fresh data
+    result, err = fetch()
+    if err != nil {
+        return result, err
+    }
 
-	// Store in cache (async to not block response)
-	go func() {
-		jsonData, err := json.Marshal(result)
-		if err != nil {
-			return
-		}
-		RedisClient.Set(context.Background(), key, jsonData, ttl).Err()
-	}()
+    // Store in cache asynchronously (best-effort)
+    go func(data T) {
+        if RedisClient == nil {
+            return
+        }
+        jsonData, merr := json.Marshal(data)
+        if merr != nil {
+            return
+        }
+        _ = RedisClient.Set(context.Background(), key, jsonData, ttl).Err()
+    }(result)
 
-	return result, nil
+    return result, nil
 }
+
 
 // InvalidateCache - Delete single key
 func InvalidateCache(ctx context.Context, key string) error {

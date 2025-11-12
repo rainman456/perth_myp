@@ -621,6 +621,15 @@ func (h *ProductHandler) FilterProducts(c *gin.Context) {
 		logger.Debug("Cache miss - filtering products from DB")
 
 		// Build filter
+		var sortBy string
+		if req.SortBy != nil && *req.SortBy != "" {
+			sortBy = *req.SortBy
+		} else {
+			// choose a default that matches your repo behavior;
+			// "newest" keeps the existing default ordering of created_at DESC
+			sortBy = "newest"
+		}
+
 		filter := repositories.ProductFilter{
 			CategoryID:   req.CategoryID,
 			CategoryName: req.CategoryName,
@@ -633,9 +642,8 @@ func (h *ProductHandler) FilterProducts(c *gin.Context) {
 			Size:         req.Size,
 			Material:     req.Material,
 			Pattern:      req.Pattern,
-			SortBy:       *req.SortBy,
+			SortBy:       sortBy,
 		}
-
 		if req.MinPrice != nil {
 			minPrice := decimal.NewFromFloat(*req.MinPrice)
 			filter.MinPrice = &minPrice
