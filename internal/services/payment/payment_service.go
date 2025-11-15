@@ -451,7 +451,7 @@ func (s *PaymentService) VerifyPayment(ctx context.Context, reference string) (*
 		}
 
 		// Update order status to Paid
-		order.Status = models.OrderStatusPaid
+		order.Status = models.OrderStatusProcessing
 		if err := tx.Save(&order).Error; err != nil {
 			return fmt.Errorf("failed to update order status: %w", err)
 		}
@@ -608,7 +608,7 @@ func (s *PaymentService) handleChargeSuccess(ctx context.Context, reference stri
 		}
 
 		// Update order status to Paid
-		order.Status = models.OrderStatusPaid
+		order.Status = models.OrderStatusProcessing
 		if err := tx.Save(&order).Error; err != nil {
 			return fmt.Errorf("failed to update order status: %w", err)
 		}

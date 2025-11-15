@@ -9,17 +9,16 @@ import (
 type FulfillmentStatus string
 
 const (
-	FulfillmentStatusNew              FulfillmentStatus = "New"
-	FulfillmentStatusConfirmed        FulfillmentStatus = "Confirmed"
-	FulfillmentStatusDeclined         FulfillmentStatus = "Declined"
-	FulfillmentStatusSentToAronovaHub FulfillmentStatus = "SentToAronovaHub"
-	FulfillmentStatusShipped          FulfillmentStatus = "Shipped"
+    FulfillmentStatusProcessing       FulfillmentStatus = "Processing" // NEW
+    FulfillmentStatusConfirmed        FulfillmentStatus = "Confirmed"
+    FulfillmentStatusDeclined         FulfillmentStatus = "Declined"
+    FulfillmentStatusSentToAronovaHub FulfillmentStatus = "SentToAronovaHub"
+    FulfillmentStatusShipped          FulfillmentStatus = "Shipped"
 )
-
 // Valid checks if the status is one of the allowed values
 func (s FulfillmentStatus) Valid() error {
 	switch s {
-	case FulfillmentStatusNew, FulfillmentStatusConfirmed, FulfillmentStatusDeclined, FulfillmentStatusSentToAronovaHub, FulfillmentStatusShipped:
+	case FulfillmentStatusProcessing, FulfillmentStatusConfirmed, FulfillmentStatusDeclined, FulfillmentStatusSentToAronovaHub, FulfillmentStatusShipped:
 		return nil
 	default:
 		return fmt.Errorf("invalid fulfillment status: %s", s)
@@ -56,4 +55,27 @@ func (oi *OrderItem) BeforeUpdate(tx *gorm.DB) error {
 		return err
 	}
 	return nil
+}
+
+func (oi *OrderItem) CanBeModified() bool {
+    return oi.FulfillmentStatus != FulfillmentStatusSentToAronovaHub &&
+           oi.FulfillmentStatus != FulfillmentStatusShipped
+}
+
+
+// ValidateStatusTransition checks if status change is allowed
+func (oi *OrderItem) ValidateStatusTransition(newStatus FulfillmentStatus) error {
+    switch oi.FulfillmentStatus {
+    case FulfillmentStatusProcessing:
+        if newStatus != FulfillmentStatusConfirmed && newStatus != FulfillmentStatusDeclined {
+            return fmt.Errorf("can only transition to Confirmed/Declined from Processing")
+        }
+    case FulfillmentStatusConfirmed:
+        if newStatus != FulfillmentStatusSentToAronovaHub {
+            return fmt.Errorf("can only transition to SentToAronovaHub from Confirmed")
+        }
+    case FulfillmentStatusSentToAronovaHub, FulfillmentStatusShipped, FulfillmentStatusDeclined:
+        return fmt.Errorf("cannot transition from terminal status: %s", oi.FulfillmentStatus)
+    }
+    return nil
 }

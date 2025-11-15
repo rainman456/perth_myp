@@ -26,7 +26,7 @@ type EmailService struct {
 type EmailData struct {
 	Subject string
 	To      string
-	Data    map[string]interface{}
+	Data    map[string]any
 }
 
 // NewEmailService creates a new email service instance

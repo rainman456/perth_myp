@@ -294,7 +294,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID uint) (*dto.Order
 				MerchantID:        item.MerchantID,
 				Quantity:          item.Quantity,
 				Price:             priceFloat,
-				FulfillmentStatus: models.FulfillmentStatusNew,
+				FulfillmentStatus: models.FulfillmentStatusProcessing,
 			}
 
 			orderItems = append(orderItems, orderItem)
@@ -598,9 +598,9 @@ func (s *OrderService) AcceptOrderItem(ctx context.Context, orderItemID uint, me
 		return errors.New("unauthorized: merchant does not own this order item")
 	}
 
-	// Check if the current status allows acceptance (must be New)
-	if orderItem.FulfillmentStatus != models.FulfillmentStatusNew {
-		return fmt.Errorf("cannot accept order item with status: %s", orderItem.FulfillmentStatus)
+	// Validate status transition using state machine logic
+	if err := orderItem.ValidateStatusTransition(models.FulfillmentStatusConfirmed); err != nil {
+		return fmt.Errorf("invalid status transition: %w", err)
 	}
 
 	// Update the fulfillment status to Confirmed
@@ -625,11 +625,9 @@ func (s *OrderService) DeclineOrderItem(ctx context.Context, orderItemID uint, m
 		return errors.New("unauthorized: merchant does not own this order item")
 	}
 
-	// Check if the current status allows declining (must be New)
-	if orderItem.FulfillmentStatus != models.FulfillmentStatusNew {
-		return fmt.Errorf("cannot decline order item with status: %s", orderItem.FulfillmentStatus)
+	if err := orderItem.ValidateStatusTransition(models.FulfillmentStatusDeclined); err != nil {
+		return fmt.Errorf("invalid status transition: %w", err)
 	}
-
 	// Update the fulfillment status to Declined
 	orderItem.FulfillmentStatus = models.FulfillmentStatusDeclined
 	if err := s.orderItemRepo.Update(orderItem); err != nil {
@@ -652,9 +650,8 @@ func (s *OrderService) UpdateOrderItemToSentToAronovaHub(ctx context.Context, or
 		return errors.New("unauthorized: merchant does not own this order item")
 	}
 
-	// Check if the current status allows updating to SentToAronovaHub (must be Confirmed)
-	if orderItem.FulfillmentStatus != models.FulfillmentStatusConfirmed {
-		return fmt.Errorf("can only update to 'SentToAronovaHub' from 'Confirmed' status, current status: %s", orderItem.FulfillmentStatus)
+	if err := orderItem.ValidateStatusTransition(models.FulfillmentStatusSentToAronovaHub); err != nil {
+		return fmt.Errorf("invalid status transition: %w", err)
 	}
 
 	// Update the fulfillment status to SentToAronovaHub
