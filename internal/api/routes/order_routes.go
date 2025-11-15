@@ -69,6 +69,7 @@ func SetupOrderRoutes(r *gin.Engine) {
 		userRepo,
 		paymentService,
 		emailService,
+		conf,
 		logger,
 	)
 

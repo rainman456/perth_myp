@@ -64,6 +64,7 @@ func SetupMerchantRoutes(r *gin.Engine) {
 		userRepo,
 		paymentService,
 		emailService,
+		cfg,
 		logger,
 	)
 

@@ -4,10 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
+
 	//"strings"
 
 	"api-customer-merchant/internal/api/dto"
 	"api-customer-merchant/internal/api/helpers"
+	"api-customer-merchant/internal/config"
 	"api-customer-merchant/internal/db"
 	"api-customer-merchant/internal/db/models"
 	"api-customer-merchant/internal/db/repositories"
@@ -32,6 +35,7 @@ type OrderService struct {
 	userRepo       *repositories.UserRepository // ADD THIS
 	paymentService *payment.PaymentService
 	emailService   *email.EmailService
+	config         *config.Config // ADD THIS LINE
 	logger         *zap.Logger
 	//validator   *validator.Validate
 	db *gorm.DB
@@ -45,9 +49,10 @@ func NewOrderService(
 	cartItemRepo *repositories.CartItemRepository,
 	productRepo *repositories.ProductRepository,
 	inventoryRepo *repositories.InventoryRepository,
-	userRepo *repositories.UserRepository, // ADD THIS
+	userRepo *repositories.UserRepository, 
 	paymentService *payment.PaymentService,
 	emailService *email.EmailService,
+	config *config.Config, 
 	logger *zap.Logger,
 ) *OrderService {
 	return &OrderService{
@@ -60,6 +65,7 @@ func NewOrderService(
 		userRepo:       userRepo,
 		paymentService: paymentService,
 		emailService:   emailService,
+		config:         config,
 		logger:         logger,
 		db:             db.DB,
 	}
@@ -277,6 +283,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID uint) (*dto.Order
 
 		// Calculate total and create order items (DO NOT commit inventory yet)
 		var orderItems []models.OrderItem
+		merchantSplits := make(map[string]decimal.Decimal) // ADD THIS - Track merchant totals
 
 		for _, item := range cart.CartItems {
 			// Determine price: variant if present, else product
@@ -288,6 +295,9 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID uint) (*dto.Order
 			subtotal := decimal.NewFromInt(int64(item.Quantity)).Mul(price)
 			totalAmount = totalAmount.Add(subtotal)
 
+			// ADD THIS - Accumulate merchant subtotals
+			merchantSplits[item.MerchantID] = merchantSplits[item.MerchantID].Add(subtotal)
+
 			orderItem := models.OrderItem{
 				ProductID:         item.ProductID,
 				VariantID:         item.VariantID,
@@ -298,17 +308,13 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID uint) (*dto.Order
 			}
 
 			orderItems = append(orderItems, orderItem)
-
-			// IMPORTANT: DO NOT commit inventory here
-			// Inventory is already reserved in cart
-			// It will only be committed after successful payment
 		}
 
 		// Create the order
 		newOrder = &models.Order{
 			UserID:      userID,
 			SubTotal:    totalAmount,
-			TotalAmount: totalAmount, // Add tax/shipping calculation if needed
+			TotalAmount: totalAmount,
 			Status:      models.OrderStatusPending,
 			Currency:    "NGN",
 		}
@@ -323,6 +329,35 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID uint) (*dto.Order
 		if err := tx.Create(&orderItems).Error; err != nil {
 			return fmt.Errorf("failed to create order items: %w", err)
 		}
+
+		// ADD THIS ENTIRE BLOCK - Create order-merchant splits
+		commission := decimal.NewFromFloat(s.config.PlatformCommission) // Platform commission (e.g., 0.10 for 10%)
+		for merchantID, merchantSubtotal := range merchantSplits {
+			// Calculate platform fee and merchant's amount
+			platformFee := merchantSubtotal.Mul(commission)
+			merchantAmountDue := merchantSubtotal.Sub(platformFee)
+			
+			split := &models.OrderMerchantSplit{
+				OrderID:    newOrder.ID,
+				MerchantID: merchantID,
+				AmountDue:  merchantAmountDue,
+				Fee:        platformFee,
+				Status:     "pending",
+				HoldUntil:  time.Now().Add(14 * 24 * time.Hour), // 14-day hold period
+			}
+			
+			if err := tx.Create(split).Error; err != nil {
+				return fmt.Errorf("failed to create merchant split for merchant %s: %w", merchantID, err)
+			}
+			
+			s.logger.Info("Created merchant split",
+				zap.String("merchant_id", merchantID),
+				zap.Float64("subtotal", merchantSubtotal.InexactFloat64()),
+				zap.Float64("fee", platformFee.InexactFloat64()),
+				zap.Float64("amount_due", merchantAmountDue.InexactFloat64()),
+			)
+		}
+		// END OF ADDED BLOCK
 
 		// Reload order with items and user for response
 		if err := tx.Preload("OrderItems.Product.Media").
