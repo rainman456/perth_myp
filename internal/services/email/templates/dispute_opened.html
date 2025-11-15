@@ -1,0 +1,16 @@
+{{define "content"}}
+<h2>Dispute Opened</h2>
+<p>Hi {{.UserName}},</p>
+<p>A dispute has been opened for your order.</p>
+<div class="highlight">
+    <p><strong>Order ID:</strong> {{.OrderID}}</p>
+    <p><strong>Dispute ID:</strong> {{.DisputeID}}</p>
+    <p><strong>Date:</strong> {{.Date}}</p>
+    <p><strong>Reason:</strong> {{.Reason}}</p>
+</div>
+<p>Our team is reviewing your dispute and will contact you within 24-48 hours with a resolution.</p>
+<p>You can view the details of this dispute in your account dashboard:</p>
+<a href="{{.DisputeURL}}" class="button">View Dispute</a>
+<p>If you have any additional information to provide, please contact our support team.</p>
+<p>Thank you for your patience.</p>
+{{end}}

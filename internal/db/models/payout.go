@@ -29,6 +29,7 @@ type Payout struct {
 	Amount          float64      `gorm:"type:decimal(10,2);not null" json:"amount"`
 	Status          PayoutStatus `gorm:"type:varchar(20);not null;default:'Pending'" json:"status"`
 	PayoutAccountID string       `gorm:"size:255;not null" json:"payout_account_id"`
+	PayStackTransferID string       `gorm:"size:255;not null" json:"paystack_transfer_id"`
 	Merchant        Merchant     `gorm:"foreignKey:MerchantID"`
 }
 

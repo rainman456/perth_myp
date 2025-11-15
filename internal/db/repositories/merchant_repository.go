@@ -79,16 +79,42 @@ func (r *MerchantRepository) GetByWorkEmail(ctx context.Context, email string) (
 	return &m, nil
 }
 
-
-
 func (r *MerchantRepository) UpdateBankDetails(ctx context.Context, merchantID string, details dto.BankDetailsRequest) error {
 	// Use WithContext so DB operations respect request lifecycle
 	if err := db.DB.WithContext(ctx).
 		Model(&models.MerchantBankDetails{}).
 		Where("merchant_id = ?", merchantID).
 		Save(details).Error; err != nil {
-		
+
 		log.Printf("Failed to update bank details for merchant %s: %v", merchantID, err)
+		return err
+	}
+	return nil
+}
+
+// UpdateMerchant updates a merchant's profile information
+func (r *MerchantRepository) UpdateMerchant(ctx context.Context, merchantID string, updates map[string]interface{}) error {
+	// Remove any fields that shouldn't be updated
+	delete(updates, "id")
+	delete(updates, "merchant_id")
+	delete(updates, "application_id")
+	delete(updates, "password")
+	delete(updates, "status")
+	delete(updates, "commission_tier")
+	delete(updates, "commission_rate")
+	delete(updates, "account_balance")
+	delete(updates, "total_sales")
+	delete(updates, "total_payouts")
+	delete(updates, "payout_schedule")
+	delete(updates, "last_payout_date")
+	delete(updates, "created_at")
+	delete(updates, "updated_at")
+
+	if err := db.DB.WithContext(ctx).
+		Model(&models.Merchant{}).
+		Where("merchant_id = ?", merchantID).
+		Updates(updates).Error; err != nil {
+		log.Printf("Failed to update merchant %s: %v", merchantID, err)
 		return err
 	}
 	return nil

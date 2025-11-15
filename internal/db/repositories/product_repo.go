@@ -562,9 +562,27 @@ func (r *ProductRepository) SoftDeleteProduct(id string) error {
 	return r.db.Where("id = ?", id).Delete(&models.Product{}).Error
 }
 
+// UpdateProduct updates a product with the provided fields
+func (r *ProductRepository) UpdateProduct(ctx context.Context, productID string, updates map[string]interface{}) error {
+	return r.db.WithContext(ctx).Model(&models.Product{}).Where("id = ?", productID).Updates(updates).Error
+}
 
+// UpdateVariant updates a variant with the provided fields
+func (r *ProductRepository) UpdateVariant(ctx context.Context, variantID string, updates map[string]interface{}) error {
+	return r.db.WithContext(ctx).Model(&models.Variant{}).Where("id = ?", variantID).Updates(updates).Error
+}
 
-
+// FindVariantByID finds a variant by its ID
+func (r *ProductRepository) FindVariantByID(ctx context.Context, id string) (*models.Variant, error) {
+	var variant models.Variant
+	err := r.db.WithContext(ctx).Where("id = ? AND deleted_at IS NULL", id).First(&variant).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, ErrProductNotFound
+	} else if err != nil {
+		return nil, fmt.Errorf("failed to find variant by ID: %w", err)
+	}
+	return &variant, nil
+}
 
 //For media uploads
 func (r *ProductRepository) CreateMedia(ctx context.Context, media *models.Media) error {

@@ -1,0 +1,33 @@
+{{define "content"}}
+<h2>Order Confirmation</h2>
+<p>Hi {{.CustomerName}},</p>
+<p>Thank you for your order! We've received your order and are preparing it for shipment.</p>
+<div class="highlight">
+    <p><strong>Order ID:</strong> {{.OrderID}}</p>
+    <p><strong>Order Date:</strong> {{.OrderDate}}</p>
+    <p><strong>Total Amount:</strong> {{.TotalAmount}}</p>
+</div>
+<h3>Order Items</h3>
+<table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+    <thead>
+        <tr style="background-color: #f2f2f2;">
+            <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Item</th>
+            <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Quantity</th>
+            <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Price</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{range .Items}}
+        <tr>
+            <td style="padding: 10px; border: 1px solid #ddd;">{{.Name}}</td>
+            <td style="padding: 10px; border: 1px solid #ddd;">{{.Quantity}}</td>
+            <td style="padding: 10px; border: 1px solid #ddd;">{{.Price}}</td>
+        </tr>
+        {{end}}
+    </tbody>
+</table>
+<p>You will receive a shipping notification with tracking information once your order has been dispatched.</p>
+<a href="{{.OrderDetailsURL}}" class="button">View Order Details</a>
+<p>If you have any questions about your order, please contact our customer service team.</p>
+<p>Thank you for shopping with Perth Marketplace!</p>
+{{end}}

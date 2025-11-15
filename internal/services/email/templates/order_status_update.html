@@ -1,0 +1,27 @@
+{{define "content"}}
+<h2>Order Status Update</h2>
+<p>Hi {{.CustomerName}},</p>
+<p>We're writing to inform you that the status of your order has been updated.</p>
+<div class="highlight">
+    <p><strong>Order ID:</strong> {{.OrderID}}</p>
+    <p><strong>New Status:</strong> {{.NewStatus}}</p>
+    <p><strong>Updated At:</strong> {{.UpdateDate}}</p>
+</div>
+{{if eq .NewStatus "Shipped"}}
+<p>Your order has been shipped! You should receive it soon.</p>
+<div class="highlight">
+    <p><strong>Tracking Number:</strong> {{.TrackingNumber}}</p>
+    <p><strong>Shipping Carrier:</strong> {{.Carrier}}</p>
+</div>
+{{else if eq .NewStatus "Processing"}}
+<p>Your order is now being processed. We'll notify you again when it ships.</p>
+{{else if eq .NewStatus "Cancelled"}}
+<p>We regret to inform you that your order has been cancelled.</p>
+<p>If you have any questions or would like to place a new order, please contact our customer service team.</p>
+{{else}}
+<p>Your order status has been updated to: {{.NewStatus}}</p>
+{{end}}
+<a href="{{.OrderDetailsURL}}" class="button">View Order Details</a>
+<p>If you have any questions about your order, please contact our customer service team.</p>
+<p>Thank you for shopping with Perth Marketplace!</p>
+{{end}}

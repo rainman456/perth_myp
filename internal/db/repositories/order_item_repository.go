@@ -25,9 +25,21 @@ func (r *OrderItemRepository) Create(orderItem *models.OrderItem) error {
 func (r *OrderItemRepository) FindByID(id uint) (*models.OrderItem, error) {
 	var orderItem models.OrderItem
 	err := r.db.Preload("Order.User").
-	Preload("Product.Merchant").
-	Preload("Product.Media").
-	Preload("Merchant").First(&orderItem, id).Error
+		Preload("Product.Merchant").
+		Preload("Product.Media").
+		Preload("Merchant").First(&orderItem, id).Error
+	return &orderItem, err
+}
+
+// FindByIDWithContext retrieves an order item by ID with context
+func (r *OrderItemRepository) FindByIDWithContext(ctx context.Context, id uint) (*models.OrderItem, error) {
+	var orderItem models.OrderItem
+	err := r.db.WithContext(ctx).
+		Preload("Order.User").
+		Preload("Product.Merchant").
+		Preload("Product.Media").
+		Preload("Merchant").
+		First(&orderItem, id).Error
 	return &orderItem, err
 }
 
@@ -43,12 +55,19 @@ func (r *OrderItemRepository) Update(orderItem *models.OrderItem) error {
 	return r.db.Save(orderItem).Error
 }
 
+// UpdateFulfillmentStatus updates the fulfillment status of an order item
+func (r *OrderItemRepository) UpdateFulfillmentStatus(ctx context.Context, id uint, status models.FulfillmentStatus) error {
+	return r.db.WithContext(ctx).
+		Model(&models.OrderItem{}).
+		Where("id = ?", id).
+		Update("fulfillment_status", status).
+		Error
+}
+
 // Delete removes an order item by ID
 func (r *OrderItemRepository) Delete(id uint) error {
 	return r.db.Delete(&models.OrderItem{}, id).Error
 }
-
-
 
 // In orderItemRepository
 func (r *OrderItemRepository) FindOrderItemsByOrderID(ctx context.Context, orderID uint) ([]models.OrderItem, error) {

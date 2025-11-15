@@ -1,0 +1,16 @@
+{{define "content"}}
+<h2>Dispute Resolved</h2>
+<p>Hi {{.UserName}},</p>
+<p>The dispute for your order has been resolved.</p>
+<div class="highlight">
+    <p><strong>Order ID:</strong> {{.OrderID}}</p>
+    <p><strong>Dispute ID:</strong> {{.DisputeID}}</p>
+    <p><strong>Resolved Date:</strong> {{.ResolvedDate}}</p>
+    <p><strong>Resolution:</strong> {{.Resolution}}</p>
+</div>
+<p>{{.ResolutionDetails}}</p>
+<p>You can view the details of this resolution in your account dashboard:</p>
+<a href="{{.DisputeURL}}" class="button">View Resolution</a>
+<p>If you have any questions about this resolution, please contact our support team.</p>
+<p>Thank you for using Perth Marketplace.</p>
+{{end}}

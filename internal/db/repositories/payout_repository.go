@@ -29,7 +29,7 @@ func (r *PayoutRepository) FindByID(ctx context.Context,id uint) (*models.Payout
 }
 
 // FindByMerchantID retrieves all payouts for a merchant
-func (r *PayoutRepository) FindByMerchantID(ctx context.Context,merchantID uint) ([]models.Payout, error) {
+func (r *PayoutRepository) FindByMerchantID(ctx context.Context,merchantID string) ([]models.Payout, error) {
 	var payouts []models.Payout
 	err := r.db.WithContext(ctx).Preload("Merchant").Where("merchant_id = ?", merchantID).Find(&payouts).Error
 	return payouts, err

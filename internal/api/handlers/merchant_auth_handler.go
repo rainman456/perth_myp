@@ -14,7 +14,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-
 type MerchantHandler struct {
 	service *merchant.MerchantService
 }
@@ -35,65 +34,65 @@ func NewMerchantAuthHandler(s *merchant.MerchantService) *MerchantHandler {
 // @Failure 500 {object} object{error=string} "Failed to submit application"
 // @Router /merchant/apply [post]
 func (h *MerchantHandler) Apply(c *gin.Context) {
-    var req dto.MerchantApplyDTO
-    if err := c.ShouldBindJSON(&req); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body: " + err.Error()})
-        return
-    }
-    // Convert DTO to model
-    personalAddressJSON, _ := json.Marshal(req.PersonalAddress)
-    workAddressJSON, _ := json.Marshal(req.WorkAddress)
-    app := &models.MerchantApplication{
-        MerchantBasicInfo: models.MerchantBasicInfo{
-            StoreName: req.StoreName,
-            Name: req.Name,
-            PersonalEmail: req.PersonalEmail,
-            WorkEmail: req.WorkEmail,
-            PhoneNumber: req.PhoneNumber,
-        },
-        MerchantAddress: models.MerchantAddress{
-            PersonalAddress: personalAddressJSON,
-            WorkAddress: workAddressJSON,
-        },
-        MerchantBusinessInfo: models.MerchantBusinessInfo{
-            BusinessType: req.BusinessType,
-            Website: req.Website,
-            BusinessDescription: req.BusinessDescription,
-            BusinessRegistrationNumber: req.BusinessRegistrationNumber,
-        },
-        MerchantDocuments: models.MerchantDocuments{
-            StoreLogoURL: req.StoreLogoURL,
-            BusinessRegistrationCertificate: req.BusinessRegistrationCertificate,
-        },
-    }
-    // Service call, response mapping
-    app, err := h.service.SubmitApplication(c.Request.Context(), app)
-    if err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to submit application: " + err.Error()})
-        return
-    }
-    // Build response
+	var req dto.MerchantApplyDTO
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body: " + err.Error()})
+		return
+	}
+	// Convert DTO to model
+	personalAddressJSON, _ := json.Marshal(req.PersonalAddress)
+	workAddressJSON, _ := json.Marshal(req.WorkAddress)
+	app := &models.MerchantApplication{
+		MerchantBasicInfo: models.MerchantBasicInfo{
+			StoreName:     req.StoreName,
+			Name:          req.Name,
+			PersonalEmail: req.PersonalEmail,
+			WorkEmail:     req.WorkEmail,
+			PhoneNumber:   req.PhoneNumber,
+		},
+		MerchantAddress: models.MerchantAddress{
+			PersonalAddress: personalAddressJSON,
+			WorkAddress:     workAddressJSON,
+		},
+		MerchantBusinessInfo: models.MerchantBusinessInfo{
+			BusinessType:               req.BusinessType,
+			Website:                    req.Website,
+			BusinessDescription:        req.BusinessDescription,
+			BusinessRegistrationNumber: req.BusinessRegistrationNumber,
+		},
+		MerchantDocuments: models.MerchantDocuments{
+			StoreLogoURL:                    req.StoreLogoURL,
+			BusinessRegistrationCertificate: req.BusinessRegistrationCertificate,
+		},
+	}
+	// Service call, response mapping
+	app, err := h.service.SubmitApplication(c.Request.Context(), app)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to submit application: " + err.Error()})
+		return
+	}
+	// Build response
 	//resp := dto.MerchantApplyResponse
-    resp := dto.MerchantApplyResponse{
-        ID: app.ID,
-        StoreName: app.StoreName,
-        Name: app.Name,
-        PersonalEmail: app.PersonalEmail,
-        WorkEmail: app.WorkEmail,
-        PhoneNumber: app.PhoneNumber,
-        PersonalAddress: req.PersonalAddress,
-        WorkAddress: req.WorkAddress,
-        BusinessType: app.BusinessType,
-        Website: app.Website,
-        BusinessDescription: app.BusinessDescription,
-        BusinessRegistrationNumber: app.BusinessRegistrationNumber,
-        StoreLogoURL: app.StoreLogoURL,
-        BusinessRegistrationCertificate: app.BusinessRegistrationCertificate,
-        Status: app.Status,
-        CreatedAt: app.CreatedAt.Format(time.RFC3339),
-        UpdatedAt: app.UpdatedAt.Format(time.RFC3339),
-    }
-    c.JSON(http.StatusCreated, resp)
+	resp := dto.MerchantApplyResponse{
+		ID:                              app.ID,
+		StoreName:                       app.StoreName,
+		Name:                            app.Name,
+		PersonalEmail:                   app.PersonalEmail,
+		WorkEmail:                       app.WorkEmail,
+		PhoneNumber:                     app.PhoneNumber,
+		PersonalAddress:                 req.PersonalAddress,
+		WorkAddress:                     req.WorkAddress,
+		BusinessType:                    app.BusinessType,
+		Website:                         app.Website,
+		BusinessDescription:             app.BusinessDescription,
+		BusinessRegistrationNumber:      app.BusinessRegistrationNumber,
+		StoreLogoURL:                    app.StoreLogoURL,
+		BusinessRegistrationCertificate: app.BusinessRegistrationCertificate,
+		Status:                          app.Status,
+		CreatedAt:                       app.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:                       app.UpdatedAt.Format(time.RFC3339),
+	}
+	c.JSON(http.StatusCreated, resp)
 }
 
 // Login godoc
@@ -112,7 +111,7 @@ func (h *MerchantHandler) Login(c *gin.Context) {
 	// 	Work_Email string `json:"email" binding:"required,email"`
 	// 	Password   string `json:"password" binding:"required"`
 	// }
-    var req dto.MerchantLogin
+	var req dto.MerchantLogin
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -131,12 +130,12 @@ func (h *MerchantHandler) Login(c *gin.Context) {
 		return
 	}
 	merchantResponse := gin.H{
-        "id":       merchant.ID,  // Assuming merchant.ID is the field; adjust if different (e.g., merchant.Id)
-        "email":    merchant.WorkEmail,  // Map work_email to "email" in response
-        "username": merchant.Name,  // Assuming merchant.Username field
-    }
+		"id":       merchant.ID,        // Assuming merchant.ID is the field; adjust if different (e.g., merchant.Id)
+		"email":    merchant.WorkEmail, // Map work_email to "email" in response
+		"username": merchant.Name,      // Assuming merchant.Username field
+	}
 
-	c.JSON(http.StatusOK, gin.H{"token": token,"merchant":merchantResponse})
+	c.JSON(http.StatusOK, gin.H{"token": token, "merchant": merchantResponse})
 }
 
 // GetApplication godoc
@@ -183,8 +182,39 @@ func (h *MerchantHandler) GetMyMerchant(c *gin.Context) {
 	c.JSON(http.StatusOK, m)
 }
 
+// UpdateProfile godoc
+// @Summary Update merchant profile
+// @Description Updates the merchant's profile information
+// @Tags Merchant
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param body body dto.UpdateMerchantProfileInput true "Profile update details"
+// @Success 200 {object} object{message=string} "Profile updated successfully"
+// @Failure 400 {object} object{error=string} "Invalid request body"
+// @Failure 401 {object} object{error=string} "Unauthorized"
+// @Failure 500 {object} object{error=string} "Failed to update profile"
+// @Router /merchant/profile [put]
+func (h *MerchantHandler) UpdateProfile(c *gin.Context) {
+	merchantID, exists := c.Get("merchantID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
 
+	var req dto.UpdateMerchantProfileInput
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
+	if err := h.service.UpdateMerchantProfile(c.Request.Context(), merchantID.(string), req); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update profile: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "profile updated successfully"})
+}
 
 // Logout godoc
 // @Summary Merchant logout
@@ -203,9 +233,9 @@ func (h *MerchantHandler) Logout(c *gin.Context) {
 	}
 
 	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-	err:=utils.Add(tokenString)
-	if  err != nil{
-		c.JSON(http.StatusInternalServerError, gin.H{"error":"failed to logoout"})
+	err := utils.Add(tokenString)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to logoout"})
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Logout successful"})
 }

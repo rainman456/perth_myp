@@ -1,0 +1,33 @@
+{{define "content"}}
+<h2>New Order Received</h2>
+<p>Hi {{.MerchantName}},</p>
+<p>You have received a new order on Perth Marketplace!</p>
+<div class="highlight">
+    <p><strong>Order ID:</strong> {{.OrderID}}</p>
+    <p><strong>Order Date:</strong> {{.OrderDate}}</p>
+    <p><strong>Total Amount:</strong> {{.TotalAmount}}</p>
+</div>
+<h3>Order Items</h3>
+<table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+    <thead>
+        <tr style="background-color: #f2f2f2;">
+            <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Item</th>
+            <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Quantity</th>
+            <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Price</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{range .Items}}
+        <tr>
+            <td style="padding: 10px; border: 1px solid #ddd;">{{.Name}}</td>
+            <td style="padding: 10px; border: 1px solid #ddd;">{{.Quantity}}</td>
+            <td style="padding: 10px; border: 1px solid #ddd;">{{.Price}}</td>
+        </tr>
+        {{end}}
+    </tbody>
+</table>
+<p>Please review and process this order as soon as possible.</p>
+<a href="{{.MerchantDashboardURL}}" class="button">View Order in Dashboard</a>
+<p>If you have any questions, please contact our merchant support team.</p>
+<p>Thank you for selling on Perth Marketplace!</p>
+{{end}}

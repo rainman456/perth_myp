@@ -4,27 +4,16 @@ import (
 	"fmt"
 	"log"
 
-	//"os"
+	"api-customer-merchant/internal/db/models"
 
-	//"time"
-
-	"api-customer-merchant/internal/db/models" // Adjust to your models' package path
-
-	//"github.com/google/uuid"
-	//"github.com/shopspring/decimal"
+	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	//"github.com/google/uuid"
-	//"golang.org/x/crypto/bcrypt"
 )
 
 func main() {
 	// Connect to DB
-	// dsn := os.Getenv("DB_DSN")
-	// if dsn == "" {
-	//     log.Fatal("DB_DSN environment variable not set")
-	// }
 	dsn := "postgresql://neondb_owner:npg_CcwoeLb6V1XH@ep-wild-haze-adu0bdvq-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
 
 	db, err := gorm.Open(postgres.New(postgres.Config{DSN: dsn}), &gorm.Config{})
@@ -33,505 +22,1076 @@ func main() {
 	}
 
 	// Run migrations first (optional, for dev)
-	//db.AutoMigrate(  &models.Product{},&models.Variant{},models.Media{},models.Category{})
+	// db.AutoMigrate(&models.Category{}, &models.Product{}, &models.Variant{}, &models.Media{}, &models.Inventory{})
 
-	// Seed Users
-	// hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
-	// user1 := models.User{
-	// 	Email:    "user1@example.com",
-	// 	Name:     "John Doe",
-	// 	Password: string(hashedPassword),
-	// 	Country:  "US",
-	// }
-	// user2 := models.User{
-	// 	Email:    "merchant1@example.com",
-	// 	Name:     "Jane Merchant",
-	// 	Password: string(hashedPassword),
-	// 	Country:  "UK",
-	// }
-	// if err := db.Create([]*models.User{&user1, &user2}).Error; err != nil {
-	// 	log.Fatalf("Failed to seed users: %v", err)
-	// }
-
-	// Seed Merchant
+	// Merchant IDs to use
+	merchantID1 := "68a63ffc-f988-47a3-bc74-989b498b1e01"
+	merchantID2 := "984d6da6-29c4-4506-abaf-608b3498cc04"
 
 	// Seed Categories
-	//  category := models.Category{
-	//  	Name:       "Electronics",
-	//  	Attributes: map[string]interface{}{"type": "gadget"},
-	//  }
-	//  if err := db.Create(&category).Error; err != nil {
-	//  	log.Fatalf("Failed to seed category: %v", err)
-	//  }
-
-	// Seed Products
-	/*
-	   	 product1 := models.Product{
-	   	 	ID:         uuid.New().String(),
-	   	 	MerchantID: "68a63ffc-f988-47a3-bc74-989b498b1e01",
-	   	 	CategoryID: 1,
-	   	 	Name:       "Smartphone",
-	   	 	SKU:        "SM-001",
-	   	 	BasePrice:      699.99,
-	   	 	Media:      []models.Media{{URL: "image1.png"},{URL: "image2.png"}},
-	   		Variants: []models.Variant{
-	           {
-	               SKU:   "SNKR-001-BLK-42",
-	               Price: 79.99,
-	               Attributes: map[string]string{
-	                   "color": "black",
-	                   "size":  "42",
-	               },
-	           },
-	           {
-	               SKU:   "SNKR-001-WHT-43",
-	               Price: 84.99,
-	               Attributes: map[string]string{
-	                   "color": "white",
-	                   "size":  "43",
-	               },
-	           },
-	       },
-	   	 }
-	*/
-	//  product2 := models.Product{
-	//  	ID:         uuid.New().String(),
-	//  	MerchantID: merchantID,
-	//  	CategoryID: category.ID,
-	//  	Name:       "Laptop",
-	//  	SKU:        "LP-001",
-	//  	Price:      1299.99,
-	//  	Currency:   "USD",
-	//  	IsActive:   true,
-	//  }
-
-	// product2 := models.Product{
-	// 	ID:          uuid.New().String(),
-	// 	MerchantID:  "984d6da6-29c4-4506-abaf-608b3498cc04",
-	// 	CategoryID:  1,
-	// 	Name:        "Earpod",
-	// 	Description: "A high-end earpod with advanced features",
-	// 	SKU:         "EAR-001",
-	// 	BasePrice:   decimal.NewFromFloat(700.00),
-	// 	Media: []models.Media{
-	// 		{
-	// 			URL:  "https://www.example.com/image4.png",
-	// 			Type: "",
-	// 		},
-	// 		{
-	// 			URL:  "https://www.example.com/image5.png",
-	// 			Type: "",
-	// 		},
-	// 	},
-	// 	Variants: []models.Variant{
-	// 		{
-	// 			ProductID:       "", // Will be set automatically after product creation
-	// 			SKU:             "EAR-01-BLK-64",
-	// 			PriceAdjustment: decimal.NewFromFloat(50.00),
-	// 			TotalPrice:      decimal.NewFromFloat(0.00), // Will be computed in BeforeCreate
-	// 			Attributes: models.AttributesMap{
-	// 				"color": "black",
-	// 				"size":  "large",
-	// 			},
-	// 			IsActive: true,
-	// 			Inventory: models.Inventory{
-	// 				Quantity:          100,
-	// 				ReservedQuantity:  0,
-	// 				LowStockThreshold: 10,
-	// 				BackorderAllowed:  false,
-	// 				MerchantID:        "984d6da6-29c4-4506-abaf-608b3498cc04",
-	// 			},
-	// 		},
-	// 		{
-	// 			ProductID:       "", // Will be set automatically after product creation
-	// 			SKU:             "EAR-001-WHT-128",
-	// 			PriceAdjustment: decimal.NewFromFloat(50.00),
-	// 			TotalPrice:      decimal.NewFromFloat(0.00), // Will be computed in BeforeCreate
-	// 			Attributes: models.AttributesMap{
-	// 				"color": "white",
-	// 				"size":  "medium",
-	// 			},
-	// 			IsActive: true,
-	// 			Inventory: models.Inventory{
-	// 				Quantity:          50,
-	// 				ReservedQuantity:  0,
-	// 				LowStockThreshold: 10,
-	// 				BackorderAllowed:  false,
-	// 				MerchantID:        "984d6da6-29c4-4506-abaf-608b3498cc04",
-	// 			},
-	// 		},
-	// 	},
-	// }
-	// if err := db.Create([]*models.Product{&product2}).Error; err != nil {
-	// 	log.Fatalf("Failed to seed products: %v", err)
-	// }
-
-	// // Seed Inventory
-	// inventory1 := models.Inventory{
-	// 	ProductID:     product1.ID,
-	// 	StockQuantity: 100,
-	// 	LowThreshold:  10,
-	// }
-	// inventory2 := models.Inventory{
-	// 	ProductID:     product2.ID,
-	// 	StockQuantity: 50,
-	// 	LowThreshold:  5,
-	// }
-	// if err := db.Create([]*models.Inventory{&inventory1, &inventory2}).Error; err != nil {
-	// 	log.Fatalf("Failed to seed inventory: %v", err)
-	// }
-
-	// // Seed Cart and CartItem
-	// cart := models.Cart{
-	// 	UserID: user1.ID,
-	// 	Status: models.CartStatusActive,
-	// }
-	// if err := db.Create(&cart).Error; err != nil {
-	// 	log.Fatalf("Failed to seed cart: %v", err)
-	// }
-	// cartItem := models.CartItem{
-	// 	CartID:        cart.ID,
-	// 	ProductID:     product1.ID,
-	// 	Quantity:      2,
-	// 	PriceSnapshot: product1.Price,
-	// 	MerchantID:    merchantID,
-	// }
-	// if err := db.Create(&cartItem).Error; err != nil {
-	// 	log.Fatalf("Failed to seed cart item: %v", err)
-	// }
-
-
-	//Seed Categories
-	// category := models.Category{
-	// 	Name:       "Electronics",
-	// 	Attributes: map[string]interface{}{"type": "gadget"},
-	// }
-	// if err := db.Create(&category).Error; err != nil {
-	// 	log.Fatalf("Failed to seed category Electronics: %v", err)
-	// }
-
-	// Luxury Clothing Category 1: Haute Couture
-		// Seed Products
-	// Seed Products
-	merchantID := "68a63ffc-f988-47a3-bc74-989b498b1e01" // Assuming a seeded merchant ID
-
-	// Product 1: Simple product without variants
-	product1 := models.Product{
-		MerchantID:  merchantID,
-		CategoryID:  1, // Assuming category exists
-		Name:        "Luxury Watch",
-		Description: "Elegant timepiece",
-		SKU:         "WATCH-001",
-		BasePrice:   decimal.NewFromFloat(500.00),
-		Media: []models.Media{
-			{URL: "https://example.com/watch.jpg", Type: models.MediaTypeImage},
+	categories := []models.Category{
+		{
+			Name:         "Clothes",
+			CategorySlug: "clothes",
+			Attributes:   map[string]interface{}{"type": "apparel", "gender": "unisex"},
 		},
-		SimpleInventory: &models.Inventory{
-			Quantity:          50,
-			ReservedQuantity:  0,
-			LowStockThreshold: 5,
-			BackorderAllowed:  false,
-			MerchantID:        merchantID,
+		{
+			Name:         "Watches",
+			CategorySlug: "watches",
+			Attributes:   map[string]interface{}{"type": "accessory", "material": "metal"},
+		},
+		{
+			Name:         "Footwears",
+			CategorySlug: "footwears",
+			Attributes:   map[string]interface{}{"type": "footwear", "material": "leather"},
+		},
+		{
+			Name:         "Ankaras",
+			CategorySlug: "ankaras",
+			Attributes:   map[string]interface{}{"type": "fabric", "origin": "african"},
+		},
+		{
+			Name:         "Neckwears",
+			CategorySlug: "neckwears",
+			Attributes:   map[string]interface{}{"type": "accessory", "material": "fabric"},
+		},
+		{
+			Name:         "Bags",
+			CategorySlug: "bags",
+			Attributes:   map[string]interface{}{"type": "accessory", "material": "leather"},
 		},
 	}
-	if err := db.Create(&product1).Error; err != nil {
-		log.Fatalf("Failed to seed product1: %v", err)
+
+	// Create categories
+	for i := range categories {
+		if err := db.Create(&categories[i]).Error; err != nil {
+			log.Printf("Warning: Failed to seed category %s: %v", categories[i].Name, err)
+		}
 	}
 
-	// Product 2: Simple product without variants
-	product2 := models.Product{
-		MerchantID:  merchantID,
-		CategoryID:  2,
-		Name:        "Designer Sunglasses",
-		Description: "Stylish eyewear",
-		SKU:         "SUNGLASS-001",
-		BasePrice:   decimal.NewFromFloat(200.00),
-		Media: []models.Media{
-			{URL: "https://example.com/sunglasses.jpg", Type: models.MediaTypeImage},
-		},
-		SimpleInventory: &models.Inventory{
-			Quantity:          100,
-			ReservedQuantity:  0,
-			LowStockThreshold: 10,
-			BackorderAllowed:  false,
-			MerchantID:        merchantID,
-		},
-	}
-	if err := db.Create(&product2).Error; err != nil {
-		log.Fatalf("Failed to seed product2: %v", err)
-	}
+	// Get category IDs after creation
+	var clothesCategory, watchesCategory, footwearsCategory, ankarasCategory, neckwearsCategory, bagsCategory models.Category
+	db.Where("category_slug = ?", "clothes").First(&clothesCategory)
+	db.Where("category_slug = ?", "watches").First(&watchesCategory)
+	db.Where("category_slug = ?", "footwears").First(&footwearsCategory)
+	db.Where("category_slug = ?", "ankaras").First(&ankarasCategory)
+	db.Where("category_slug = ?", "neckwears").First(&neckwearsCategory)
+	db.Where("category_slug = ?", "bags").First(&bagsCategory)
 
-	// Product 3: Simple product without variants
-	product3 := models.Product{
-		MerchantID:  merchantID,
-		CategoryID:  3,
-		Name:        "Leather Wallet",
-		Description: "Premium leather accessory",
-		SKU:         "WALLET-001",
-		BasePrice:   decimal.NewFromFloat(150.00),
-		Media: []models.Media{
-			{URL: "https://example.com/wallet.jpg", Type: models.MediaTypeImage},
-		},
-		SimpleInventory: &models.Inventory{
-			Quantity:          75,
-			ReservedQuantity:  0,
-			LowStockThreshold: 8,
-			BackorderAllowed:  true,
-			MerchantID:        merchantID,
-		},
-	}
-	if err := db.Create(&product3).Error; err != nil {
-		log.Fatalf("Failed to seed product3: %v", err)
-	}
-
-	// Product 4: With variants
-	product4 := models.Product{
-		MerchantID:  merchantID,
-		CategoryID:  4,
-		Name:        "Tailored Suit",
-		Description: "Custom-fit suit",
-		SKU:         "SUIT-001",
-		BasePrice:   decimal.NewFromFloat(1000.00),
-		Media: []models.Media{
-			{URL: "https://example.com/suit.jpg", Type: models.MediaTypeImage},
-		},
-		Variants: []models.Variant{
-			{
-				SKU:             "SUIT-001-BLK-M",
-				PriceAdjustment: decimal.NewFromFloat(0.00),
-				Attributes: models.AttributesMap{
-					"color": "black",
-					"size":  "M",
-				},
-				IsActive: true,
-				Inventory: models.Inventory{
-					Quantity:          20,
-					ReservedQuantity:  0,
-					LowStockThreshold: 3,
-					BackorderAllowed:  false,
-					MerchantID:        merchantID,
-				},
+	// Seed Products with Variants and Media
+	products := []models.Product{
+		// Clothes Products
+		{
+			ID:          uuid.New().String(),
+			MerchantID:  merchantID1,
+			CategoryID:  clothesCategory.ID,
+			Name:        "Children's Handmade Clothes",
+			Description: "Beautiful children's clothes sewn with natural fabrics",
+			SKU:         "CLOTH-CHILD-001",
+			BasePrice:   decimal.NewFromFloat(45.99),
+			Media: []models.Media{
+				{URL: "https://media.istockphoto.com/id/1370454967/photo/clothes-for-children-are-sewn-with-their-own-hands-sale-of-clothes-made-of-natural-fabrics.jpg?s=612x612&w=0&k=20&c=Ghwz3LHzujIR3PiNWbpwSZLb_IQ_Mm06QOqfzi3lyQw=", Type: models.MediaTypeImage},
 			},
-			{
-				SKU:             "SUIT-001-BLU-L",
-				PriceAdjustment: decimal.NewFromFloat(50.00),
-				Attributes: models.AttributesMap{
-					"color": "blue",
-					"size":  "L",
+			Variants: []models.Variant{
+				{
+					SKU:             "CLOTH-CHILD-001-S",
+					PriceAdjustment: decimal.NewFromFloat(0.00),
+					Attributes:      models.AttributesMap{"size": "S", "color": "multi"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          30,
+						ReservedQuantity:  0,
+						LowStockThreshold: 5,
+						BackorderAllowed:  true,
+						MerchantID:        merchantID1,
+					},
 				},
-				IsActive: true,
-				Inventory: models.Inventory{
-					Quantity:          15,
-					ReservedQuantity:  0,
-					LowStockThreshold: 2,
-					BackorderAllowed:  false,
-					MerchantID:        merchantID,
+				{
+					SKU:             "CLOTH-CHILD-001-M",
+					PriceAdjustment: decimal.NewFromFloat(5.00),
+					Attributes:      models.AttributesMap{"size": "M", "color": "multi"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          25,
+						ReservedQuantity:  0,
+						LowStockThreshold: 5,
+						BackorderAllowed:  true,
+						MerchantID:        merchantID1,
+					},
 				},
-			},
-			{
-				SKU:             "SUIT-001-GRY-XL",
-				PriceAdjustment: decimal.NewFromFloat(100.00),
-				Attributes: models.AttributesMap{
-					"color": "gray",
-					"size":  "XL",
-				},
-				IsActive: true,
-				Inventory: models.Inventory{
-					Quantity:          10,
-					ReservedQuantity:  0,
-					LowStockThreshold: 1,
-					BackorderAllowed:  true,
-					MerchantID:        merchantID,
+				{
+					SKU:             "CLOTH-CHILD-001-L",
+					PriceAdjustment: decimal.NewFromFloat(10.00),
+					Attributes:      models.AttributesMap{"size": "L", "color": "multi"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          20,
+						ReservedQuantity:  0,
+						LowStockThreshold: 3,
+						BackorderAllowed:  false,
+						MerchantID:        merchantID1,
+					},
 				},
 			},
 		},
-	}
-	if err := db.Create(&product4).Error; err != nil {
-		log.Fatalf("Failed to seed product4: %v", err)
-	}
-
-	// Product 5: With variants
-	product5 := models.Product{
-		MerchantID:  merchantID,
-		CategoryID:  5,
-		Name:        "Cashmere Coat",
-		Description: "Warm winter coat",
-		SKU:         "COAT-001",
-		BasePrice:   decimal.NewFromFloat(800.00),
-		Media: []models.Media{
-			{URL: "https://example.com/coat.jpg", Type: models.MediaTypeImage},
-		},
-		Variants: []models.Variant{
-			{
-				SKU:             "COAT-001-BRN-S",
-				PriceAdjustment: decimal.NewFromFloat(0.00),
-				Attributes: models.AttributesMap{
-					"color": "brown",
-					"size":  "S",
-				},
-				IsActive: true,
-				Inventory: models.Inventory{
-					Quantity:          30,
-					ReservedQuantity:  0,
-					LowStockThreshold: 5,
-					BackorderAllowed:  false,
-					MerchantID:        merchantID,
-				},
+		{
+			ID:          uuid.New().String(),
+			MerchantID:  merchantID2,
+			CategoryID:  clothesCategory.ID,
+			Name:        "Wedding Dress",
+			Description: "Beautiful wedding dress for the perfect bride",
+			SKU:         "CLOTH-WED-001",
+			BasePrice:   decimal.NewFromFloat(350.00),
+			Media: []models.Media{
+				{URL: "https://www.shutterstock.com/image-photo/beautiful-wedding-dresses-bridal-dress-260nw-2673306709.jpg", Type: models.MediaTypeImage},
 			},
-			{
-				SKU:             "COAT-001-BLK-M",
-				PriceAdjustment: decimal.NewFromFloat(20.00),
-				Attributes: models.AttributesMap{
-					"color": "black",
-					"size":  "M",
+			Variants: []models.Variant{
+				{
+					SKU:             "CLOTH-WED-001-S",
+					PriceAdjustment: decimal.NewFromFloat(-20.00),
+					Attributes:      models.AttributesMap{"size": "S", "color": "white"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          5,
+						ReservedQuantity:  0,
+						LowStockThreshold: 1,
+						BackorderAllowed:  false,
+						MerchantID:        merchantID2,
+					},
 				},
-				IsActive: true,
-				Inventory: models.Inventory{
-					Quantity:          25,
-					ReservedQuantity:  0,
-					LowStockThreshold: 4,
-					BackorderAllowed:  false,
-					MerchantID:        merchantID,
+				{
+					SKU:             "CLOTH-WED-001-M",
+					PriceAdjustment: decimal.NewFromFloat(0.00),
+					Attributes:      models.AttributesMap{"size": "M", "color": "white"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          3,
+						ReservedQuantity:  0,
+						LowStockThreshold: 1,
+						BackorderAllowed:  false,
+						MerchantID:        merchantID2,
+					},
 				},
-			},
-		},
-	}
-	if err := db.Create(&product5).Error; err != nil {
-		log.Fatalf("Failed to seed product5: %v", err)
-	}
-
-	// Product 6: With variants
-	product6 := models.Product{
-		MerchantID:  merchantID,
-		CategoryID:  1,
-		Name:        "Silk Dress",
-		Description: "Elegant evening dress",
-		SKU:         "DRESS-001",
-		BasePrice:   decimal.NewFromFloat(600.00),
-		Media: []models.Media{
-			{URL: "https://example.com/dress.jpg", Type: models.MediaTypeImage},
-		},
-		Variants: []models.Variant{
-			{
-				SKU:             "DRESS-001-RED-S",
-				PriceAdjustment: decimal.NewFromFloat(0.00),
-				Attributes: models.AttributesMap{
-					"color": "red",
-					"size":  "S",
-				},
-				IsActive: true,
-				Inventory: models.Inventory{
-					Quantity:          40,
-					ReservedQuantity:  0,
-					LowStockThreshold: 6,
-					BackorderAllowed:  true,
-					MerchantID:        merchantID,
-				},
-			},
-			{
-				SKU:             "DRESS-001-BLU-M",
-				PriceAdjustment: decimal.NewFromFloat(30.00),
-				Attributes: models.AttributesMap{
-					"color": "blue",
-					"size":  "M",
-				},
-				IsActive: true,
-				Inventory: models.Inventory{
-					Quantity:          35,
-					ReservedQuantity:  0,
-					LowStockThreshold: 5,
-					BackorderAllowed:  false,
-					MerchantID:        merchantID,
-				},
-			},
-			{
-				SKU:             "DRESS-001-BLK-L",
-				PriceAdjustment: decimal.NewFromFloat(50.00),
-				Attributes: models.AttributesMap{
-					"color": "black",
-					"size":  "L",
-				},
-				IsActive: true,
-				Inventory: models.Inventory{
-					Quantity:          30,
-					ReservedQuantity:  0,
-					LowStockThreshold: 4,
-					BackorderAllowed:  false,
-					MerchantID:        merchantID,
+				{
+					SKU:             "CLOTH-WED-001-L",
+					PriceAdjustment: decimal.NewFromFloat(20.00),
+					Attributes:      models.AttributesMap{"size": "L", "color": "white"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          2,
+						ReservedQuantity:  0,
+						LowStockThreshold: 1,
+						BackorderAllowed:  false,
+						MerchantID:        merchantID2,
+					},
 				},
 			},
 		},
+		{
+			ID:          uuid.New().String(),
+			MerchantID:  merchantID1,
+			CategoryID:  clothesCategory.ID,
+			Name:        "Traditional Qatari Dress",
+			Description: "Authentic traditional dress from Qatar",
+			SKU:         "CLOTH-QAT-001",
+			BasePrice:   decimal.NewFromFloat(120.00),
+			Media: []models.Media{
+				{URL: "https://www.shutterstock.com/image-photo/doha-qatar-january-05-2022-260nw-2247009105.jpg", Type: models.MediaTypeImage},
+			},
+			Variants: []models.Variant{
+				{
+					SKU:             "CLOTH-QAT-001-S",
+					PriceAdjustment: decimal.NewFromFloat(0.00),
+					Attributes:      models.AttributesMap{"size": "S", "color": "blue"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          15,
+						ReservedQuantity:  0,
+						LowStockThreshold: 3,
+						BackorderAllowed:  true,
+						MerchantID:        merchantID1,
+					},
+				},
+				{
+					SKU:             "CLOTH-QAT-001-M",
+					PriceAdjustment: decimal.NewFromFloat(0.00),
+					Attributes:      models.AttributesMap{"size": "M", "color": "blue"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          12,
+						ReservedQuantity:  0,
+						LowStockThreshold: 2,
+						BackorderAllowed:  true,
+						MerchantID:        merchantID1,
+					},
+				},
+				{
+					SKU:             "CLOTH-QAT-001-L",
+					PriceAdjustment: decimal.NewFromFloat(0.00),
+					Attributes:      models.AttributesMap{"size": "L", "color": "blue"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          10,
+						ReservedQuantity:  0,
+						LowStockThreshold: 2,
+						BackorderAllowed:  false,
+						MerchantID:        merchantID1,
+					},
+				},
+			},
+		},
+
+		// Watches Products
+		{
+			ID:          uuid.New().String(),
+			MerchantID:  merchantID2,
+			CategoryID:  watchesCategory.ID,
+			Name:        "Luxury Gold Women's Watch",
+			Description: "Elegant luxury watch for women with gold finish",
+			SKU:         "WATCH-GOLD-001",
+			BasePrice:   decimal.NewFromFloat(450.00),
+			Media: []models.Media{
+				{URL: "https://media.istockphoto.com/id/1180453576/photo/luxury-watch-isolated-on-white-background-with-clipping-path-gold-watch-women-watch-female.jpg?s=612x612&w=0&k=20&c=7156SpeDaeLHq7506ULnp6ZQrzbuoaHvOfnK6RT4L2A=", Type: models.MediaTypeImage},
+			},
+			Variants: []models.Variant{
+				{
+					SKU:             "WATCH-GOLD-001-S",
+					PriceAdjustment: decimal.NewFromFloat(-50.00),
+					Attributes:      models.AttributesMap{"size": "small", "material": "gold"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          8,
+						ReservedQuantity:  0,
+						LowStockThreshold: 2,
+						BackorderAllowed:  false,
+						MerchantID:        merchantID2,
+					},
+				},
+				{
+					SKU:             "WATCH-GOLD-001-M",
+					PriceAdjustment: decimal.NewFromFloat(0.00),
+					Attributes:      models.AttributesMap{"size": "medium", "material": "gold"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          6,
+						ReservedQuantity:  0,
+						LowStockThreshold: 1,
+						BackorderAllowed:  false,
+						MerchantID:        merchantID2,
+					},
+				},
+				{
+					SKU:             "WATCH-GOLD-001-L",
+					PriceAdjustment: decimal.NewFromFloat(50.00),
+					Attributes:      models.AttributesMap{"size": "large", "material": "gold"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          4,
+						ReservedQuantity:  0,
+						LowStockThreshold: 1,
+						BackorderAllowed:  false,
+						MerchantID:        merchantID2,
+					},
+				},
+			},
+		},
+		{
+			ID:          uuid.New().String(),
+			MerchantID:  merchantID1,
+			CategoryID:  watchesCategory.ID,
+			Name:        "Luxury White Dial Watch",
+			Description: "Stylish luxury watch with white dial",
+			SKU:         "WATCH-WHITE-001",
+			BasePrice:   decimal.NewFromFloat(380.00),
+			Media: []models.Media{
+				{URL: "https://media.istockphoto.com/id/1193931855/photo/luxury-watch-isolated-on-white-background-with-clipping-path-for-artwork-or-design-white.jpg?s=612x612&w=0&k=20&c=vw1ceQ7rq04cCkOvzqaywVwP34fLs0QvdI0pp8-elkM=", Type: models.MediaTypeImage},
+			},
+			Variants: []models.Variant{
+				{
+					SKU:             "WATCH-WHITE-001-S",
+					PriceAdjustment: decimal.NewFromFloat(-30.00),
+					Attributes:      models.AttributesMap{"size": "small", "material": "silver"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          10,
+						ReservedQuantity:  0,
+						LowStockThreshold: 2,
+						BackorderAllowed:  true,
+						MerchantID:        merchantID1,
+					},
+				},
+				{
+					SKU:             "WATCH-WHITE-001-M",
+					PriceAdjustment: decimal.NewFromFloat(0.00),
+					Attributes:      models.AttributesMap{"size": "medium", "material": "silver"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          7,
+						ReservedQuantity:  0,
+						LowStockThreshold: 1,
+						BackorderAllowed:  false,
+						MerchantID:        merchantID1,
+					},
+				},
+			},
+		},
+		{
+			ID:          uuid.New().String(),
+			MerchantID:  merchantID2,
+			CategoryID:  watchesCategory.ID,
+			Name:        "Luxury Silver Watch",
+			Description: "Premium luxury silver watch",
+			SKU:         "WATCH-SILVER-001",
+			BasePrice:   decimal.NewFromFloat(520.00),
+			Media: []models.Media{
+				{URL: "https://www.shutterstock.com/image-photo/luxury-watch-isolated-on-white-260nw-2198958671.jpg", Type: models.MediaTypeImage},
+			},
+			Variants: []models.Variant{
+				{
+					SKU:             "WATCH-SILVER-001-S",
+					PriceAdjustment: decimal.NewFromFloat(-50.00),
+					Attributes:      models.AttributesMap{"size": "small", "material": "silver"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          6,
+						ReservedQuantity:  0,
+						LowStockThreshold: 1,
+						BackorderAllowed:  false,
+						MerchantID:        merchantID2,
+					},
+				},
+				{
+					SKU:             "WATCH-SILVER-001-M",
+					PriceAdjustment: decimal.NewFromFloat(0.00),
+					Attributes:      models.AttributesMap{"size": "medium", "material": "silver"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          5,
+						ReservedQuantity:  0,
+						LowStockThreshold: 1,
+						BackorderAllowed:  false,
+						MerchantID:        merchantID2,
+					},
+				},
+				{
+					SKU:             "WATCH-SILVER-001-L",
+					PriceAdjustment: decimal.NewFromFloat(50.00),
+					Attributes:      models.AttributesMap{"size": "large", "material": "silver"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          3,
+						ReservedQuantity:  0,
+						LowStockThreshold: 1,
+						BackorderAllowed:  false,
+						MerchantID:        merchantID2,
+					},
+				},
+			},
+		},
+
+		// Footwears Products
+		{
+			ID:          uuid.New().String(),
+			MerchantID:  merchantID1,
+			CategoryID:  footwearsCategory.ID,
+			Name:        "Elegant Beige High Heel Shoes",
+			Description: "Stylish beige high heel shoes for special occasions",
+			SKU:         "SHOE-BEIGE-001",
+			BasePrice:   decimal.NewFromFloat(120.00),
+			Media: []models.Media{
+				{URL: "https://www.shutterstock.com/image-photo/elegant-beige-high-heel-shoes-260nw-2635369899.jpg", Type: models.MediaTypeImage},
+			},
+			Variants: []models.Variant{
+				{
+					SKU:             "SHOE-BEIGE-001-37",
+					PriceAdjustment: decimal.NewFromFloat(0.00),
+					Attributes:      models.AttributesMap{"size": "37", "color": "beige"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          12,
+						ReservedQuantity:  0,
+						LowStockThreshold: 2,
+						BackorderAllowed:  true,
+						MerchantID:        merchantID1,
+					},
+				},
+				{
+					SKU:             "SHOE-BEIGE-001-38",
+					PriceAdjustment: decimal.NewFromFloat(0.00),
+					Attributes:      models.AttributesMap{"size": "38", "color": "beige"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          10,
+						ReservedQuantity:  0,
+						LowStockThreshold: 2,
+						BackorderAllowed:  true,
+						MerchantID:        merchantID1,
+					},
+				},
+				{
+					SKU:             "SHOE-BEIGE-001-39",
+					PriceAdjustment: decimal.NewFromFloat(0.00),
+					Attributes:      models.AttributesMap{"size": "39", "color": "beige"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          8,
+						ReservedQuantity:  0,
+						LowStockThreshold: 1,
+						BackorderAllowed:  false,
+						MerchantID:        merchantID1,
+					},
+				},
+				{
+					SKU:             "SHOE-BEIGE-001-40",
+					PriceAdjustment: decimal.NewFromFloat(0.00),
+					Attributes:      models.AttributesMap{"size": "40", "color": "beige"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          6,
+						ReservedQuantity:  0,
+						LowStockThreshold: 1,
+						BackorderAllowed:  false,
+						MerchantID:        merchantID1,
+					},
+				},
+			},
+		},
+		{
+			ID:          uuid.New().String(),
+			MerchantID:  merchantID2,
+			CategoryID:  footwearsCategory.ID,
+			Name:        "Colorful Women's Sneakers",
+			Description: "Flying colorful women's sneakers for sports and casual wear",
+			SKU:         "SHOE-SNEAK-001",
+			BasePrice:   decimal.NewFromFloat(85.00),
+			Media: []models.Media{
+				{URL: "https://media.istockphoto.com/id/1436061606/photo/flying-colorful-womens-sneaker-isolated-on-white-background-fashionable-stylish-sports-shoe.jpg?s=612x612&w=0&k=20&c=2KKjX9tXo0ibmBaPlflnJNdtZ-J77wrprVStaPL2Gj4=", Type: models.MediaTypeImage},
+			},
+			Variants: []models.Variant{
+				{
+					SKU:             "SHOE-SNEAK-001-36",
+					PriceAdjustment: decimal.NewFromFloat(0.00),
+					Attributes:      models.AttributesMap{"size": "36", "color": "multi"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          20,
+						ReservedQuantity:  0,
+						LowStockThreshold: 3,
+						BackorderAllowed:  true,
+						MerchantID:        merchantID2,
+					},
+				},
+				{
+					SKU:             "SHOE-SNEAK-001-37",
+					PriceAdjustment: decimal.NewFromFloat(0.00),
+					Attributes:      models.AttributesMap{"size": "37", "color": "multi"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          18,
+						ReservedQuantity:  0,
+						LowStockThreshold: 3,
+						BackorderAllowed:  true,
+						MerchantID:        merchantID2,
+					},
+				},
+				{
+					SKU:             "SHOE-SNEAK-001-38",
+					PriceAdjustment: decimal.NewFromFloat(0.00),
+					Attributes:      models.AttributesMap{"size": "38", "color": "multi"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          15,
+						ReservedQuantity:  0,
+						LowStockThreshold: 2,
+						BackorderAllowed:  true,
+						MerchantID:        merchantID2,
+					},
+				},
+				{
+					SKU:             "SHOE-SNEAK-001-39",
+					PriceAdjustment: decimal.NewFromFloat(0.00),
+					Attributes:      models.AttributesMap{"size": "39", "color": "multi"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          12,
+						ReservedQuantity:  0,
+						LowStockThreshold: 2,
+						BackorderAllowed:  false,
+						MerchantID:        merchantID2,
+					},
+				},
+			},
+		},
+		{
+			ID:          uuid.New().String(),
+			MerchantID:  merchantID1,
+			CategoryID:  footwearsCategory.ID,
+			Name:        "Purple Sports Sneakers",
+			Description: "Comfortable purple sports sneakers for active lifestyle",
+			SKU:         "SHOE-PURPLE-001",
+			BasePrice:   decimal.NewFromFloat(95.00),
+			Media: []models.Media{
+				{URL: "https://media.istockphoto.com/id/1411635454/photo/colorful-purple-sneakers-isolated-over-white-studio-background-comfortable-shoes-sport.jpg?s=612x612&w=0&k=20&c=AETXTH7nNFzE2eLrPY8Ke4ZbklXM9xSs_y3e6SzQ4x8=", Type: models.MediaTypeImage},
+			},
+			Variants: []models.Variant{
+				{
+					SKU:             "SHOE-PURPLE-001-36",
+					PriceAdjustment: decimal.NewFromFloat(-5.00),
+					Attributes:      models.AttributesMap{"size": "36", "color": "purple"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          15,
+						ReservedQuantity:  0,
+						LowStockThreshold: 2,
+						BackorderAllowed:  true,
+						MerchantID:        merchantID1,
+					},
+				},
+				{
+					SKU:             "SHOE-PURPLE-001-37",
+					PriceAdjustment: decimal.NewFromFloat(0.00),
+					Attributes:      models.AttributesMap{"size": "37", "color": "purple"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          14,
+						ReservedQuantity:  0,
+						LowStockThreshold: 2,
+						BackorderAllowed:  true,
+						MerchantID:        merchantID1,
+					},
+				},
+				{
+					SKU:             "SHOE-PURPLE-001-38",
+					PriceAdjustment: decimal.NewFromFloat(0.00),
+					Attributes:      models.AttributesMap{"size": "38", "color": "purple"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          12,
+						ReservedQuantity:  0,
+						LowStockThreshold: 2,
+						BackorderAllowed:  true,
+						MerchantID:        merchantID1,
+					},
+				},
+				{
+					SKU:             "SHOE-PURPLE-001-39",
+					PriceAdjustment: decimal.NewFromFloat(5.00),
+					Attributes:      models.AttributesMap{"size": "39", "color": "purple"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          10,
+						ReservedQuantity:  0,
+						LowStockThreshold: 1,
+						BackorderAllowed:  false,
+						MerchantID:        merchantID1,
+					},
+				},
+				{
+					SKU:             "SHOE-PURPLE-001-40",
+					PriceAdjustment: decimal.NewFromFloat(5.00),
+					Attributes:      models.AttributesMap{"size": "40", "color": "purple"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          8,
+						ReservedQuantity:  0,
+						LowStockThreshold: 1,
+						BackorderAllowed:  false,
+						MerchantID:        merchantID1,
+					},
+				},
+			},
+		},
+
+		// Ankaras Products
+		{
+			ID:          uuid.New().String(),
+			MerchantID:  merchantID2,
+			CategoryID:  ankarasCategory.ID,
+			Name:        "African Ethnic Native Pattern",
+			Description: "Traditional African ethnic native pattern fabric",
+			SKU:         "ANKARA-PAT-001",
+			BasePrice:   decimal.NewFromFloat(25.00),
+			Media: []models.Media{
+				{URL: "https://www.shutterstock.com/image-vector/african-ethnic-native-patterntraditional-kenteankarakitengechitengecapulana-260nw-2660177915.jpg", Type: models.MediaTypeImage},
+			},
+			Variants: []models.Variant{
+				{
+					SKU:             "ANKARA-PAT-001-S",
+					PriceAdjustment: decimal.NewFromFloat(0.00),
+					Attributes:      models.AttributesMap{"size": "small", "pattern": "kente"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          50,
+						ReservedQuantity:  0,
+						LowStockThreshold: 10,
+						BackorderAllowed:  true,
+						MerchantID:        merchantID2,
+					},
+				},
+				{
+					SKU:             "ANKARA-PAT-001-M",
+					PriceAdjustment: decimal.NewFromFloat(5.00),
+					Attributes:      models.AttributesMap{"size": "medium", "pattern": "kente"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          40,
+						ReservedQuantity:  0,
+						LowStockThreshold: 8,
+						BackorderAllowed:  true,
+						MerchantID:        merchantID2,
+					},
+				},
+				{
+					SKU:             "ANKARA-PAT-001-L",
+					PriceAdjustment: decimal.NewFromFloat(10.00),
+					Attributes:      models.AttributesMap{"size": "large", "pattern": "kente"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          30,
+						ReservedQuantity:  0,
+						LowStockThreshold: 5,
+						BackorderAllowed:  true,
+						MerchantID:        merchantID2,
+					},
+				},
+			},
+		},
+		{
+			ID:          uuid.New().String(),
+			MerchantID:  merchantID1,
+			CategoryID:  ankarasCategory.ID,
+			Name:        "Red Abstract Floral Ankara",
+			Description: "Beautiful red abstract floral traditional African fabric",
+			SKU:         "ANKARA-RED-001",
+			BasePrice:   decimal.NewFromFloat(30.00),
+			Media: []models.Media{
+				{URL: "https://www.shutterstock.com/image-vector/red-abstract-floral-traditional-african-260nw-2660124201.jpg", Type: models.MediaTypeImage},
+			},
+			Variants: []models.Variant{
+				{
+					SKU:             "ANKARA-RED-001-S",
+					PriceAdjustment: decimal.NewFromFloat(0.00),
+					Attributes:      models.AttributesMap{"size": "small", "pattern": "floral"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          45,
+						ReservedQuantity:  0,
+						LowStockThreshold: 8,
+						BackorderAllowed:  true,
+						MerchantID:        merchantID1,
+					},
+				},
+				{
+					SKU:             "ANKARA-RED-001-M",
+					PriceAdjustment: decimal.NewFromFloat(5.00),
+					Attributes:      models.AttributesMap{"size": "medium", "pattern": "floral"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          35,
+						ReservedQuantity:  0,
+						LowStockThreshold: 6,
+						BackorderAllowed:  true,
+						MerchantID:        merchantID1,
+					},
+				},
+				{
+					SKU:             "ANKARA-RED-001-L",
+					PriceAdjustment: decimal.NewFromFloat(10.00),
+					Attributes:      models.AttributesMap{"size": "large", "pattern": "floral"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          25,
+						ReservedQuantity:  0,
+						LowStockThreshold: 4,
+						BackorderAllowed:  false,
+						MerchantID:        merchantID1,
+					},
+				},
+			},
+		},
+		{
+			ID:          uuid.New().String(),
+			MerchantID:  merchantID2,
+			CategoryID:  ankarasCategory.ID,
+			Name:        "African Tribal Clash Ornament",
+			Description: "Traditional African ethnic tribal clash ornament fabric",
+			SKU:         "ANKARA-TRIB-001",
+			BasePrice:   decimal.NewFromFloat(35.00),
+			Media: []models.Media{
+				{URL: "https://www.shutterstock.com/image-vector/african-ethnic-tribal-clash-ornament-260nw-2674095379.jpg", Type: models.MediaTypeImage},
+			},
+			Variants: []models.Variant{
+				{
+					SKU:             "ANKARA-TRIB-001-S",
+					PriceAdjustment: decimal.NewFromFloat(0.00),
+					Attributes:      models.AttributesMap{"size": "small", "pattern": "tribal"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          40,
+						ReservedQuantity:  0,
+						LowStockThreshold: 7,
+						BackorderAllowed:  true,
+						MerchantID:        merchantID2,
+					},
+				},
+				{
+					SKU:             "ANKARA-TRIB-001-M",
+					PriceAdjustment: decimal.NewFromFloat(5.00),
+					Attributes:      models.AttributesMap{"size": "medium", "pattern": "tribal"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          30,
+						ReservedQuantity:  0,
+						LowStockThreshold: 5,
+						BackorderAllowed:  true,
+						MerchantID:        merchantID2,
+					},
+				},
+				{
+					SKU:             "ANKARA-TRIB-001-L",
+					PriceAdjustment: decimal.NewFromFloat(10.00),
+					Attributes:      models.AttributesMap{"size": "large", "pattern": "tribal"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          20,
+						ReservedQuantity:  0,
+						LowStockThreshold: 3,
+						BackorderAllowed:  false,
+						MerchantID:        merchantID2,
+					},
+				},
+			},
+		},
+
+		// Neckwears Products
+		{
+			ID:          uuid.New().String(),
+			MerchantID:  merchantID1,
+			CategoryID:  neckwearsCategory.ID,
+			Name:        "Black Handkerchief",
+			Description: "Classic black handkerchief for formal and casual wear",
+			SKU:         "NECK-BLK-001",
+			BasePrice:   decimal.NewFromFloat(15.00),
+			Media: []models.Media{
+				{URL: "https://www.shutterstock.com/image-photo/one-black-handkerchief-isolated-on-600nw-2593330633.jpg", Type: models.MediaTypeImage},
+			},
+			Variants: []models.Variant{
+				{
+					SKU:             "NECK-BLK-001-S",
+					PriceAdjustment: decimal.NewFromFloat(0.00),
+					Attributes:      models.AttributesMap{"size": "small", "color": "black"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          100,
+						ReservedQuantity:  0,
+						LowStockThreshold: 20,
+						BackorderAllowed:  true,
+						MerchantID:        merchantID1,
+					},
+				},
+				{
+					SKU:             "NECK-BLK-001-M",
+					PriceAdjustment: decimal.NewFromFloat(2.00),
+					Attributes:      models.AttributesMap{"size": "medium", "color": "black"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          80,
+						ReservedQuantity:  0,
+						LowStockThreshold: 15,
+						BackorderAllowed:  true,
+						MerchantID:        merchantID1,
+					},
+				},
+				{
+					SKU:             "NECK-BLK-001-L",
+					PriceAdjustment: decimal.NewFromFloat(4.00),
+					Attributes:      models.AttributesMap{"size": "large", "color": "black"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          60,
+						ReservedQuantity:  0,
+						LowStockThreshold: 10,
+						BackorderAllowed:  true,
+						MerchantID:        merchantID1,
+					},
+				},
+			},
+		},
+		{
+			ID:          uuid.New().String(),
+			MerchantID:  merchantID2,
+			CategoryID:  neckwearsCategory.ID,
+			Name:        "Stylish Neck Tie",
+			Description: "Modern stylish neck tie for professional look",
+			SKU:         "NECK-TIE-001",
+			BasePrice:   decimal.NewFromFloat(25.00),
+			Media: []models.Media{
+				{URL: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQSyNHU99LxG-qQUOuUUH9QwBLC5o3-I0ORFMc4zL3D58ymeFI&s", Type: models.MediaTypeImage},
+			},
+			Variants: []models.Variant{
+				{
+					SKU:             "NECK-TIE-001-S",
+					PriceAdjustment: decimal.NewFromFloat(0.00),
+					Attributes:      models.AttributesMap{"size": "small", "color": "blue"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          50,
+						ReservedQuantity:  0,
+						LowStockThreshold: 10,
+						BackorderAllowed:  true,
+						MerchantID:        merchantID2,
+					},
+				},
+				{
+					SKU:             "NECK-TIE-001-M",
+					PriceAdjustment: decimal.NewFromFloat(0.00),
+					Attributes:      models.AttributesMap{"size": "medium", "color": "blue"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          40,
+						ReservedQuantity:  0,
+						LowStockThreshold: 8,
+						BackorderAllowed:  true,
+						MerchantID:        merchantID2,
+					},
+				},
+				{
+					SKU:             "NECK-TIE-001-L",
+					PriceAdjustment: decimal.NewFromFloat(5.00),
+					Attributes:      models.AttributesMap{"size": "large", "color": "blue"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          30,
+						ReservedQuantity:  0,
+						LowStockThreshold: 5,
+						BackorderAllowed:  false,
+						MerchantID:        merchantID2,
+					},
+				},
+			},
+		},
+		{
+			ID:          uuid.New().String(),
+			MerchantID:  merchantID1,
+			CategoryID:  neckwearsCategory.ID,
+			Name:        "Blue Bow Tie",
+			Description: "Elegant blue bow tie for formal occasions",
+			SKU:         "NECK-BOW-001",
+			BasePrice:   decimal.NewFromFloat(20.00),
+			Media: []models.Media{
+				{URL: "https://media.istockphoto.com/id/1298105203/photo/neckties-men-accessories-mens-fashion-bow-blue-tie-isolated-on-white.jpg?s=612x612&w=0&k=20&c=AGkxwafREqTb84EbzxJwNKXmdCxMrejEIGQLSxru79g=", Type: models.MediaTypeImage},
+			},
+			Variants: []models.Variant{
+				{
+					SKU:             "NECK-BOW-001-S",
+					PriceAdjustment: decimal.NewFromFloat(0.00),
+					Attributes:      models.AttributesMap{"size": "small", "color": "blue"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          60,
+						ReservedQuantity:  0,
+						LowStockThreshold: 12,
+						BackorderAllowed:  true,
+						MerchantID:        merchantID1,
+					},
+				},
+				{
+					SKU:             "NECK-BOW-001-M",
+					PriceAdjustment: decimal.NewFromFloat(2.00),
+					Attributes:      models.AttributesMap{"size": "medium", "color": "blue"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          50,
+						ReservedQuantity:  0,
+						LowStockThreshold: 10,
+						BackorderAllowed:  true,
+						MerchantID:        merchantID1,
+					},
+				},
+				{
+					SKU:             "NECK-BOW-001-L",
+					PriceAdjustment: decimal.NewFromFloat(4.00),
+					Attributes:      models.AttributesMap{"size": "large", "color": "blue"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          40,
+						ReservedQuantity:  0,
+						LowStockThreshold: 8,
+						BackorderAllowed:  true,
+						MerchantID:        merchantID1,
+					},
+				},
+			},
+		},
+
+		// Bags Products
+		{
+			ID:          uuid.New().String(),
+			MerchantID:  merchantID2,
+			CategoryID:  bagsCategory.ID,
+			Name:        "White Female Handbags Collection",
+			Description: "Elegant collection of white female handbags",
+			SKU:         "BAG-WHITE-001",
+			BasePrice:   decimal.NewFromFloat(75.00),
+			Media: []models.Media{
+				{URL: "https://www.shutterstock.com/image-photo/white-female-handbags-collection-on-260nw-739041304.jpg", Type: models.MediaTypeImage},
+			},
+			Variants: []models.Variant{
+				{
+					SKU:             "BAG-WHITE-001-S",
+					PriceAdjustment: decimal.NewFromFloat(-10.00),
+					Attributes:      models.AttributesMap{"size": "small", "color": "white"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          25,
+						ReservedQuantity:  0,
+						LowStockThreshold: 5,
+						BackorderAllowed:  true,
+						MerchantID:        merchantID2,
+					},
+				},
+				{
+					SKU:             "BAG-WHITE-001-M",
+					PriceAdjustment: decimal.NewFromFloat(0.00),
+					Attributes:      models.AttributesMap{"size": "medium", "color": "white"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          20,
+						ReservedQuantity:  0,
+						LowStockThreshold: 4,
+						BackorderAllowed:  true,
+						MerchantID:        merchantID2,
+					},
+				},
+				{
+					SKU:             "BAG-WHITE-001-L",
+					PriceAdjustment: decimal.NewFromFloat(10.00),
+					Attributes:      models.AttributesMap{"size": "large", "color": "white"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          15,
+						ReservedQuantity:  0,
+						LowStockThreshold: 3,
+						BackorderAllowed:  false,
+						MerchantID:        merchantID2,
+					},
+				},
+			},
+		},
+		{
+			ID:          uuid.New().String(),
+			MerchantID:  merchantID1,
+			CategoryID:  bagsCategory.ID,
+			Name:        "Blue Fashion Purse",
+			Description: "Stylish blue fashion purse for everyday use",
+			SKU:         "BAG-BLUE-001",
+			BasePrice:   decimal.NewFromFloat(65.00),
+			Media: []models.Media{
+				{URL: "https://media.istockphoto.com/id/1365118618/photo/blue-fashion-purse-handbag-on-white-background-isolated.jpg?s=612x612&w=0&k=20&c=VNszfC0cxenqZGhjlr3gqqvzHWREuhdY_H3CKF1B38g=", Type: models.MediaTypeImage},
+			},
+			Variants: []models.Variant{
+				{
+					SKU:             "BAG-BLUE-001-S",
+					PriceAdjustment: decimal.NewFromFloat(-5.00),
+					Attributes:      models.AttributesMap{"size": "small", "color": "blue"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          30,
+						ReservedQuantity:  0,
+						LowStockThreshold: 6,
+						BackorderAllowed:  true,
+						MerchantID:        merchantID1,
+					},
+				},
+				{
+					SKU:             "BAG-BLUE-001-M",
+					PriceAdjustment: decimal.NewFromFloat(0.00),
+					Attributes:      models.AttributesMap{"size": "medium", "color": "blue"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          25,
+						ReservedQuantity:  0,
+						LowStockThreshold: 5,
+						BackorderAllowed:  true,
+						MerchantID:        merchantID1,
+					},
+				},
+				{
+					SKU:             "BAG-BLUE-001-L",
+					PriceAdjustment: decimal.NewFromFloat(5.00),
+					Attributes:      models.AttributesMap{"size": "large", "color": "blue"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          20,
+						ReservedQuantity:  0,
+						LowStockThreshold: 4,
+						BackorderAllowed:  false,
+						MerchantID:        merchantID1,
+					},
+				},
+			},
+		},
+		{
+			ID:          uuid.New().String(),
+			MerchantID:  merchantID2,
+			CategoryID:  bagsCategory.ID,
+			Name:        "Premium Leather Handbag",
+			Description: "Luxury premium leather handbag for fashion enthusiasts",
+			SKU:         "BAG-LEATH-001",
+			BasePrice:   decimal.NewFromFloat(120.00),
+			Media: []models.Media{
+				{URL: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTAUFyEw7i2H_NI_Ipf0Pe0uCks3vOqsc-KQLk00b-0MYL1j0lO&s", Type: models.MediaTypeImage},
+			},
+			Variants: []models.Variant{
+				{
+					SKU:             "BAG-LEATH-001-S",
+					PriceAdjustment: decimal.NewFromFloat(-15.00),
+					Attributes:      models.AttributesMap{"size": "small", "color": "brown"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          15,
+						ReservedQuantity:  0,
+						LowStockThreshold: 3,
+						BackorderAllowed:  false,
+						MerchantID:        merchantID2,
+					},
+				},
+				{
+					SKU:             "BAG-LEATH-001-M",
+					PriceAdjustment: decimal.NewFromFloat(0.00),
+					Attributes:      models.AttributesMap{"size": "medium", "color": "brown"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          12,
+						ReservedQuantity:  0,
+						LowStockThreshold: 2,
+						BackorderAllowed:  false,
+						MerchantID:        merchantID2,
+					},
+				},
+				{
+					SKU:             "BAG-LEATH-001-L",
+					PriceAdjustment: decimal.NewFromFloat(15.00),
+					Attributes:      models.AttributesMap{"size": "large", "color": "brown"},
+					IsActive:        true,
+					Inventory: models.Inventory{
+						Quantity:          8,
+						ReservedQuantity:  0,
+						LowStockThreshold: 1,
+						BackorderAllowed:  false,
+						MerchantID:        merchantID2,
+					},
+				},
+			},
+		},
 	}
-	if err := db.Create(&product6).Error; err != nil {
-		log.Fatalf("Failed to seed product6: %v", err)
+
+	// Create products with variants and media
+	for i := range products {
+		if err := db.Create(&products[i]).Error; err != nil {
+			log.Printf("Warning: Failed to seed product %s: %v", products[i].Name, err)
+		}
 	}
 
-	// // Luxury Clothing Category 1: Haute Couture
-	// category := models.Category{
-	// 	Name:       "Haute Couture",
-	// 	Attributes: map[string]interface{}{
-	// 		"material":  "silk",
-	// 		"style":     "evening wear",
-	// 		"exclusivity": "limited edition",
-	// 	},
-	// }
-	// if err := db.Create(&category).Error; err != nil {
-	// 	log.Fatalf("Failed to seed category Haute Couture: %v", err)
-	// }
-
-	// // Luxury Clothing Category 2: Designer Footwear
-	// category = models.Category{
-	// 	Name:       "Designer Footwear",
-	// 	Attributes: map[string]interface{}{
-	// 		"material":  "leather",
-	// 		"heel_type": "stiletto",
-	// 		"brand_tier": "premium",
-	// 	},
-	// }
-	// if err := db.Create(&category).Error; err != nil {
-	// 	log.Fatalf("Failed to seed category Designer Footwear: %v", err)
-	// }
-
-	// // Luxury Clothing Category 3: Luxury Accessories
-	// category = models.Category{
-	// 	Name:       "Luxury Accessories",
-	// 	Attributes: map[string]interface{}{
-	// 		"type":      "handbags",
-	// 		"material":  "exotic leather",
-	// 		"hardware":  "gold-plated",
-	// 	},
-	// }
-	// if err := db.Create(&category).Error; err != nil {
-	// 	log.Fatalf("Failed to seed category Luxury Accessories: %v", err)
-	// }
-
-	// // Luxury Clothing Category 4: Bespoke Tailoring
-	// category = models.Category{
-	// 	Name:       "Bespoke Tailoring",
-	// 	Attributes: map[string]interface{}{
-	// 		"fit":       "custom",
-	// 		"fabric":    "wool",
-	// 		"occasion":  "formal",
-	// 	},
-	// }
-	// if err := db.Create(&category).Error; err != nil {
-	// 	log.Fatalf("Failed to seed category Bespoke Tailoring: %v", err)
-	// }
-
-	// // Luxury Clothing Category 5: Premium Outerwear
-	// category = models.Category{
-	// 	Name:       "Premium Outerwear",
-	// 	Attributes: map[string]interface{}{
-	// 		"material":  "cashmere",
-	// 		"insulation": "down",
-	// 		"style":     "trench",
-	// 	},
-	// }
-	// if err := db.Create(&category).Error; err != nil {
-	// 	log.Fatalf("Failed to seed category Premium Outerwear: %v", err)
-	// }
-
-	// log.Println("Successfully seeded all categories")
-
-	fmt.Println("Database seeded successfully!")
+	fmt.Println("Database seeded successfully with 30+ products across 6 categories!")
 }

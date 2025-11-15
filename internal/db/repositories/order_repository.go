@@ -37,7 +37,13 @@ func (r *OrderRepository) Create(ctx context.Context, order *models.Order) error
 func (r *OrderRepository) FindByID(ctx context.Context, id uint) (*models.Order, error) {
 	var order models.Order
 	//err := r.db.Preload("User").Preload("OrderItems.Product.Merchant").First(&order, id).Error
-	err := r.db.WithContext(ctx).Preload("User").Preload("OrderItems").Preload("OrderItems.Product").Preload("OrderItems.Merchant").First(&order, id).Error
+	err := r.db.WithContext(ctx).
+		Preload("User.Addresses").
+		Preload("OrderItems").
+		Preload("OrderItems.Product.Media").
+		Preload("OrderItems.Product").
+		Preload("OrderItems.Merchant").
+		First(&order, id).Error
 	return &order, err
 }
 
@@ -61,10 +67,15 @@ func (r *OrderRepository) FindByUserID(ctx context.Context, userID uint) ([]mode
 }
 
 // FindByMerchantID retrieves all orders containing items from a merchant
-func (r *OrderRepository) FindByMerchantID(ctx context.Context, merchantID uint) ([]models.Order, error) {
+func (r *OrderRepository) FindByMerchantID(ctx context.Context, merchantID interface{}) ([]models.Order, error) {
 	var orders []models.Order
-	err := r.db.WithContext(ctx).Preload("OrderItems.Product").Joins("JOIN order_items oi ON oi.order_id = orders.id").
-		Where("oi.merchant_id = ?", merchantID).Find(&orders).Error
+	err := r.db.WithContext(ctx).
+		Preload("OrderItems.Product.Media").
+		Preload("OrderItems.Product").
+		Preload("User.Addresses").
+		Joins("JOIN order_items oi ON oi.order_id = orders.id").
+		Where("oi.merchant_id = ?", merchantID).
+		Find(&orders).Error
 	return orders, err
 }
 

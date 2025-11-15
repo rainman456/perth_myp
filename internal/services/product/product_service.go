@@ -31,14 +31,14 @@ import (
 )
 
 var (
-	ErrInvalidProduct    = errors.New("invalid product data")
+	ErrInvalidProduct = errors.New("invalid product data")
 	//ErrInvalidSKU        = errors.New("invalid SKU format")
 	ErrInvalidMediaURL   = errors.New("invalid media URL")
 	ErrInvalidAttributes = errors.New("invalid variant attributes")
 	ErrUnauthorized      = errors.New("unauthorized operation")
-	ErrUploadFailed     = errors.New("upload to Cloudinary failed")
-	ErrUpdateFailed     = errors.New("update failed")
-	ErrDeleteFailed     = errors.New("delete failed")
+	ErrUploadFailed      = errors.New("upload to Cloudinary failed")
+	ErrUpdateFailed      = errors.New("update failed")
+	ErrDeleteFailed      = errors.New("delete failed")
 	ErrUnauthorizedMedia = errors.New("unauthorized for this media")
 )
 
@@ -48,14 +48,14 @@ var (
 type ProductService struct {
 	productRepo *repositories.ProductRepository
 	//reviewRepo  *repositories.ReviewRepository
-	logger      *zap.Logger
-	validator   *validator.Validate
-	cld         *cloudinary.Cloudinary
+	logger    *zap.Logger
+	validator *validator.Validate
+	cld       *cloudinary.Cloudinary
 	//config  *config.Config
-	
+
 }
 
-func NewProductService(productRepo *repositories.ProductRepository,  cfg *config.Config,logger *zap.Logger) *ProductService {
+func NewProductService(productRepo *repositories.ProductRepository, cfg *config.Config, logger *zap.Logger) *ProductService {
 	cld, err := cloudinary.NewFromParams(cfg.CloudinaryCloudName, cfg.CloudinaryAPIKey, cfg.CloudinaryAPISecret)
 	if err != nil {
 		logger.Fatal("Cloudinary init failed", zap.Error(err))
@@ -64,14 +64,14 @@ func NewProductService(productRepo *repositories.ProductRepository,  cfg *config
 	return &ProductService{
 		productRepo: productRepo,
 		//reviewRepo: reviewRepo,
-		logger:      logger,
-		validator:   validator.New(),
-		cld:         cld,
+		logger:    logger,
+		validator: validator.New(),
+		cld:       cld,
 	}
 }
 
 // CreateProductWithVariants creates a product from input DTO
-func (s *ProductService) CreateProductWithVariants(ctx context.Context, merchant_id string,input *dto.ProductInput) (*dto.MerchantProductResponse, error) {
+func (s *ProductService) CreateProductWithVariants(ctx context.Context, merchant_id string, input *dto.ProductInput) (*dto.MerchantProductResponse, error) {
 	logger := s.logger.With(zap.String("operation", "CreateProductWithVariants"))
 
 	// Validate input
@@ -86,13 +86,11 @@ func (s *ProductService) CreateProductWithVariants(ctx context.Context, merchant
 	// 	return nil, ErrInvalidSKU
 	// }
 
-
 	isSimple := len(input.Variants) == 0
 	if isSimple && input.InitialStock == nil {
 		logger.Error("Initial stock required for simple product")
 		return nil, ErrInvalidProduct
 	}
-	
 
 	// Map DTO to models
 	product := &models.Product{
@@ -100,10 +98,10 @@ func (s *ProductService) CreateProductWithVariants(ctx context.Context, merchant
 		MerchantID:  merchant_id,
 		Description: strings.TrimSpace(input.Description),
 		//SKU:         strings.TrimSpace(input.SKU),
-		BasePrice:   decimal.NewFromFloat(input.BasePrice),
-		Discount: decimal.NewFromFloat(input.Discount),
+		BasePrice:    decimal.NewFromFloat(input.BasePrice),
+		Discount:     decimal.NewFromFloat(input.Discount),
 		DiscountType: models.DiscountType(input.DiscountType),
-		CategoryID:  input.CategoryID,
+		CategoryID:   input.CategoryID,
 		CategoryName: input.CategoryName,
 	}
 	variants := make([]models.Variant, len(input.Variants))
@@ -111,8 +109,8 @@ func (s *ProductService) CreateProductWithVariants(ctx context.Context, merchant
 		variants[i] = models.Variant{
 			//SKU:             strings.TrimSpace(v.SKU),
 			PriceAdjustment: decimal.NewFromFloat(v.PriceAdjustment),
-			Discount: decimal.NewFromFloat(input.Discount),
-			DiscountType: models.DiscountType(input.DiscountType),
+			Discount:        decimal.NewFromFloat(input.Discount),
+			DiscountType:    models.DiscountType(input.DiscountType),
 			Attributes:      v.Attributes,
 			IsActive:        true,
 		}
@@ -125,7 +123,6 @@ func (s *ProductService) CreateProductWithVariants(ctx context.Context, merchant
 		}
 	}
 
-
 	product.GenerateSKU(merchant_id)
 	for i := range variants {
 		variants[i].GenerateSKU(product.SKU)
@@ -133,9 +130,9 @@ func (s *ProductService) CreateProductWithVariants(ctx context.Context, merchant
 
 	// Delegate to repo
 	var simpleStock *int
-if isSimple {
-    simpleStock = input.InitialStock
-}
+	if isSimple {
+		simpleStock = input.InitialStock
+	}
 	err := s.productRepo.CreateProductWithVariantsAndInventory(ctx, product, variants, input.Variants, media, simpleStock, isSimple)
 	if err != nil {
 		if errors.Is(err, repositories.ErrDuplicateSKU) {
@@ -190,7 +187,7 @@ func (s *ProductService) GetProductByID(ctx context.Context, id string, preloads
 		}
 
 		// Fetch review stats separately (aggregated, not all reviews)
-		avgRating, reviewCount,_ := s.productRepo.GetReviewStats(ctx, id)
+		avgRating, reviewCount, _ := s.productRepo.GetReviewStats(ctx, id)
 
 		// Build response
 		response := helpers.ToProductResponse(product, variantDTOs, nil, &product.Merchant)
@@ -209,11 +206,10 @@ func (s *ProductService) GetProductByID(ctx context.Context, id string, preloads
 	return response, nil
 }
 
-
 // ListProductsByMerchant lists products for a merchant
 func (s *ProductService) ListProductsByMerchant(ctx context.Context, merchantID string, limit, offset int, activeOnly bool) ([]dto.MerchantProductResponse, error) {
 	logger := s.logger.With(zap.String("operation", "ListProductsByMerchant"), zap.String("merchant_id", merchantID))
-	products, err := s.productRepo.ListByMerchant(ctx, merchantID, limit, offset, activeOnly)  // Fixed: Added ctx
+	products, err := s.productRepo.ListByMerchant(ctx, merchantID, limit, offset, activeOnly) // Fixed: Added ctx
 	if err != nil {
 		logger.Error("Failed to list products", zap.Error(err))
 		return nil, fmt.Errorf("failed to list products: %w", err)
@@ -228,46 +224,33 @@ func (s *ProductService) ListProductsByMerchant(ctx context.Context, merchantID 
 	return responses, nil
 }
 
-
-
-
-
-
-
-
-
-
 // Autocomplete fetches product suggestions for search autocomplete.
 func (s *ProductService) Autocomplete(ctx context.Context, prefix string, limit int) (*dto.AutocompleteResponse, error) {
-    s.logger.Info("Fetching autocomplete suggestions", zap.String("prefix", prefix), zap.Int("limit", limit))
+	s.logger.Info("Fetching autocomplete suggestions", zap.String("prefix", prefix), zap.Int("limit", limit))
 
-    suggestions, err := s.productRepo.AutocompleteProducts(ctx, prefix, limit)
-    if err != nil {
-        s.logger.Error("Failed to fetch autocomplete products", zap.Error(err))
-        return nil, fmt.Errorf("autocomplete failed: %w", err)
-    }
+	suggestions, err := s.productRepo.AutocompleteProducts(ctx, prefix, limit)
+	if err != nil {
+		s.logger.Error("Failed to fetch autocomplete products", zap.Error(err))
+		return nil, fmt.Errorf("autocomplete failed: %w", err)
+	}
 
-    suggest := make([]dto.ProductAutocompleteResponse, len(suggestions))
-    for i, p := range suggestions {
-        suggest[i] = dto.ProductAutocompleteResponse{
-            ID:          p.ID,
-            Name:        p.Name,
-            SKU:         p.SKU,
-            Description: p.Description,
-        }
-    }
+	suggest := make([]dto.ProductAutocompleteResponse, len(suggestions))
+	for i, p := range suggestions {
+		suggest[i] = dto.ProductAutocompleteResponse{
+			ID:          p.ID,
+			Name:        p.Name,
+			SKU:         p.SKU,
+			Description: p.Description,
+		}
+	}
 
 	response := &dto.AutocompleteResponse{
-        Suggestions: suggest,
-    }
+		Suggestions: suggest,
+	}
 
-    s.logger.Info("Autocomplete suggestions returned", zap.Int("count", len(suggestions)))
-    return response, nil
+	s.logger.Info("Autocomplete suggestions returned", zap.Int("count", len(suggestions)))
+	return response, nil
 }
-
-
-
-
 
 // GetAllProducts fetches all active products for the landing page
 func (s *ProductService) GetAllProducts(ctx context.Context, limit, offset int, categoryID *uint) ([]dto.ProductResponse, int64, error) {
@@ -316,7 +299,7 @@ func (s *ProductService) GetAllProducts(ctx context.Context, limit, offset int, 
 			}
 
 			// Get review stats (cached separately)
-			avgRating, reviewCount,_ := s.productRepo.GetReviewStats(ctx, p.ID)
+			avgRating, reviewCount, _ := s.productRepo.GetReviewStats(ctx, p.ID)
 
 			resp := helpers.ToProductResponse(&p, variantDTOs, nil, &p.Merchant)
 			resp.MerchantID = "" // Hide for customer view
@@ -344,39 +327,19 @@ func (s *ProductService) GetAllProducts(ctx context.Context, limit, offset int, 
 // Invalidate cache when product is updated
 func (s *ProductService) InvalidateProductCache(ctx context.Context, productID string) {
 	// Delete product detail cache
-	err :=utils.InvalidateCache(ctx, utils.ProductCacheKey(productID))
-	if err!=nil{
+	err := utils.InvalidateCache(ctx, utils.ProductCacheKey(productID))
+	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Delete list caches (all pages might contain this product)
-	err=utils.InvalidateCachePattern(ctx, "product:list:*")
-	if err!=nil{
+	err = utils.InvalidateCachePattern(ctx, "product:list:*")
+	if err != nil {
 		log.Fatal(err)
 	}
 
 	s.logger.Info("Product cache invalidated", zap.String("product_id", productID))
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // GetAllProducts fetches all active products for the landing page
 // Assumes ProductFilter is defined in the same package or imported.
@@ -398,7 +361,7 @@ func (s *ProductService) FilterProducts(ctx context.Context, filter repositories
 		}
 
 		// Get review stats
-		avgRating, reviewCount,_ := s.productRepo.GetReviewStats(ctx, p.ID)
+		avgRating, reviewCount, _ := s.productRepo.GetReviewStats(ctx, p.ID)
 
 		resp := helpers.ToProductResponse(&p, variantDTOs, nil, &p.Merchant)
 		resp.MerchantID = "" // Hide for customer view
@@ -412,11 +375,10 @@ func (s *ProductService) FilterProducts(ctx context.Context, filter repositories
 	return responses, total, nil
 }
 
-
 // GetProductByID fetches a product by name
 func (s *ProductService) GetProductByName(ctx context.Context, name string) (*dto.ProductResponse, error) {
 	logger := s.logger.With(zap.String("operation", "GetProductByName"), zap.String("product_id", name))
-	product, err := s.productRepo.FindByName(ctx,  name)  // Fixed: Added ctx
+	product, err := s.productRepo.FindByName(ctx, name) // Fixed: Added ctx
 	if err != nil {
 		if errors.Is(err, repositories.ErrProductNotFound) {
 			return nil, err
@@ -443,8 +405,210 @@ func (s *ProductService) GetProductByName(ctx context.Context, name string) (*dt
 	return response, nil
 }
 
+// UpdateProduct updates a product with the provided fields
+func (s *ProductService) UpdateProduct(ctx context.Context, productID string, merchantID string, input *dto.UpdateProductInput) (*dto.MerchantProductResponse, error) {
+	logger := s.logger.With(zap.String("operation", "UpdateProduct"), zap.String("product_id", productID))
 
+	// Validate input
+	if err := s.validator.Struct(input); err != nil {
+		logger.Error("Input validation failed", zap.Error(err))
+		return nil, fmt.Errorf("invalid input: %w", err)
+	}
 
+	// Check if product exists and belongs to merchant
+	product, err := s.productRepo.FindByID(ctx, productID)
+	if err != nil {
+		logger.Error("Failed to find product", zap.Error(err))
+		return nil, ErrInvalidProduct
+	}
+
+	if product.MerchantID != merchantID {
+		logger.Error("Unauthorized access to product", zap.String("merchant_id", merchantID))
+		return nil, ErrUnauthorized
+	}
+
+	// Prepare updates
+	updates := make(map[string]interface{})
+
+	if input.Name != nil {
+		updates["name"] = strings.TrimSpace(*input.Name)
+	}
+	if input.Description != nil {
+		updates["description"] = strings.TrimSpace(*input.Description)
+	}
+	if input.BasePrice != nil {
+		updates["base_price"] = decimal.NewFromFloat(*input.BasePrice)
+	}
+	if input.CategoryID != nil {
+		updates["category_id"] = *input.CategoryID
+	}
+	if input.CategoryName != nil {
+		updates["category_name"] = strings.TrimSpace(*input.CategoryName)
+	}
+	if input.Discount != nil {
+		updates["discount"] = decimal.NewFromFloat(*input.Discount)
+	}
+	if input.DiscountType != nil {
+		updates["discount_type"] = models.DiscountType(*input.DiscountType)
+	}
+
+	// Update product
+	if err := s.productRepo.UpdateProduct(ctx, productID, updates); err != nil {
+		logger.Error("Failed to update product", zap.Error(err))
+		return nil, fmt.Errorf("failed to update product: %w", err)
+	}
+
+	// Invalidate cache
+	go s.InvalidateProductCache(context.Background(), productID)
+
+	// Fetch updated product
+	updatedProduct, err := s.productRepo.FindByID(ctx, productID, "Variants", "Media", "SimpleInventory")
+	if err != nil {
+		logger.Error("Failed to fetch updated product", zap.Error(err))
+		return nil, fmt.Errorf("failed to fetch updated product: %w", err)
+	}
+
+	response := helpers.ToMerchantProductResponse(updatedProduct)
+	logger.Info("Product updated successfully", zap.String("product_id", productID))
+	return response, nil
+}
+
+// UpdateVariant updates a variant with the provided fields
+func (s *ProductService) UpdateVariant(ctx context.Context, variantID string, merchantID string, input *dto.UpdateVariantInput) error {
+	logger := s.logger.With(zap.String("operation", "UpdateVariant"), zap.String("variant_id", variantID))
+
+	// Validate input
+	if err := s.validator.Struct(input); err != nil {
+		logger.Error("Input validation failed", zap.Error(err))
+		return fmt.Errorf("invalid input: %w", err)
+	}
+
+	// Check if variant exists and belongs to merchant's product
+	variant, err := s.productRepo.FindVariantByID(ctx, variantID)
+	if err != nil {
+		logger.Error("Failed to find variant", zap.Error(err))
+		return ErrInvalidProduct
+	}
+
+	product, err := s.productRepo.FindByID(ctx, variant.ProductID)
+	if err != nil {
+		logger.Error("Failed to find product", zap.Error(err))
+		return ErrInvalidProduct
+	}
+
+	if product.MerchantID != merchantID {
+		logger.Error("Unauthorized access to variant", zap.String("merchant_id", merchantID))
+		return ErrUnauthorized
+	}
+
+	// Prepare updates
+	updates := make(map[string]interface{})
+
+	if input.PriceAdjustment != nil {
+		updates["price_adjustment"] = decimal.NewFromFloat(*input.PriceAdjustment)
+	}
+	if input.Discount != nil {
+		updates["discount"] = decimal.NewFromFloat(*input.Discount)
+	}
+	if input.DiscountType != nil {
+		updates["discount_type"] = models.DiscountType(*input.DiscountType)
+	}
+	if input.Attributes != nil {
+		updates["attributes"] = input.Attributes
+	}
+	if input.IsActive != nil {
+		updates["is_active"] = *input.IsActive
+	}
+
+	// Update variant
+	if err := s.productRepo.UpdateVariant(ctx, variantID, updates); err != nil {
+		logger.Error("Failed to update variant", zap.Error(err))
+		return fmt.Errorf("failed to update variant: %w", err)
+	}
+
+	// Invalidate cache
+	go s.InvalidateProductCache(context.Background(), variant.ProductID)
+
+	logger.Info("Variant updated successfully", zap.String("variant_id", variantID))
+	return nil
+}
+
+// BulkUpdateProducts updates multiple products and their variants
+func (s *ProductService) BulkUpdateProducts(ctx context.Context, merchantID string, inputs []dto.BulkUpdateProductInput) (int, []string, error) {
+	logger := s.logger.With(zap.String("operation", "BulkUpdateProducts"))
+
+	updatedCount := 0
+	errorMessages := []string{}
+
+	for i, input := range inputs {
+		// Validate product ID
+		if input.ProductID == "" {
+			errorMessages = append(errorMessages, fmt.Sprintf("Product %d: product_id is required", i+1))
+			continue
+		}
+
+		// Update product if provided
+		if input.Product != nil {
+			_, err := s.UpdateProduct(ctx, input.ProductID, merchantID, input.Product)
+			if err != nil {
+				logger.Error("Failed to update product in bulk update", zap.Error(err), zap.String("product_id", input.ProductID))
+				errorMessages = append(errorMessages, fmt.Sprintf("Product %d (%s): %v", i+1, input.ProductID, err.Error()))
+				continue
+			}
+		}
+
+		// Update variants if provided
+		for j, variantUpdate := range input.Variants {
+			if variantUpdate.VariantID == "" {
+				errorMessages = append(errorMessages, fmt.Sprintf("Product %d, Variant %d: variant_id is required", i+1, j+1))
+				continue
+			}
+
+			if variantUpdate.Variant != nil {
+				err := s.UpdateVariant(ctx, variantUpdate.VariantID, merchantID, variantUpdate.Variant)
+				if err != nil {
+					logger.Error("Failed to update variant in bulk update", zap.Error(err), zap.String("variant_id", variantUpdate.VariantID))
+					errorMessages = append(errorMessages, fmt.Sprintf("Product %d (%s), Variant %d (%s): %v", i+1, input.ProductID, j+1, variantUpdate.VariantID, err.Error()))
+					continue
+				}
+			}
+		}
+
+		updatedCount++
+	}
+
+	logger.Info("Bulk update completed", zap.Int("updated_count", updatedCount), zap.Int("total", len(inputs)))
+	return updatedCount, errorMessages, nil
+}
+
+// BulkUpdateInventory updates multiple inventory items
+func (s *ProductService) BulkUpdateInventory(ctx context.Context, merchantID string, inputs []dto.BulkInventoryUpdateInput) (int, []string, error) {
+	logger := s.logger.With(zap.String("operation", "BulkUpdateInventory"))
+
+	updatedCount := 0
+	errorMessages := []string{}
+
+	for i, input := range inputs {
+		// Validate inventory ID
+		if input.InventoryID == "" {
+			errorMessages = append(errorMessages, fmt.Sprintf("Item %d: inventory_id is required", i+1))
+			continue
+		}
+
+		// Update inventory
+		err := s.UpdateInventory(ctx, input.InventoryID, input.Delta)
+		if err != nil {
+			logger.Error("Failed to update inventory in bulk update", zap.Error(err), zap.String("inventory_id", input.InventoryID))
+			errorMessages = append(errorMessages, fmt.Sprintf("Item %d (%s): %v", i+1, input.InventoryID, err.Error()))
+			continue
+		}
+
+		updatedCount++
+	}
+
+	logger.Info("Bulk inventory update completed", zap.Int("updated_count", updatedCount), zap.Int("total", len(inputs)))
+	return updatedCount, errorMessages, nil
+}
 
 // UpdateInventory adjusts stock for a given inventory ID
 func (s *ProductService) UpdateInventory(ctx context.Context, inventoryID string, delta int) error {
@@ -473,14 +637,7 @@ func (s *ProductService) DeleteProduct(ctx context.Context, id string) error {
 	return nil
 }
 
-
-
-
-
-
-
 //Media service
-
 
 // UploadMedia uploads file to Cloudinary, saves to DB
 func (s *ProductService) UploadMedia(ctx context.Context, productID, merchantID, filePath, mediaType string) (*models.Media, error) {
@@ -494,9 +651,9 @@ func (s *ProductService) UploadMedia(ctx context.Context, productID, merchantID,
 
 	// Upload to Cloudinary
 	params := uploader.UploadParams{
-		Folder:     "merchant_media", // Organized folder
-		ResourceType: mediaType, // image/video
-		PublicID:    fmt.Sprintf("%s_%s", productID, filepath.Base(filePath)), // Unique ID
+		Folder:       "merchant_media",                                         // Organized folder
+		ResourceType: mediaType,                                                // image/video
+		PublicID:     fmt.Sprintf("%s_%s", productID, filepath.Base(filePath)), // Unique ID
 	}
 	resp, err := s.cld.Upload.Upload(ctx, filePath, params)
 	if err != nil {
@@ -536,7 +693,7 @@ func (s *ProductService) UpdateMedia(ctx context.Context, mediaID, productID, me
 	if req.File != nil {
 		// Re-upload
 		resp, err := s.cld.Upload.Upload(ctx, *req.File, uploader.UploadParams{
-			PublicID:    media.PublicID, // Overwrite existing
+			PublicID:     media.PublicID, // Overwrite existing
 			ResourceType: string(media.Type),
 		})
 		if err != nil {
@@ -593,20 +750,8 @@ func (s *ProductService) DeleteMedia(ctx context.Context, mediaID, productID, me
 	return nil
 }
 
-
-
-
-
 // Helper: Check merchant owns product
 func (s *ProductService) merchantOwnsProduct(ctx context.Context, productID, merchantID string) bool {
 	product, err := s.productRepo.FindByID(ctx, productID)
 	return err == nil && product.MerchantID == merchantID
 }
-
-
-
-
-
-
-
-

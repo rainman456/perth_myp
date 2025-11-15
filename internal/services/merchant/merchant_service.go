@@ -211,21 +211,9 @@ func (s *MerchantService) GenerateJWT(entity interface{}) (string, error) {
 	return token.SignedString([]byte(secret))
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
- //func (s *MerchantService) AddBankDetails(merchantID string, details MerchantBankDetails) error {
-     // Validate inputs (e.g., bank code format)
-   //  details.MerchantID = merchantID
+//func (s *MerchantService) AddBankDetails(merchantID string, details MerchantBankDetails) error {
+// Validate inputs (e.g., bank code format)
+//  details.MerchantID = merchantID
 //     details.Status = "pending"
 
 //     // Create Paystack recipient
@@ -254,7 +242,6 @@ func (s *MerchantService) GenerateJWT(entity interface{}) (string, error) {
 //     return db.DB.Create(&details).Error
 // }
 
-
 func (s *MerchantService) AddBankDetails(ctx context.Context, merchantID string, details dto.BankDetailsRequest) error {
 	// Validate bank name
 	bankSvc := bank.GetBankService()
@@ -278,29 +265,87 @@ func (s *MerchantService) AddBankDetails(ctx context.Context, merchantID string,
 	return nil
 }
 
-
-func (s *MerchantService) UpdateBankDetails(ctx context.Context, merchantID string ,details  dto.BankDetailsRequest) error {
-     // Similar, but use Save or Update
-	 if details.BankName == "" {
+func (s *MerchantService) UpdateBankDetails(ctx context.Context, merchantID string, details dto.BankDetailsRequest) error {
+	// Similar, but use Save or Update
+	if details.BankName == "" {
 		return errors.New("empty bank name")
 	}
 
 	if details.AccountNumber == "" {
 		return errors.New("empty bank name")
 	}
-	
 
-	
-
-	err := s.repo.UpdateBankDetails(ctx ,merchantID, details)
+	err := s.repo.UpdateBankDetails(ctx, merchantID, details)
 	if err != nil {
-		return  err
+		return err
 	}
 
 	//payment.Status = models.PaymentStatus(status)
-	
 
 	return nil
 
-  
- }
+}
+
+// UpdateMerchantProfile updates a merchant's profile information
+func (s *MerchantService) UpdateMerchantProfile(ctx context.Context, merchantID string, input dto.UpdateMerchantProfileInput) error {
+	// Validate input
+	if err := s.validate.Struct(input); err != nil {
+		return fmt.Errorf("validation failed: %w", err)
+	}
+
+	// Prepare updates
+	updates := make(map[string]interface{})
+
+	if input.StoreName != nil {
+		updates["store_name"] = *input.StoreName
+	}
+	if input.Name != nil {
+		updates["name"] = *input.Name
+	}
+	if input.PersonalEmail != nil {
+		updates["personal_email"] = *input.PersonalEmail
+	}
+	if input.WorkEmail != nil {
+		updates["work_email"] = *input.WorkEmail
+	}
+	if input.PhoneNumber != nil {
+		updates["phone_number"] = *input.PhoneNumber
+	}
+	if input.PersonalAddress != nil {
+		addressBytes, err := json.Marshal(input.PersonalAddress)
+		if err != nil {
+			return fmt.Errorf("failed to marshal personal address: %w", err)
+		}
+		updates["personal_address"] = addressBytes
+	}
+	if input.WorkAddress != nil {
+		addressBytes, err := json.Marshal(input.WorkAddress)
+		if err != nil {
+			return fmt.Errorf("failed to marshal work address: %w", err)
+		}
+		updates["work_address"] = addressBytes
+	}
+	if input.BusinessType != nil {
+		updates["business_type"] = *input.BusinessType
+	}
+	if input.Website != nil {
+		updates["website"] = *input.Website
+	}
+	if input.BusinessDescription != nil {
+		updates["business_description"] = *input.BusinessDescription
+	}
+	if input.StoreLogoURL != nil {
+		updates["store_logo_url"] = *input.StoreLogoURL
+	}
+	if input.Banner != nil {
+		updates["banner"] = *input.Banner
+	}
+
+	// Update merchant
+	if err := s.repo.UpdateMerchant(ctx, merchantID, updates); err != nil {
+		return fmt.Errorf("failed to update merchant: %w", err)
+	}
+
+	return nil
+
+}

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"time"
 
 	"api-customer-merchant/internal/api/dto"
 	"api-customer-merchant/internal/db/models"
@@ -108,8 +109,6 @@ func parseUint(s string) uint {
 	return id
 }
 
-
-
 func mapToDisputeResponseDTO(disputes []models.Dispute) *dto.DisputeResponseDTO {
 	if len(disputes) == 0 {
 		return nil
@@ -193,4 +192,57 @@ func (s *DisputeService) GetCustomerDisputes(ctx context.Context, userID uint) (
 	})
 
 	return dtos, nil
+}
+
+// GetMerchantDisputes retrieves all disputes for a merchant, grouped by order
+func (s *DisputeService) GetMerchantDisputes(ctx context.Context, merchantID string) ([]dto.DisputeResponseDTO, error) {
+	disputes, err := s.disputeRepo.FindDisputesByMerchantID(ctx, merchantID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Group by OrderID
+	groups := make(map[string][]models.Dispute)
+	for _, d := range disputes {
+		oid := d.OrderID
+		groups[oid] = append(groups[oid], d)
+	}
+
+	dtos := make([]dto.DisputeResponseDTO, 0, len(groups))
+	for _, disputeGroup := range groups {
+		dto := mapToDisputeResponseDTO(disputeGroup)
+		if dto != nil {
+			dtos = append(dtos, *dto)
+		}
+	}
+
+	// Sort by order created_at descending (most recent first)
+	sort.Slice(dtos, func(i, j int) bool {
+		return dtos[i].OrderCreatedAt.After(dtos[j].OrderCreatedAt)
+	})
+
+	return dtos, nil
+}
+
+// UpdateDisputeStatus updates the status and resolution of a dispute
+func (s *DisputeService) UpdateDisputeStatus(ctx context.Context, disputeID string, merchantID string, status string, resolution string) error {
+	// Find the dispute
+	dispute, err := s.disputeRepo.FindDisputeByID(ctx, disputeID)
+	if err != nil {
+		return err
+	}
+
+	// Verify the dispute belongs to the merchant
+	if dispute.MerchantID != merchantID {
+		return ErrUnauthorized
+	}
+
+	// Update the dispute
+	dispute.Status = status
+	dispute.Resolution = resolution
+	if status == "resolved" {
+		dispute.ResolvedAt = time.Now()
+	}
+
+	return s.disputeRepo.Update(ctx, dispute)
 }

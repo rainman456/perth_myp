@@ -13,28 +13,22 @@ type DisputeRepository struct {
 	db *gorm.DB
 }
 
-type ReturnRequestRepository struct{
+type ReturnRequestRepository struct {
 	db *gorm.DB
 }
-
 
 func NewDisputeRepository() *DisputeRepository {
 	return &DisputeRepository{db: db.DB}
 }
 
-
 func NewReturnRequestRepository() *ReturnRequestRepository {
 	return &ReturnRequestRepository{db: db.DB}
 }
 
-
-
 // Create adds a new order item
-func (r *DisputeRepository) Create(ctx context.Context,dispute *models.Dispute) error {
+func (r *DisputeRepository) Create(ctx context.Context, dispute *models.Dispute) error {
 	return r.db.WithContext(ctx).Create(dispute).Error
 }
-
-
 
 func (r *DisputeRepository) FindDisputeByID(ctx context.Context, id string) (*models.Dispute, error) {
 	var dispute models.Dispute
@@ -65,6 +59,19 @@ func (r *DisputeRepository) FindDisputesByCustomerID(ctx context.Context, custom
 	return disputes, err
 }
 
+// FindDisputesByMerchantID retrieves all disputes for a merchant
+func (r *DisputeRepository) FindDisputesByMerchantID(ctx context.Context, merchantID string) ([]models.Dispute, error) {
+	var disputes []models.Dispute
+	err := r.db.WithContext(ctx).
+		Scopes(r.activeScope()).
+		Where("merchant_id = ?", merchantID).
+		Preload("Order.OrderItems.Product.Category").
+		Preload("Order.OrderItems.Product.Media").
+		Preload("Customer").
+		Find(&disputes).Error
+	return disputes, err
+}
+
 // UpdateMedia updates fields
 func (r *DisputeRepository) Update(ctx context.Context, dispute *models.Dispute) error {
 	return r.db.WithContext(ctx).Save(dispute).Error
@@ -75,23 +82,20 @@ func (r *DisputeRepository) DeleteDispute(ctx context.Context, id string) error 
 	return r.db.WithContext(ctx).Model(&models.Dispute{}).Where("id = ?", id).Update("deleted_at", time.Now()).Error
 }
 
-
 // activeScope (if soft delete)
 func (r *DisputeRepository) activeScope() func(db *gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB { return db.Where("deleted_at IS NULL") }
 }
 
-
-func (r *ReturnRequestRepository) Create(ctx context.Context,returnrequests *models.ReturnRequest) error {
+func (r *ReturnRequestRepository) Create(ctx context.Context, returnrequests *models.ReturnRequest) error {
 	return r.db.WithContext(ctx).Create(returnrequests).Error
 }
 
-
 // FindReturnRequestByID fetches a return request by ID
 func (r *ReturnRequestRepository) FindReturnRequestByID(ctx context.Context, id string) (*models.ReturnRequest, error) {
-    var returnRequest models.ReturnRequest
-    err := r.db.WithContext(ctx).Scopes(r.activeScope()).First(&returnRequest, "id = ?", id).Error
-    return &returnRequest, err
+	var returnRequest models.ReturnRequest
+	err := r.db.WithContext(ctx).Scopes(r.activeScope()).First(&returnRequest, "id = ?", id).Error
+	return &returnRequest, err
 }
 
 // Update updates a return request
@@ -101,26 +105,26 @@ func (r *ReturnRequestRepository) FindReturnRequestByID(ctx context.Context, id 
 
 // DeleteReturnRequest soft-deletes a return request
 func (r *ReturnRequestRepository) DeleteReturnRequest(ctx context.Context, id string) error {
-    return r.db.WithContext(ctx).Model(&models.ReturnRequest{}).Where("id = ?", id).Update("deleted_at", time.Now()).Error
+	return r.db.WithContext(ctx).Model(&models.ReturnRequest{}).Where("id = ?", id).Update("deleted_at", time.Now()).Error
 }
 
 // activeScope filters out soft-deleted records
 func (r *ReturnRequestRepository) activeScope() func(db *gorm.DB) *gorm.DB {
-    return func(db *gorm.DB) *gorm.DB { return db.Where("deleted_at IS NULL") }
+	return func(db *gorm.DB) *gorm.DB { return db.Where("deleted_at IS NULL") }
 }
 
 func (r *ReturnRequestRepository) FindByID(ctx context.Context, id string) (*models.ReturnRequest, error) {
-    var returnRequest models.ReturnRequest
-    err := r.db.WithContext(ctx).Scopes(r.activeScope()).First(&returnRequest, "id = ?", id).Error
-    return &returnRequest, err
+	var returnRequest models.ReturnRequest
+	err := r.db.WithContext(ctx).Scopes(r.activeScope()).First(&returnRequest, "id = ?", id).Error
+	return &returnRequest, err
 }
 
 func (r *ReturnRequestRepository) Update(ctx context.Context, returnRequest *models.ReturnRequest) error {
-    return r.db.WithContext(ctx).Save(returnRequest).Error
+	return r.db.WithContext(ctx).Save(returnRequest).Error
 }
 
 func (r *ReturnRequestRepository) Delete(ctx context.Context, id string) error {
-    return r.db.WithContext(ctx).Model(&models.ReturnRequest{}).Where("id = ?", id).Update("deleted_at", time.Now()).Error
+	return r.db.WithContext(ctx).Model(&models.ReturnRequest{}).Where("id = ?", id).Update("deleted_at", time.Now()).Error
 }
 
 // func (r *ReturnRequestRepository) activeScope() func(db *gorm.DB) *gorm.DB {

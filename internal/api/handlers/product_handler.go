@@ -25,7 +25,6 @@ import (
 	"api-customer-merchant/internal/services/product"
 )
 
-
 type CategoryHandler struct {
 	service *product.CategoryService
 }
@@ -96,7 +95,7 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 	//merchantIDStr = input.MerchantID
 
 	// Call service
-	response, err := h.productService.CreateProductWithVariants(c.Request.Context(),merchantIDStr, &input)
+	response, err := h.productService.CreateProductWithVariants(c.Request.Context(), merchantIDStr, &input)
 	if err != nil {
 		logger.Error("Failed to create product", zap.Error(err))
 		if errors.Is(err, product.ErrInvalidProduct) || errors.Is(err, product.ErrInvalidMediaURL) || errors.Is(err, product.ErrInvalidAttributes) ||
@@ -204,7 +203,6 @@ func (h *ProductHandler) GetProductByID(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-
 // GetProductByName fetches a single product by name
 // GetProductByID godoc
 // @Summary Get product by Name
@@ -242,10 +240,95 @@ func (h *ProductHandler) GetProductByName(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
+// BulkUploadProducts godoc
+// @Summary Bulk upload products
+// @Description Upload multiple products at once for authenticated merchant
+// @Tags Merchant
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param body body []dto.ProductInput true "Array of product details"
+// @Success 201 {object} object{message=string,created_count=int,errors=[]string}
+// @Failure 400 {object} object{error=string}
+// @Failure 401 {object} object{error=string}
+// @Failure 500 {object} object{error=string}
+// @Router /merchant/products/bulk-upload [post]
+func (h *ProductHandler) BulkUploadProducts(c *gin.Context) {
+	logger := h.logger.With(zap.String("operation", "BulkUploadProducts"))
 
+	// Check merchant authorization
+	merchantID, exists := c.Get("merchantID")
+	if !exists {
+		logger.Warn("Unauthorized access attempt")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	merchantIDStr, ok := merchantID.(string)
+	if !ok || merchantIDStr == "" {
+		logger.Warn("Invalid merchant ID in context")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid merchant ID"})
+		return
+	}
 
+	// Bind and validate input
+	var inputs []dto.ProductInput
+	if err := c.ShouldBindJSON(&inputs); err != nil {
+		logger.Error("Failed to bind JSON", zap.Error(err))
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request payload"})
+		return
+	}
 
+	if len(inputs) == 0 {
+		logger.Error("No products provided")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "no products provided"})
+		return
+	}
 
+	if len(inputs) > 100 {
+		logger.Error("Too many products in bulk upload", zap.Int("count", len(inputs)))
+		c.JSON(http.StatusBadRequest, gin.H{"error": "maximum 100 products allowed per bulk upload"})
+		return
+	}
+
+	// Process each product
+	createdCount := 0
+	errorMessages := []string{}
+
+	for i, input := range inputs {
+		// Validate each input
+		if err := h.validator.Struct(&input); err != nil {
+			errorMessages = append(errorMessages, fmt.Sprintf("Product %d validation error: %v", i+1, err.Error()))
+			continue
+		}
+
+		// Call service to create product
+		_, err := h.productService.CreateProductWithVariants(c.Request.Context(), merchantIDStr, &input)
+		if err != nil {
+			logger.Error("Failed to create product in bulk upload", zap.Error(err), zap.Int("index", i))
+			errorMessages = append(errorMessages, fmt.Sprintf("Product %d creation failed: %v", i+1, err.Error()))
+			continue
+		}
+
+		createdCount++
+	}
+
+	logger.Info("Bulk upload completed", zap.Int("created_count", createdCount), zap.Int("total", len(inputs)))
+
+	if createdCount == 0 && len(errorMessages) > 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":         "all products failed to upload",
+			"created_count": createdCount,
+			"errors":        errorMessages,
+		})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"message":       "bulk upload completed",
+		"created_count": createdCount,
+		"errors":        errorMessages,
+	})
+}
 
 // AutocompleteHandler godoc
 // @Summary      Product Autocomplete
@@ -260,27 +343,26 @@ func (h *ProductHandler) GetProductByName(c *gin.Context) {
 // @Failure      500  {object}  map[string]string  "Internal server error"
 // @Router       /products/autocomplete [get]
 func (h *ProductHandler) AutocompleteHandler(c *gin.Context) {
-    prefix := c.Query("query")
-    if prefix == "" {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "Query parameter 'query' is required"})
-        return
-    }
+	prefix := c.Query("query")
+	if prefix == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Query parameter 'query' is required"})
+		return
+	}
 
-    limitStr := c.Query("limit")
-    limit, err := strconv.Atoi(limitStr)
-    if err != nil {
-        limit = 10 // Default
-    }
+	limitStr := c.Query("limit")
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil {
+		limit = 10 // Default
+	}
 
-    response, err := h.productService.Autocomplete(c.Request.Context(), prefix, limit)
-    if err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-        return
-    }
+	response, err := h.productService.Autocomplete(c.Request.Context(), prefix, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 
-    c.JSON(http.StatusOK, response)
+	c.JSON(http.StatusOK, response)
 }
-
 
 // ListProductsByMerchant lists a merchant's products with pagination
 // ListProductsByMerchant godoc
@@ -340,6 +422,140 @@ func (h *ProductHandler) ListProductsByMerchant(c *gin.Context) {
 		"limit":    limit,
 		"offset":   offset,
 	})
+}
+
+// UpdateProduct handles product update for a merchant
+// UpdateProduct godoc
+// @Summary Update a product
+// @Description Updates a product with variants and media for authenticated merchant
+// @Tags Merchant
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "Product ID"
+// @Param body body dto.UpdateProductInput true "Product update details"
+// @Success 200 {object} dto.MerchantProductResponse
+// @Failure 400 {object} object{error=string}
+// @Failure 401 {object} object{error=string}
+// @Failure 404 {object} object{error=string}
+// @Router /merchant/products/{id} [put]
+func (h *ProductHandler) UpdateProduct(c *gin.Context) {
+	logger := h.logger.With(zap.String("operation", "UpdateProduct"))
+	productID := c.Param("id")
+	if productID == "" {
+		logger.Error("Missing product ID")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "product ID required"})
+		return
+	}
+
+	// Check merchant authorization
+	merchantID, exists := c.Get("merchantID")
+	if !exists {
+		logger.Warn("Unauthorized access attempt")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	merchantIDStr, ok := merchantID.(string)
+	if !ok || merchantIDStr == "" {
+		logger.Warn("Invalid merchant ID in context")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid merchant ID"})
+		return
+	}
+
+	// Bind and validate input
+	var input dto.UpdateProductInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		logger.Error("Failed to bind JSON", zap.Error(err))
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request payload"})
+		return
+	}
+	if err := h.validator.Struct(&input); err != nil {
+		logger.Error("Input validation failed", zap.Error(err))
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Call service
+	response, err := h.productService.UpdateProduct(c.Request.Context(), productID, merchantIDStr, &input)
+	if err != nil {
+		logger.Error("Failed to update product", zap.Error(err))
+		if errors.Is(err, product.ErrInvalidProduct) || errors.Is(err, product.ErrUnauthorized) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "product not found or unauthorized"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update product"})
+		return
+	}
+
+	logger.Info("Product updated successfully", zap.String("product_id", productID))
+	c.JSON(http.StatusOK, response)
+}
+
+// UpdateVariant handles variant update for a merchant
+// UpdateVariant godoc
+// @Summary Update a variant
+// @Description Updates a variant for authenticated merchant
+// @Tags Merchant
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "Variant ID"
+// @Param body body dto.UpdateVariantInput true "Variant update details"
+// @Success 200 {object} object{message=string}
+// @Failure 400 {object} object{error=string}
+// @Failure 401 {object} object{error=string}
+// @Failure 404 {object} object{error=string}
+// @Router /merchant/products/variants/{id} [put]
+func (h *ProductHandler) UpdateVariant(c *gin.Context) {
+	logger := h.logger.With(zap.String("operation", "UpdateVariant"))
+	variantID := c.Param("id")
+	if variantID == "" {
+		logger.Error("Missing variant ID")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "variant ID required"})
+		return
+	}
+
+	// Check merchant authorization
+	merchantID, exists := c.Get("merchantID")
+	if !exists {
+		logger.Warn("Unauthorized access attempt")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	merchantIDStr, ok := merchantID.(string)
+	if !ok || merchantIDStr == "" {
+		logger.Warn("Invalid merchant ID in context")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid merchant ID"})
+		return
+	}
+
+	// Bind and validate input
+	var input dto.UpdateVariantInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		logger.Error("Failed to bind JSON", zap.Error(err))
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request payload"})
+		return
+	}
+	if err := h.validator.Struct(&input); err != nil {
+		logger.Error("Input validation failed", zap.Error(err))
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Call service
+	err := h.productService.UpdateVariant(c.Request.Context(), variantID, merchantIDStr, &input)
+	if err != nil {
+		logger.Error("Failed to update variant", zap.Error(err))
+		if errors.Is(err, product.ErrInvalidProduct) || errors.Is(err, product.ErrUnauthorized) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "variant not found or unauthorized"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update variant"})
+		return
+	}
+
+	logger.Info("Variant updated successfully", zap.String("variant_id", variantID))
+	c.JSON(http.StatusOK, gin.H{"message": "variant updated successfully"})
 }
 
 // UpdateInventory adjusts stock for a given inventory ID
@@ -436,18 +652,18 @@ func (h *ProductHandler) DeleteProduct(c *gin.Context) {
 	}
 
 	// Check merchant authorization
-	 merchantID, exists := c.Get("merchantID")
-	 if !exists {
-	 	logger.Warn("Unauthorized access attempt")
-	 	c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-	 	return
-	 }
-	 merchantIDStr, ok := merchantID.(string)
-	 if !ok || merchantIDStr == "" {
-	 	logger.Warn("Invalid merchant ID in context")
-	 	c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid merchant ID"})
-	 	return
-	 }
+	merchantID, exists := c.Get("merchantID")
+	if !exists {
+		logger.Warn("Unauthorized access attempt")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	merchantIDStr, ok := merchantID.(string)
+	if !ok || merchantIDStr == "" {
+		logger.Warn("Invalid merchant ID in context")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid merchant ID"})
+		return
+	}
 
 	// Call service
 	err := h.productService.DeleteProduct(c.Request.Context(), productID)
@@ -464,8 +680,6 @@ func (h *ProductHandler) DeleteProduct(c *gin.Context) {
 	logger.Info("Product deleted successfully", zap.String("product_id", productID))
 	c.JSON(http.StatusOK, gin.H{"message": "product deleted"})
 }
-
-
 
 // GetCategories godoc
 // @Summary Get all categories
@@ -484,25 +698,81 @@ func (h *CategoryHandler) GetCategories(c *gin.Context) {
 	c.JSON(http.StatusOK, categories)
 }
 
+// BulkUpdateProducts godoc
+// @Summary Bulk update products
+// @Description Update multiple products and their variants at once for authenticated merchant
+// @Tags Merchant
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param body body []dto.BulkUpdateProductInput true "Array of product updates"
+// @Success 200 {object} object{message=string,updated_count=int,errors=[]string}
+// @Failure 400 {object} object{error=string}
+// @Failure 401 {object} object{error=string}
+// @Failure 500 {object} object{error=string}
+// @Router /merchant/products/bulk-update [put]
+func (h *ProductHandler) BulkUpdateProducts(c *gin.Context) {
+	logger := h.logger.With(zap.String("operation", "BulkUpdateProducts"))
 
+	// Check merchant authorization
+	merchantID, exists := c.Get("merchantID")
+	if !exists {
+		logger.Warn("Unauthorized access attempt")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	merchantIDStr, ok := merchantID.(string)
+	if !ok || merchantIDStr == "" {
+		logger.Warn("Invalid merchant ID in context")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid merchant ID"})
+		return
+	}
 
+	// Bind and validate input
+	var inputs []dto.BulkUpdateProductInput
+	if err := c.ShouldBindJSON(&inputs); err != nil {
+		logger.Error("Failed to bind JSON", zap.Error(err))
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request payload"})
+		return
+	}
 
+	if len(inputs) == 0 {
+		logger.Error("No products provided")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "no products provided"})
+		return
+	}
 
+	if len(inputs) > 100 {
+		logger.Error("Too many products in bulk update", zap.Int("count", len(inputs)))
+		c.JSON(http.StatusBadRequest, gin.H{"error": "maximum 100 products allowed per bulk update"})
+		return
+	}
 
+	// Process each product update
+	updatedCount, errorMessages, err := h.productService.BulkUpdateProducts(c.Request.Context(), merchantIDStr, inputs)
+	if err != nil {
+		logger.Error("Failed to bulk update products", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to bulk update products"})
+		return
+	}
 
+	logger.Info("Bulk update completed", zap.Int("updated_count", updatedCount), zap.Int("total", len(inputs)))
 
+	if updatedCount == 0 && len(errorMessages) > 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":        "all products failed to update",
+			"updated_count": updatedCount,
+			"errors":       errorMessages,
+		})
+		return
+	}
 
-
-
-
-
-
-
-
-
-
-
-
+	c.JSON(http.StatusOK, gin.H{
+		"message":      "bulk update completed",
+		"updated_count": updatedCount,
+		"errors":       errorMessages,
+	})
+}
 
 // GetAllProductsWithCategorySlug handles fetching paginated products for the landing page
 // GetAllProductsWithCategorySlug godoc
@@ -553,26 +823,6 @@ func (h *CategoryHandler) GetAllProductsWithCategorySlug(c *gin.Context) {
 		"offset":   offset,
 	})
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // FilterProducts godoc
 // @Summary Filter products with advanced options
@@ -687,5 +937,81 @@ func (h *ProductHandler) FilterProducts(c *gin.Context) {
 		"total":    result.Total,
 		"page":     req.Page,
 		"limit":    req.Limit,
+	})
+}
+
+// BulkUpdateInventory godoc
+// @Summary Bulk update inventory
+// @Description Update multiple inventory items at once for authenticated merchant
+// @Tags Merchant
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param body body []dto.BulkInventoryUpdateInput true "Array of inventory updates"
+// @Success 200 {object} object{message=string,updated_count=int,errors=[]string}
+// @Failure 400 {object} object{error=string}
+// @Failure 401 {object} object{error=string}
+// @Failure 500 {object} object{error=string}
+// @Router /merchant/products/bulk-inventory-update [put]
+func (h *ProductHandler) BulkUpdateInventory(c *gin.Context) {
+	logger := h.logger.With(zap.String("operation", "BulkUpdateInventory"))
+
+	// Check merchant authorization
+	merchantID, exists := c.Get("merchantID")
+	if !exists {
+		logger.Warn("Unauthorized access attempt")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	merchantIDStr, ok := merchantID.(string)
+	if !ok || merchantIDStr == "" {
+		logger.Warn("Invalid merchant ID in context")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid merchant ID"})
+		return
+	}
+
+	// Bind and validate input
+	var inputs []dto.BulkInventoryUpdateInput
+	if err := c.ShouldBindJSON(&inputs); err != nil {
+		logger.Error("Failed to bind JSON", zap.Error(err))
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request payload"})
+		return
+	}
+
+	if len(inputs) == 0 {
+		logger.Error("No inventory items provided")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "no inventory items provided"})
+		return
+	}
+
+	if len(inputs) > 1000 {
+		logger.Error("Too many inventory items in bulk update", zap.Int("count", len(inputs)))
+		c.JSON(http.StatusBadRequest, gin.H{"error": "maximum 1000 inventory items allowed per bulk update"})
+		return
+	}
+
+	// Process each inventory update
+	updatedCount, errorMessages, err := h.productService.BulkUpdateInventory(c.Request.Context(), merchantIDStr, inputs)
+	if err != nil {
+		logger.Error("Failed to bulk update inventory", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to bulk update inventory"})
+		return
+	}
+
+	logger.Info("Bulk inventory update completed", zap.Int("updated_count", updatedCount), zap.Int("total", len(inputs)))
+
+	if updatedCount == 0 && len(errorMessages) > 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":         "all inventory items failed to update",
+			"updated_count": updatedCount,
+			"errors":        errorMessages,
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":       "bulk inventory update completed",
+		"updated_count": updatedCount,
+		"errors":        errorMessages,
 	})
 }

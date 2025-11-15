@@ -1,0 +1,14 @@
+{{define "content"}}
+<h2>Payout Request Submitted</h2>
+<p>Hi {{.MerchantName}},</p>
+<p>Your payout request has been submitted successfully.</p>
+<div class="highlight">
+    <p><strong>Request ID:</strong> {{.RequestID}}</p>
+    <p><strong>Amount:</strong> {{.Amount}}</p>
+    <p><strong>Date:</strong> {{.Date}}</p>
+    <p><strong>Status:</strong> {{.Status}}</p>
+</div>
+<p>Your payout will be processed within 3-5 business days. You will receive another notification once the payout has been completed.</p>
+<p>If you have any questions about your payout request, please contact our support team.</p>
+<p>Thank you for using Perth Marketplace!</p>
+{{end}}

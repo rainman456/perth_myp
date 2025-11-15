@@ -15,7 +15,7 @@ type ProductInput struct {
 	//SKU          string         `json:"sku" validate:"required,max=100"`
 	BasePrice    float64        `json:"base_price" validate:"required,gt=0"`
 	CategoryID   uint           `json:"category_id" validate:"required"`
-	CategoryName   string           `json:"category_name" validate:"required"`
+	CategoryName string         `json:"category_name" validate:"required"`
 	InitialStock *int           `json:"initial_stock" validate:"omitempty,gte=0"` // For simple products
 	Discount     float64        `json:"discount" validate:"gte=0"`
 	DiscountType string         `json:"discount_type" validate:"oneof=fixed percentage ''"`
@@ -23,6 +23,31 @@ type ProductInput struct {
 	Images       []MediaInput   `json:"media,omitempty" validate:"dive,omitempty"`
 }
 
+// UpdateProductInput represents the request body for updating a product
+type UpdateProductInput struct {
+	Name         *string  `json:"name" validate:"omitempty,max=255"`
+	Description  *string  `json:"description" validate:"omitempty,max=1000"`
+	BasePrice    *float64 `json:"base_price" validate:"omitempty,gt=0"`
+	CategoryID   *uint    `json:"category_id" validate:"omitempty"`
+	CategoryName *string  `json:"category_name" validate:"omitempty"`
+	Discount     *float64 `json:"discount" validate:"omitempty,gte=0"`
+	DiscountType *string  `json:"discount_type" validate:"omitempty,oneof=fixed percentage ''"`
+}
+
+// BulkUpdateProductInput represents the request body for bulk updating products
+type BulkUpdateProductInput struct {
+	ProductID string              `json:"product_id" validate:"required,uuid"`
+	Product   *UpdateProductInput `json:"product" validate:"omitempty"`
+	Variants  []BulkUpdateVariant `json:"variants" validate:"omitempty,dive"`
+}
+
+// BulkUpdateVariant represents a variant update in bulk update
+type BulkUpdateVariant struct {
+	VariantID string              `json:"variant_id" validate:"required,uuid"`
+	Variant   *UpdateVariantInput `json:"variant" validate:"omitempty"`
+}
+
+// VariantInput represents the request body for creating a variant
 type VariantInput struct {
 	//SKU             string            `json:"sku" validate:"required,max=100"`
 	PriceAdjustment float64           `json:"price_adjustment" validate:"gte=0"`
@@ -32,6 +57,15 @@ type VariantInput struct {
 	InitialStock    int               `json:"initial_stock" validate:"gte=0"`
 }
 
+// UpdateVariantInput represents the request body for updating a variant
+type UpdateVariantInput struct {
+	PriceAdjustment *float64          `json:"price_adjustment" validate:"omitempty,gte=0"`
+	Discount        *float64          `json:"discount" validate:"omitempty,gte=0"`
+	DiscountType    *string           `json:"discount_type" validate:"omitempty,oneof=fixed percentage ''"`
+	Attributes      map[string]string `json:"attributes" validate:"omitempty,dive,required"`
+	IsActive        *bool             `json:"is_active" validate:"omitempty"`
+}
+
 type MediaInput struct {
 	URL  string `json:"url" validate:"required,url,max=500"`
 	Type string `json:"type" validate:"required,oneof=image video"`
@@ -39,23 +73,23 @@ type MediaInput struct {
 
 // ProductResponse for API output
 type MerchantProductResponse struct {
-	ID              string             `json:"id"`
-	MerchantID      string             `json:"merchant_id"`
-	Name            string             `json:"name"`
-	Description     string             `json:"description"`
+	ID          string `json:"id"`
+	MerchantID  string `json:"merchant_id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
 	//SKU             string             `json:"sku"`
-	BasePrice       float64            `json:"base_price"`
-	Discount      float64 `json:"discount" validate:"gte=0"`
-    DiscountType  string          `json:"discount_type" validate:"oneof=fixed percentage ''"`
-	FinalPrice       float64            `json:"final_price"`
-	CategoryID      uint               `json:"category_id"`
-	CategoryName   string           `json:"category_name" validate:"required"`
-	CreatedAt       time.Time          `json:"created_at"`
-	UpdatedAt       time.Time          `json:"updated_at"`
-	Variants        []ProductVariantResponse  `json:"variants,omitempty"`
-	Images           []MediaResponse    `json:"media,omitempty"`
-	Reviews          []ReviewResponseDTO `json:"reviews,omitempty"`
-	SimpleInventory *InventoryResponse `json:"simple_inventory,omitempty"` // For simple products
+	BasePrice       float64                  `json:"base_price"`
+	Discount        float64                  `json:"discount" validate:"gte=0"`
+	DiscountType    string                   `json:"discount_type" validate:"oneof=fixed percentage ''"`
+	FinalPrice      float64                  `json:"final_price"`
+	CategoryID      uint                     `json:"category_id"`
+	CategoryName    string                   `json:"category_name" validate:"required"`
+	CreatedAt       time.Time                `json:"created_at"`
+	UpdatedAt       time.Time                `json:"updated_at"`
+	Variants        []ProductVariantResponse `json:"variants,omitempty"`
+	Images          []MediaResponse          `json:"media,omitempty"`
+	Reviews         []ReviewResponseDTO      `json:"reviews,omitempty"`
+	SimpleInventory *InventoryResponse       `json:"simple_inventory,omitempty"` // For simple products
 }
 
 type ProductVariantResponse struct {
@@ -64,9 +98,9 @@ type ProductVariantResponse struct {
 	SKU             string            `json:"sku"`
 	PriceAdjustment float64           `json:"price_adjustment"`
 	TotalPrice      float64           `json:"total_price"`
-	Discount      float64 `json:"discount" validate:"gte=0"`
-    DiscountType  string          `json:"discount_type" validate:"oneof=fixed percentage ''"`
-	FinalPrice       float64            `json:"final_price"`
+	Discount        float64           `json:"discount" validate:"gte=0"`
+	DiscountType    string            `json:"discount_type" validate:"oneof=fixed percentage ''"`
+	FinalPrice      float64           `json:"final_price"`
 	Attributes      map[string]string `json:"attributes"`
 	IsActive        bool              `json:"is_active"`
 	CreatedAt       time.Time         `json:"created_at"`
@@ -91,31 +125,14 @@ type MediaResponse struct {
 // 	BackorderAllowed  bool   `json:"backorder_allowed"`
 // }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 type VariantResponse struct {
 	ID        string `json:"id"`
 	ProductID string `json:"product_id"`
 	//SKU       string `json:"sku"`
 
 	// Flattened attributes for convenience
-	Color    *string `json:"color,omitempty"`
-	Size     *string `json:"size,omitempty"`
+	Color *string `json:"color,omitempty"`
+	Size  *string `json:"size,omitempty"`
 	//Material *string `json:"material,omitempty"`
 	//Pattern  *string `json:"pattern,omitempty"`
 
@@ -133,7 +150,7 @@ type VariantPricingResponse struct {
 	TotalPrice      float64 `json:"total_price"`      // BasePrice + Adjustment
 	Discount        float64 `json:"discount"`         // Discount amount or percentage
 	//DiscountType    string  `json:"discount_type"`    // "fixed", "percentage", or ""
-	FinalPrice      float64 `json:"final_price"`      // Pre-calculated final price
+	FinalPrice float64 `json:"final_price"` // Pre-calculated final price
 }
 
 // ProductResponse - Main product response
@@ -147,31 +164,30 @@ type ProductResponse struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Slug        string `json:"slug"`
-//	CategoryID  uint   `json:"category_id"`
+	//	CategoryID  uint   `json:"category_id"`
 	CategorySlug string `json:"category_slug"`
 	CategoryName string `json:"category_name"`
 
 	Pricing   ProductPricingResponse `json:"pricing"`
 	Inventory *InventoryResponse     `json:"inventory,omitempty"` // nil for variant products
 
-	Reviews          []ReviewResponseDTO `json:"reviews,omitempty"`
-	Images   []string          `json:"images"`
-	Variants []VariantResponse `json:"variants,omitempty"`
+	Reviews  []ReviewResponseDTO `json:"reviews,omitempty"`
+	Images   []string            `json:"images"`
+	Variants []VariantResponse   `json:"variants,omitempty"`
 
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 
-	AvgRating float64    `json:"average_rating"`
-	ReviewCount int      `json:"review_count"`
-
+	AvgRating   float64 `json:"average_rating"`
+	ReviewCount int     `json:"review_count"`
 }
 
 // ProductPricingResponse - Product pricing
 type ProductPricingResponse struct {
-	BasePrice    float64 `json:"base_price"`
-	Discount     float64 `json:"discount"`
+	BasePrice float64 `json:"base_price"`
+	Discount  float64 `json:"discount"`
 	//DiscountType string  `json:"discount_type"` // "fixed", "percentage", or ""
-	FinalPrice   float64 `json:"final_price"`   // Pre-calculated
+	FinalPrice float64 `json:"final_price"` // Pre-calculated
 }
 
 // InventoryResponse - Inventory/stock info
@@ -184,27 +200,6 @@ type InventoryResponse struct {
 	BackorderAllowed  bool   `json:"backorder_allowed"`
 	LowStockThreshold int    `json:"low_stock_threshold"`
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // type MediaUploadRequest struct {
 // 	File string `form:"file" validate:"required"` // Multipart file key
@@ -241,12 +236,12 @@ type MediaDeleteRequest struct {
 }
 
 type CategoryResponse struct {
-	ID         uint                   `json:"id"`
-	Name       string                 `json:"name"`
-	ParentID   *uint                  `json:"parent_id"`
-	CategorySlug string                `json:"category_slug"`
-	Attributes map[string]interface{} `json:"attributes"`
-	Parent     *CategoryResponse      `json:"parent"`
+	ID           uint                   `json:"id"`
+	Name         string                 `json:"name"`
+	ParentID     *uint                  `json:"parent_id"`
+	CategorySlug string                 `json:"category_slug"`
+	Attributes   map[string]interface{} `json:"attributes"`
+	Parent       *CategoryResponse      `json:"parent"`
 }
 
 type CreateReviewDTO struct {
@@ -263,7 +258,7 @@ type UpdateReviewDTO struct {
 type ReviewResponseDTO struct {
 	//ID        uint      `json:"id"`
 	//ProductID string    `json:"product_id"`
-	ProductName        string `json:"product_name"`
+	ProductName string `json:"product_name"`
 	//UserID    uint      `json:"user_id"`
 	Rating    int       `json:"rating"`
 	Comment   string    `json:"comment"`
@@ -279,17 +274,17 @@ type AddWishlistItemDTO struct {
 
 // WishlistItemResponseDTO represents a single wishlist item in the response
 type WishlistItemResponseDTO struct {
-	ProductID    string    `json:"product_id"`
-	Name         string    `json:"name"`
-	FinalPrice   float64   `json:"total_price"`
-	Discount     float64   `json:"discount" validate:"gte=0"`
+	ProductID  string  `json:"product_id"`
+	Name       string  `json:"name"`
+	FinalPrice float64 `json:"total_price"`
+	Discount   float64 `json:"discount" validate:"gte=0"`
 	//DiscountType string    `json:"discount_type" validate:"oneof=fixed percentage ''"`
-	CategorySlug string  `json:"category_slug"`
-	PrimaryImage string  `json:"primary_image,omitempty"` 
+	CategorySlug string `json:"category_slug"`
+	PrimaryImage string `json:"primary_image,omitempty"`
 
 	//SKU          string    `json:"sku"`
 	//MerchantID   string    `json:"merchant_id"`
-	AddedAt      time.Time `json:"added_at"`
+	AddedAt time.Time `json:"added_at"`
 }
 
 // WishlistResponseDTO represents the entire wishlist in the response
@@ -311,11 +306,6 @@ type AutocompleteResponse struct {
 	Suggestions []ProductAutocompleteResponse `json:"suggestions"`
 }
 
-
-
-
-
-
 type ProductFilterRequest struct {
 	CategoryID   *uint    `form:"category_id"`
 	CategoryName *string  `form:"category_name"`
@@ -333,9 +323,9 @@ type ProductFilterRequest struct {
 	Pattern  *string `form:"pattern"`
 
 	// NEW: Sorting
-	SortBy    *string `form:"sort_by" binding:"omitempty,oneof=price price_desc name name_desc created newest oldest rating"`
-	OnSale    *bool   `form:"on_sale"` // Products with discounts
-	Featured  *bool   `form:"featured"`
+	SortBy   *string `form:"sort_by" binding:"omitempty,oneof=price price_desc name name_desc created newest oldest rating"`
+	OnSale   *bool   `form:"on_sale"` // Products with discounts
+	Featured *bool   `form:"featured"`
 
 	// Pagination
 	Page  int `form:"page" binding:"omitempty,min=1"`
@@ -364,4 +354,10 @@ func (f *ProductFilterRequest) Hash() string {
 	data, _ := json.Marshal(f)
 	hash := md5.Sum(data)
 	return hex.EncodeToString(hash[:])
+}
+
+// BulkInventoryUpdateInput represents the request body for bulk inventory updates
+type BulkInventoryUpdateInput struct {
+	InventoryID string `json:"inventory_id" validate:"required,uuid"`
+	Delta       int    `json:"delta" validate:"required"`
 }

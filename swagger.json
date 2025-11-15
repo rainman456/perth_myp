@@ -1358,6 +1358,54 @@
             }
         },
         "/disputes": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve all disputes for the authenticated customer, grouped by order",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Disputes"
+                ],
+                "summary": "List customer's disputes",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.DisputeResponseDTO"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
             "post": {
                 "security": [
                     {
@@ -1390,6 +1438,62 @@
                     "201": {
                         "description": "Created",
                         "schema": {
+                            "$ref": "#/definitions/dto.CreateDisputeResponseDTO"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/disputes/order/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve all disputes for a specific order by order ID for the authenticated customer",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Disputes"
+                ],
+                "summary": "Get disputes for a specific order",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Order ID",
+                        "name": "orderId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
                             "$ref": "#/definitions/dto.DisputeResponseDTO"
                         }
                     },
@@ -1406,6 +1510,17 @@
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -1446,7 +1561,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.DisputeResponseDTO"
+                            "$ref": "#/definitions/dto.CreateDisputeResponseDTO"
                         }
                     },
                     "404": {
@@ -1832,6 +1947,148 @@
                 }
             }
         },
+        "/merchant/disputes": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve all disputes for the authenticated merchant, grouped by order",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Merchant Disputes"
+                ],
+                "summary": "List merchant's disputes",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.DisputeResponseDTO"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/merchant/disputes/{id}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update the status and resolution of a dispute for the authenticated merchant",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Merchant Disputes"
+                ],
+                "summary": "Update a dispute",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Dispute ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Dispute update details",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "resolution": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/merchant/login": {
             "post": {
                 "description": "Authenticates a merchant using work email and password",
@@ -2042,6 +2299,514 @@
                 }
             }
         },
+        "/merchant/orders": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves all orders containing items from the authenticated merchant",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Merchant Orders"
+                ],
+                "summary": "Get merchant orders",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.MerchantOrderResponse"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/merchant/orders/items/{id}/accept": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Allows a merchant to accept an order item",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Merchant Orders"
+                ],
+                "summary": "Accept an order item",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Order Item ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/merchant/orders/items/{id}/decline": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Allows a merchant to decline an order item",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Merchant Orders"
+                ],
+                "summary": "Decline an order item",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Order Item ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/merchant/orders/items/{id}/sent-to-aronova-hub": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Allows a merchant to update an order item to \"SentToAronovaHub\" status (only allowed after acceptance)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Merchant Orders"
+                ],
+                "summary": "Update order item to SentToAronovaHub",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Order Item ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/merchant/orders/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves a specific order containing items from the authenticated merchant",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Merchant Orders"
+                ],
+                "summary": "Get merchant order by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Order ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.MerchantOrderResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/merchant/payouts": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves all payouts for the authenticated merchant",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Merchant Payouts"
+                ],
+                "summary": "Get merchant payouts",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.PayoutResponse"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/merchant/payouts/request": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Requests a new payout for the authenticated merchant",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Merchant Payouts"
+                ],
+                "summary": "Request merchant payout",
+                "parameters": [
+                    {
+                        "description": "Payout request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.PayoutRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.PayoutResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/merchant/products": {
             "get": {
                 "security": [
@@ -2196,6 +2961,273 @@
                 }
             }
         },
+        "/merchant/products/bulk-inventory-update": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update multiple inventory items at once for authenticated merchant",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Merchant"
+                ],
+                "summary": "Bulk update inventory",
+                "parameters": [
+                    {
+                        "description": "Array of inventory updates",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.BulkInventoryUpdateInput"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "errors": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                },
+                                "message": {
+                                    "type": "string"
+                                },
+                                "updated_count": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/merchant/products/bulk-update": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update multiple products and their variants at once for authenticated merchant",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Merchant"
+                ],
+                "summary": "Bulk update products",
+                "parameters": [
+                    {
+                        "description": "Array of product updates",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.BulkUpdateProductInput"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "errors": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                },
+                                "message": {
+                                    "type": "string"
+                                },
+                                "updated_count": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/merchant/products/bulk-upload": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Upload multiple products at once for authenticated merchant",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Merchant"
+                ],
+                "summary": "Bulk upload products",
+                "parameters": [
+                    {
+                        "description": "Array of product details",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.ProductInput"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "created_count": {
+                                    "type": "integer"
+                                },
+                                "errors": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                },
+                                "message": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/merchant/products/inventory/{id}": {
             "put": {
                 "security": [
@@ -2296,7 +3328,168 @@
                 }
             }
         },
+        "/merchant/products/variants/{id}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Updates a variant for authenticated merchant",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Merchant"
+                ],
+                "summary": "Update a variant",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Variant ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Variant update details",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateVariantInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/merchant/products/{id}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Updates a product with variants and media for authenticated merchant",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Merchant"
+                ],
+                "summary": "Update a product",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Product ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Product update details",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateProductInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.MerchantProductResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
             "delete": {
                 "security": [
                     {
@@ -2635,6 +3828,83 @@
                 }
             }
         },
+        "/merchant/profile": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Updates the merchant's profile information",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Merchant"
+                ],
+                "summary": "Update merchant profile",
+                "parameters": [
+                    {
+                        "description": "Profile update details",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateMerchantProfileInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Profile updated successfully",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to update profile",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/orders": {
             "get": {
                 "security": [
@@ -2712,15 +3982,6 @@
                     "Orders"
                 ],
                 "summary": "Create order from cart",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "User ID (for testing)",
-                        "name": "user_id",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -2962,6 +4223,56 @@
                 }
             }
         },
+        "/payments/webhook": {
+            "post": {
+                "description": "Receives and processes forwarded Paystack events",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Payments"
+                ],
+                "summary": "Paystack webhook",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/products": {
             "get": {
                 "description": "Fetches paginated list of products, optionally filtered by category",
@@ -3160,6 +4471,169 @@
                 }
             }
         },
+        "/products/filter": {
+            "get": {
+                "description": "Filter and search products by multiple criteria including price, category, attributes, etc.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Products"
+                ],
+                "summary": "Filter products with advanced options",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Category ID",
+                        "name": "category_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Category Name",
+                        "name": "category_name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Category Slug",
+                        "name": "category_slug",
+                        "in": "query"
+                    },
+                    {
+                        "type": "number",
+                        "description": "Minimum Price",
+                        "name": "min_price",
+                        "in": "query"
+                    },
+                    {
+                        "type": "number",
+                        "description": "Maximum Price",
+                        "name": "max_price",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "In Stock Only",
+                        "name": "in_stock",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search Term",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Color Filter",
+                        "name": "color",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Size Filter",
+                        "name": "size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Material Filter",
+                        "name": "material",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pattern Filter",
+                        "name": "pattern",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "On Sale Only",
+                        "name": "on_sale",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "price",
+                            "price_desc",
+                            "name",
+                            "name_desc",
+                            "newest",
+                            "oldest",
+                            "rating"
+                        ],
+                        "type": "string",
+                        "description": "Sort By",
+                        "name": "sort_by",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page Number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Items Per Page",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "limit": {
+                                    "type": "integer"
+                                },
+                                "page": {
+                                    "type": "integer"
+                                },
+                                "products": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/definitions/dto.ProductResponse"
+                                    }
+                                },
+                                "total": {
+                                    "type": "integer",
+                                    "format": "int64"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/products/{id}": {
             "get": {
                 "description": "Fetches a single product with media and variants",
@@ -3229,7 +4703,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Retrieve all return requests for the authenticated customer",
+                "description": "Retrieve all return requests for the authenticated customer, grouped by order",
                 "produces": [
                     "application/json"
                 ],
@@ -3243,12 +4717,23 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/dto.ReturnRequestResponseDTO"
+                                "$ref": "#/definitions/dto.ReturnResponseDTO"
                             }
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -3292,7 +4777,7 @@
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/dto.ReturnRequestResponseDTO"
+                            "$ref": "#/definitions/dto.CreateReturnRequestResponseDTO"
                         }
                     },
                     "400": {
@@ -3308,6 +4793,62 @@
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/return-requests/order/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve all return requests for a specific order by order ID for the authenticated customer",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Return Requests"
+                ],
+                "summary": "Get return requests for a specific order",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Order ID",
+                        "name": "orderId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ReturnResponseDTO"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -3409,6 +4950,72 @@
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/reviews": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get list of all user reviews grouped by order",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "reviews"
+                ],
+                "summary": "Get all user reviews",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Limit per order group",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Offset",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.ReviewResponseDTO"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -3926,10 +5533,10 @@
         "dto.AddressResponse": {
             "type": "object",
             "properties": {
-                "additional_phone_number": {
+                "additional_info": {
                     "type": "string"
                 },
-                "address": {
+                "additional_phone_number": {
                     "type": "string"
                 },
                 "delivery_address": {
@@ -3938,10 +5545,14 @@
                 "id": {
                     "type": "integer"
                 },
+                "is_default": {
+                    "type": "boolean"
+                },
                 "lga": {
                     "type": "string"
                 },
                 "phone_number": {
+                    "description": "Address               string    `json:\"address,omitempty\"`",
                     "type": "string"
                 },
                 "shipping_address": {
@@ -3988,6 +5599,41 @@
                 }
             }
         },
+        "dto.BulkInventoryUpdateInput": {
+            "type": "object",
+            "required": [
+                "delta",
+                "inventory_id"
+            ],
+            "properties": {
+                "delta": {
+                    "type": "integer"
+                },
+                "inventory_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.BulkUpdateProductInput": {
+            "type": "object",
+            "required": [
+                "product_id"
+            ],
+            "properties": {
+                "product": {
+                    "$ref": "#/definitions/dto.UpdateProductInput"
+                },
+                "product_id": {
+                    "type": "string"
+                },
+                "variants": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.BulkUpdateVariant"
+                    }
+                }
+            }
+        },
         "dto.BulkUpdateRequest": {
             "type": "object",
             "properties": {
@@ -4011,9 +5657,20 @@
                             }
                         }
                     }
+                }
+            }
+        },
+        "dto.BulkUpdateVariant": {
+            "type": "object",
+            "required": [
+                "variant_id"
+            ],
+            "properties": {
+                "variant": {
+                    "$ref": "#/definitions/dto.UpdateVariantInput"
                 },
-                "userID": {
-                    "type": "integer"
+                "variant_id": {
+                    "type": "string"
                 }
             }
         },
@@ -4030,10 +5687,6 @@
         "dto.CartItemResponse": {
             "type": "object",
             "properties": {
-                "attributes": {
-                    "type": "object",
-                    "additionalProperties": {}
-                },
                 "id": {
                     "type": "integer"
                 },
@@ -4041,7 +5694,12 @@
                     "type": "string"
                 },
                 "product": {
-                    "$ref": "#/definitions/dto.ProductResponse"
+                    "description": "Attributes map[string]any `json:\"attributes,omitempty\"`",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/dto.CartProductResponse"
+                        }
+                    ]
                 },
                 "product_id": {
                     "type": "string"
@@ -4056,11 +5714,34 @@
                     "description": "Embed for display",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/dto.VariantResponse"
+                            "$ref": "#/definitions/dto.CartVariantResponse"
                         }
                     ]
                 },
                 "variant_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.CartProductResponse": {
+            "type": "object",
+            "properties": {
+                "category_slug": {
+                    "description": "Name         string  `json:\"name\"`\nMerchantID        string `json:\"merchant_id\"`\nMerchantName      string `json:\"merchant_name\"`\nMerchantStoreName string `json:\"merchant_store_name\"`\nSlug         string  `json:\"slug\"`\nCategoryName string  `json:\"category_name\"`",
+                    "type": "string"
+                },
+                "final_price": {
+                    "description": "Only need final price",
+                    "type": "number"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "pricing": {
+                    "$ref": "#/definitions/dto.ProductPricingResponse"
+                },
+                "primary_image": {
+                    "description": "First image",
                     "type": "string"
                 }
             }
@@ -4096,6 +5777,36 @@
                 }
             }
         },
+        "dto.CartVariantResponse": {
+            "type": "object",
+            "properties": {
+                "available": {
+                    "description": "From inventory",
+                    "type": "integer"
+                },
+                "backorder_allowed": {
+                    "type": "boolean"
+                },
+                "color": {
+                    "type": "string"
+                },
+                "final_price": {
+                    "type": "number"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "pricing": {
+                    "$ref": "#/definitions/dto.VariantPricingResponse"
+                },
+                "product_id": {
+                    "type": "string"
+                },
+                "size": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.CategoryResponse": {
             "type": "object",
             "properties": {
@@ -4103,7 +5814,7 @@
                     "type": "object",
                     "additionalProperties": true
                 },
-                "caetgory_slug": {
+                "category_slug": {
                     "type": "string"
                 },
                 "id": {
@@ -4122,23 +5833,24 @@
         },
         "dto.CreateAddressRequest": {
             "type": "object",
-            "required": [
-                "address"
-            ],
             "properties": {
-                "additional_phone_number": {
+                "additional_info": {
                     "type": "string"
                 },
-                "address": {
+                "additional_phone_number": {
                     "type": "string"
                 },
                 "delivery_address": {
                     "type": "string"
                 },
+                "is_default": {
+                    "type": "boolean"
+                },
                 "lga": {
                     "type": "string"
                 },
                 "phone_number": {
+                    "description": "Address               string `json:\"address\" binding:\"required\"`",
                     "type": "string"
                 },
                 "shipping_address": {
@@ -4170,43 +5882,7 @@
                 }
             }
         },
-        "dto.CreateReturnRequestDTO": {
-            "type": "object",
-            "required": [
-                "order_item_id",
-                "reason"
-            ],
-            "properties": {
-                "order_item_id": {
-                    "type": "string"
-                },
-                "reason": {
-                    "type": "string",
-                    "maxLength": 500
-                }
-            }
-        },
-        "dto.CreateReviewDTO": {
-            "type": "object",
-            "required": [
-                "product_id",
-                "rating"
-            ],
-            "properties": {
-                "comment": {
-                    "type": "string"
-                },
-                "product_id": {
-                    "type": "string"
-                },
-                "rating": {
-                    "type": "integer",
-                    "maximum": 5,
-                    "minimum": 1
-                }
-            }
-        },
-        "dto.DisputeResponseDTO": {
+        "dto.CreateDisputeResponseDTO": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -4235,6 +5911,127 @@
                 },
                 "resolved_at": {
                     "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.CreateReturnRequestDTO": {
+            "type": "object",
+            "required": [
+                "order_item_id",
+                "reason"
+            ],
+            "properties": {
+                "order_item_id": {
+                    "type": "string"
+                },
+                "reason": {
+                    "type": "string",
+                    "maxLength": 500
+                }
+            }
+        },
+        "dto.CreateReturnRequestResponseDTO": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "customer_id": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "order_item_id": {
+                    "type": "string"
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.CreateReviewDTO": {
+            "type": "object",
+            "required": [
+                "product_id",
+                "rating"
+            ],
+            "properties": {
+                "comment": {
+                    "type": "string"
+                },
+                "product_id": {
+                    "type": "string"
+                },
+                "rating": {
+                    "type": "integer",
+                    "maximum": 5,
+                    "minimum": 1
+                }
+            }
+        },
+        "dto.DisputeItemDTO": {
+            "type": "object",
+            "properties": {
+                "category_slug": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "product_id": {
+                    "type": "string"
+                },
+                "product_image_url": {
+                    "type": "string"
+                },
+                "product_name": {
+                    "type": "string"
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "resolution": {
+                    "type": "string"
+                },
+                "resolved_at": {
+                    "description": "Use pointer for nullable field",
+                    "type": "string"
+                }
+            }
+        },
+        "dto.DisputeResponseDTO": {
+            "type": "object",
+            "properties": {
+                "customer_id": {
+                    "type": "integer"
+                },
+                "disputes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.DisputeItemDTO"
+                    }
+                },
+                "merchant_id": {
+                    "type": "string"
+                },
+                "order_created_at": {
+                    "type": "string"
+                },
+                "order_id": {
+                    "type": "integer"
                 },
                 "status": {
                     "type": "string"
@@ -4417,6 +6214,64 @@
                 }
             }
         },
+        "dto.MerchantOrderItemResponse": {
+            "type": "object",
+            "properties": {
+                "fulfillment_status": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "image_url": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "number"
+                },
+                "product_id": {
+                    "type": "string"
+                },
+                "quantity": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.MerchantOrderResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "delivery_address": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "order_items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.MerchantOrderItemResponse"
+                    }
+                },
+                "status": {
+                    "type": "string"
+                },
+                "total_amount": {
+                    "type": "number"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
         "dto.MerchantProductResponse": {
             "type": "object",
             "required": [
@@ -4520,6 +6375,9 @@
                 "created_at": {
                     "type": "string"
                 },
+                "delivery_address": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "integer"
                 },
@@ -4529,7 +6387,10 @@
                         "$ref": "#/definitions/dto.OrderItemResponse"
                     }
                 },
-                "payment_status": {
+                "payment_authorization_url": {
+                    "type": "string"
+                },
+                "payment_reference": {
                     "type": "string"
                 },
                 "status": {
@@ -4587,6 +6448,43 @@
                 },
                 "transaction_id": {
                     "description": "Paystack ref",
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.PayoutRequest": {
+            "type": "object",
+            "required": [
+                "amount"
+            ],
+            "properties": {
+                "amount": {
+                    "type": "number"
+                }
+            }
+        },
+        "dto.PayoutResponse": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "merchant_id": {
+                    "type": "string"
+                },
+                "payout_account_id": {
+                    "type": "string"
+                },
+                "status": {
                     "type": "string"
                 },
                 "updated_at": {
@@ -4873,6 +6771,32 @@
                 }
             }
         },
+        "dto.ReturnItemDTO": {
+            "type": "object",
+            "properties": {
+                "category_slug": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "product_id": {
+                    "type": "string"
+                },
+                "product_image_url": {
+                    "type": "string"
+                },
+                "product_name": {
+                    "type": "string"
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.ReturnRequestResponseDTO": {
             "type": "object",
             "properties": {
@@ -4896,6 +6820,26 @@
                 },
                 "updated_at": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.ReturnResponseDTO": {
+            "type": "object",
+            "properties": {
+                "customer_id": {
+                    "type": "integer"
+                },
+                "order_created_at": {
+                    "type": "string"
+                },
+                "order_id": {
+                    "type": "integer"
+                },
+                "returns": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ReturnItemDTO"
+                    }
                 }
             }
         },
@@ -4927,19 +6871,23 @@
         "dto.UpdateAddressRequest": {
             "type": "object",
             "properties": {
-                "additional_phone_number": {
+                "additional_info": {
                     "type": "string"
                 },
-                "address": {
+                "additional_phone_number": {
                     "type": "string"
                 },
                 "delivery_address": {
                     "type": "string"
                 },
+                "is_default": {
+                    "type": "boolean"
+                },
                 "lga": {
                     "type": "string"
                 },
                 "phone_number": {
+                    "description": "Address               *string `json:\"address\" binding:\"omitempty\"`",
                     "type": "string"
                 },
                 "shipping_address": {
@@ -4959,6 +6907,83 @@
                 }
             }
         },
+        "dto.UpdateMerchantProfileInput": {
+            "type": "object",
+            "properties": {
+                "banner": {
+                    "type": "string"
+                },
+                "business_description": {
+                    "type": "string"
+                },
+                "business_type": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "personal_address": {
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "personal_email": {
+                    "type": "string"
+                },
+                "phone_number": {
+                    "type": "string"
+                },
+                "store_logo_url": {
+                    "type": "string"
+                },
+                "store_name": {
+                    "type": "string"
+                },
+                "website": {
+                    "type": "string"
+                },
+                "work_address": {
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "work_email": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.UpdateProductInput": {
+            "type": "object",
+            "properties": {
+                "base_price": {
+                    "type": "number"
+                },
+                "category_id": {
+                    "type": "integer"
+                },
+                "category_name": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string",
+                    "maxLength": 1000
+                },
+                "discount": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "discount_type": {
+                    "type": "string",
+                    "enum": [
+                        "fixed",
+                        "percentage",
+                        ""
+                    ]
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 255
+                }
+            }
+        },
         "dto.UpdateReviewDTO": {
             "type": "object",
             "properties": {
@@ -4969,6 +6994,39 @@
                     "type": "integer",
                     "maximum": 5,
                     "minimum": 1
+                }
+            }
+        },
+        "dto.UpdateVariantInput": {
+            "type": "object",
+            "required": [
+                "attributes"
+            ],
+            "properties": {
+                "attributes": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "discount": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "discount_type": {
+                    "type": "string",
+                    "enum": [
+                        "fixed",
+                        "percentage",
+                        ""
+                    ]
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "price_adjustment": {
+                    "type": "number",
+                    "minimum": 0
                 }
             }
         },
@@ -5089,30 +7147,24 @@
             "type": "object",
             "properties": {
                 "added_at": {
+                    "description": "SKU          string    `json:\"sku\"`\nMerchantID   string    `json:\"merchant_id\"`",
+                    "type": "string"
+                },
+                "category_slug": {
+                    "description": "DiscountType string    `json:\"discount_type\" validate:\"oneof=fixed percentage ''\"`",
                     "type": "string"
                 },
                 "discount": {
                     "type": "number",
                     "minimum": 0
                 },
-                "discount_type": {
-                    "type": "string",
-                    "enum": [
-                        "fixed",
-                        "percentage",
-                        ""
-                    ]
-                },
-                "merchant_id": {
-                    "type": "string"
-                },
                 "name": {
                     "type": "string"
                 },
-                "product_id": {
+                "primary_image": {
                     "type": "string"
                 },
-                "sku": {
+                "product_id": {
                     "type": "string"
                 },
                 "total_price": {

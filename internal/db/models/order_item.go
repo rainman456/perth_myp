@@ -9,38 +9,28 @@ import (
 type FulfillmentStatus string
 
 const (
-	FulfillmentStatusNew     FulfillmentStatus = "New"
-	FulfillmentStatusShipped FulfillmentStatus = "Shipped"
+	FulfillmentStatusNew              FulfillmentStatus = "New"
+	FulfillmentStatusConfirmed        FulfillmentStatus = "Confirmed"
+	FulfillmentStatusDeclined         FulfillmentStatus = "Declined"
+	FulfillmentStatusSentToAronovaHub FulfillmentStatus = "SentToAronovaHub"
+	FulfillmentStatusShipped          FulfillmentStatus = "Shipped"
 )
 
 // Valid checks if the status is one of the allowed values
 func (s FulfillmentStatus) Valid() error {
 	switch s {
-	case FulfillmentStatusNew, FulfillmentStatusShipped:
+	case FulfillmentStatusNew, FulfillmentStatusConfirmed, FulfillmentStatusDeclined, FulfillmentStatusSentToAronovaHub, FulfillmentStatusShipped:
 		return nil
 	default:
 		return fmt.Errorf("invalid fulfillment status: %s", s)
 	}
 }
 
-// type OrderItem struct {
-// 	gorm.Model
-// 	OrderID           uint              `gorm:"not null" json:"order_id"`
-// 	ProductID         string              `gorm:"not null" json:"product_id"`
-// 	MerchantID        uint              `gorm:"not null" json:"merchant_id"`
-// 	Quantity          int               `gorm:"not null" json:"quantity"`
-// 	Price             float64           `gorm:"type:decimal(10,2);not null" json:"price"`
-// 	FulfillmentStatus FulfillmentStatus `gorm:"type:varchar(20);not null;default:'New'" json:"fulfillment_status"`
-// 	Order             Order             `gorm:"foreignKey:OrderID"`
-// 	Product           Product           `gorm:"foreignKey:ProductID"`
-// 	Merchant          Merchant          `gorm:"foreignKey:MerchantID"`
-// }
-
 type OrderItem struct {
 	gorm.Model
-	OrderID   uint   `gorm:"not null;index" json:"order_id"`
-	ProductID string `gorm:"not null;index" json:"product_id"`
-	VariantID  *string  `gorm:"type:uuid;index" json:"variant_id"`
+	OrderID   uint    `gorm:"not null;index" json:"order_id"`
+	ProductID string  `gorm:"not null;index" json:"product_id"`
+	VariantID *string `gorm:"type:uuid;index" json:"variant_id"`
 	//ProductID         uint              `gorm:"not null;index" json:"product_id"`
 	MerchantID        string            `gorm:"not null;index" json:"merchant_id"`
 	Quantity          int               `gorm:"not null" json:"quantity"`
@@ -48,8 +38,8 @@ type OrderItem struct {
 	FulfillmentStatus FulfillmentStatus `gorm:"type:varchar(20);not null;default:'New'" json:"fulfillment_status"`
 	Order             Order             `gorm:"foreignKey:OrderID"`
 	Product           Product           `gorm:"foreignKey:ProductID;references:ID"`
-	Merchant          Merchant         `gorm:"foreignKey:MerchantID;references:MerchantID"`
-	Variant    *Variant `gorm:"foreignKey:VariantID"`
+	Merchant          Merchant          `gorm:"foreignKey:MerchantID;references:MerchantID"`
+	Variant           *Variant          `gorm:"foreignKey:VariantID"`
 }
 
 // BeforeCreate validates the FulfillmentStatus field
