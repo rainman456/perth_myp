@@ -102,7 +102,7 @@ func (h *MerchantOrderHandler) GetMerchantOrders(c *gin.Context) {
 			UserID:          order.UserID,
 			Status:          string(order.Status),
 			OrderItems:      items,
-			TotalAmount:     order.TotalAmount.InexactFloat64(),
+			TotalAmount:      h.calculateMerchantTotal(items),
 			DeliveryAddress: deliveryAddress,
 			CreatedAt:       order.CreatedAt.Format("2006-01-02 15:04:05"),
 			UpdatedAt:       order.UpdatedAt.Format("2006-01-02 15:04:05"),
@@ -368,4 +368,16 @@ func (h *MerchantOrderHandler) UpdateOrderItemToSentToAronovaHub(c *gin.Context)
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "order item updated to SentToAronovaHub successfully"})
+}
+
+
+
+
+// Add this method to MerchantOrderHandler struct
+func (h *MerchantOrderHandler) calculateMerchantTotal(items []dto.MerchantOrderItemResponse) float64 {
+    total := 0.0
+    for _, item := range items {
+        total += item.Price * float64(item.Quantity)
+    }
+    return total
 }

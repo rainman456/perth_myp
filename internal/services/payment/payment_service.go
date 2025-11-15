@@ -22,22 +22,21 @@ import (
 )
 
 var (
-	ErrPaymentFailed     = errors.New("payment initialization failed")
+	ErrPaymentFailed      = errors.New("payment initialization failed")
 	ErrVerificationFailed = errors.New("payment verification failed")
-	ErrRefundFailed      = errors.New("refund failed")
+	ErrRefundFailed       = errors.New("refund failed")
 )
-
 
 type PaymentService struct {
 	paymentRepo *repositories.PaymentRepository
 	orderRepo   *repositories.OrderRepository
-	payoutRepo   *repositories.PayoutRepository
+	payoutRepo  *repositories.PayoutRepository
 	//splitRepo    repositories.O
 	merchantRepo *repositories.MerchantRepository
 	//client      *paystack.Client
-	config      *config.Config
-	logger      *zap.Logger
-	db            *gorm.DB
+	config *config.Config
+	logger *zap.Logger
+	db     *gorm.DB
 }
 
 func NewPaymentService(
@@ -49,17 +48,17 @@ func NewPaymentService(
 	conf *config.Config,
 	logger *zap.Logger,
 ) *PaymentService {
-	
+
 	return &PaymentService{
 		paymentRepo: paymentRepo,
 		orderRepo:   orderRepo,
-		payoutRepo:   payoutRepo,
+		payoutRepo:  payoutRepo,
 		//splitRepo:    splitRepo,
 		merchantRepo: merchantRepo,
 		//client:      client,
-		config:      conf,
-		logger:      logger,
-		db:            db.DB,
+		config: conf,
+		logger: logger,
+		db:     db.DB,
 	}
 }
 
@@ -127,14 +126,6 @@ func (s *PaymentService) InitializeCheckout(ctx context.Context, req dto.Initial
 }
 */
 
-
-
-
-
-
-
-
-
 func (s *PaymentService) InitializeCheckout(ctx context.Context, req dto.InitializePaymentRequest) (*dto.PaymentResponse, error) {
 	logger := s.logger.With(zap.Uint("order_id", req.OrderID))
 
@@ -188,7 +179,7 @@ func (s *PaymentService) InitializeCheckout(ctx context.Context, req dto.Initial
 		Status:        models.PaymentStatusPending,
 		TransactionID: psResp.Data.Reference,
 	}
-	if err := s.paymentRepo.Create(ctx,payment); err != nil {
+	if err := s.paymentRepo.Create(ctx, payment); err != nil {
 		logger.Error("Failed to save payment", zap.Error(err))
 		return nil, fmt.Errorf("failed to save payment: %w", err)
 	}
@@ -199,7 +190,7 @@ func (s *PaymentService) InitializeCheckout(ctx context.Context, req dto.Initial
 		OrderID:          payment.OrderID,
 		Amount:           payment.Amount.InexactFloat64(),
 		Currency:         payment.Currency,
-		Status:          string(payment.Status),
+		Status:           string(payment.Status),
 		TransactionID:    payment.TransactionID,
 		AuthorizationURL: psResp.Data.AuthorizationUrl, // used by frontend for redirect
 		CreatedAt:        payment.CreatedAt,
@@ -209,17 +200,10 @@ func (s *PaymentService) InitializeCheckout(ctx context.Context, req dto.Initial
 	return response, nil
 }
 
-
-
-
-
-
-
-
 /*
 func (s *PaymentService) VerifyPayment(ctx context.Context, reference string) (*dto.PaymentResponse, error) {
 	logger := s.logger.With(zap.String("reference", reference))
-	
+
 
 
 	// Verify with Paystack
@@ -274,7 +258,6 @@ func (s *PaymentService) VerifyPayment(ctx context.Context, reference string) (*
 }
 */
 
-
 // func (s *PaymentService) VerifyPayment(ctx context.Context, reference string) (*dto.PaymentResponse, error) {
 // 	logger := s.logger.With(zap.String("operation", "VerifyPayment"), zap.String("reference", reference))
 
@@ -322,43 +305,34 @@ func (s *PaymentService) VerifyPayment(ctx context.Context, reference string) (*
 // 	return response, nil
 // }
 
-
-
-
-
-
-
-
-
-
 func (s *PaymentService) VerifyPayment(ctx context.Context, reference string) (*dto.PaymentResponse, error) {
-    logger := s.logger.With(zap.String("operation", "VerifyPayment"), zap.String("reference", reference))
+	logger := s.logger.With(zap.String("operation", "VerifyPayment"), zap.String("reference", reference))
 
-    payment, perr := s.paymentRepo.FindByTransactionID(ctx, reference)
-    if perr != nil {
-        return nil, fmt.Errorf("payment not found: %w", perr)
-    }
+	payment, perr := s.paymentRepo.FindByTransactionID(ctx, reference)
+	if perr != nil {
+		return nil, fmt.Errorf("payment not found: %w", perr)
+	}
 
-    // Prevent double processing
-    if payment.Status == models.PaymentStatusCompleted {
-        logger.Warn("Payment already processed")
-        return s.mapPaymentToDTO(payment), nil
-    }
+	// Prevent double processing
+	if payment.Status == models.PaymentStatusCompleted {
+		logger.Warn("Payment already processed")
+		return s.mapPaymentToDTO(payment), nil
+	}
 
-    // psClient := paystack.NewClient(paystack.WithSecretKey(s.config.PaystackSecretKey))
-    // var resp m.Response[m.Transaction]
-    // err := psClient.Transactions.Verify(ctx, reference, &resp)
+	// psClient := paystack.NewClient(paystack.WithSecretKey(s.config.PaystackSecretKey))
+	// var resp m.Response[m.Transaction]
+	// err := psClient.Transactions.Verify(ctx, reference, &resp)
 	resp, err := s.verifyPaystack(ctx, reference)
-    
-    if err != nil || !resp.Status || resp.Data.Status != "success" {
-        logger.Error("Paystack verification failed", zap.Error(err))
-        
-        // Update payment to failed
-        payment.Status = models.PaymentStatusFailed
-        _ = s.paymentRepo.Update(ctx, payment)
-        
-        return nil, ErrVerificationFailed
-    }
+
+	if err != nil || !resp.Status || resp.Data.Status != "success" {
+		logger.Error("Paystack verification failed", zap.Error(err))
+
+		// Update payment to failed
+		payment.Status = models.PaymentStatusFailed
+		_ = s.paymentRepo.Update(ctx, payment)
+
+		return nil, ErrVerificationFailed
+	}
 	meta, merr := normalizeMetadata(resp.Data.Metadata)
 	if merr != nil {
 		logger.Warn("failed to parse metadata", zap.Error(merr))
@@ -367,9 +341,9 @@ func (s *PaymentService) VerifyPayment(ctx context.Context, reference string) (*
 	} else {
 		logger.Debug("payment metadata", zap.Any("metadata", meta))
 	}
-	
-    // Payment successful - now commit inventory and update order
-    err = s.db.WithContext(context.Background()).Transaction(func(tx *gorm.DB) error {
+
+	// Payment successful - now commit inventory and update order
+	err = s.db.WithContext(context.Background()).Transaction(func(tx *gorm.DB) error {
 		// Reload & lock payment
 		var p models.Payment
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
@@ -469,10 +443,10 @@ func (s *PaymentService) VerifyPayment(ctx context.Context, reference string) (*
 
 		// Update cart status to Converted
 		if err := tx.Model(&models.Cart{}).
-    Where("user_id = ? AND status = ?", order.UserID, models.CartStatusActive).
-    UpdateColumn("status", models.CartStatusConverted).Error; err != nil {
-    return fmt.Errorf("failed to update cart status: %w", err)
-}
+			Where("user_id = ? AND status = ?", order.UserID, models.CartStatusActive).
+			UpdateColumn("status", models.CartStatusConverted).Error; err != nil {
+			return fmt.Errorf("failed to update cart status: %w", err)
+		}
 
 		// Reflect updated payment
 		*payment = p
@@ -493,39 +467,33 @@ func (s *PaymentService) VerifyPayment(ctx context.Context, reference string) (*
 }
 
 func (s *PaymentService) mapPaymentToDTO(payment *models.Payment) *dto.PaymentResponse {
-    return &dto.PaymentResponse{
-        ID:            payment.ID,
-        OrderID:       payment.OrderID,
-        Amount:        payment.Amount.InexactFloat64(),
-        Currency:      payment.Currency,
-        Status:        string(payment.Status),
-        TransactionID: payment.TransactionID,
-        CreatedAt:     payment.CreatedAt,
-        UpdatedAt:     payment.UpdatedAt,
-    }
+	return &dto.PaymentResponse{
+		ID:            payment.ID,
+		OrderID:       payment.OrderID,
+		Amount:        payment.Amount.InexactFloat64(),
+		Currency:      payment.Currency,
+		Status:        string(payment.Status),
+		TransactionID: payment.TransactionID,
+		CreatedAt:     payment.CreatedAt,
+		UpdatedAt:     payment.UpdatedAt,
+	}
 }
 
-
-
-
-
-
 func (s *PaymentService) handleChargeSuccess(ctx context.Context, reference string) (*dto.PaymentResponse, error) {
-    logger := s.logger.With(zap.String("operation", "VerifyPayment"), zap.String("reference", reference))
+	logger := s.logger.With(zap.String("operation", "VerifyPayment"), zap.String("reference", reference))
 
-    payment, perr := s.paymentRepo.FindByTransactionID(ctx, reference)
-    if perr != nil {
-        return nil, fmt.Errorf("payment not found: %w", perr)
-    }
+	payment, perr := s.paymentRepo.FindByTransactionID(ctx, reference)
+	if perr != nil {
+		return nil, fmt.Errorf("payment not found: %w", perr)
+	}
 
-    // Prevent double processing
-    if payment.Status == models.PaymentStatusCompleted {
-        logger.Warn("Payment already processed")
-        return s.mapPaymentToDTO(payment), nil
-    }
-    
-	
-    // Payment successful - now commit inventory and update order
+	// Prevent double processing
+	if payment.Status == models.PaymentStatusCompleted {
+		logger.Warn("Payment already processed")
+		return s.mapPaymentToDTO(payment), nil
+	}
+
+	// Payment successful - now commit inventory and update order
 	err := s.db.WithContext(context.Background()).Transaction(func(tx *gorm.DB) error {
 		// Reload & lock payment
 		var p models.Payment
@@ -613,6 +581,13 @@ func (s *PaymentService) handleChargeSuccess(ctx context.Context, reference stri
 			return fmt.Errorf("failed to update order status: %w", err)
 		}
 
+		// Update merchant splits to processing
+		if err := tx.Model(&models.OrderMerchantSplit{}).
+			Where("order_id = ? AND status = ?", order.ID, "pending").
+			Update("status", "processing").Error; err != nil {
+			return fmt.Errorf("failed to update merchant splits: %w", err)
+		}
+
 		// Clear cart items using join (fix user_id issue)
 		if err := tx.Exec(`
 			DELETE FROM cart_items
@@ -626,10 +601,10 @@ func (s *PaymentService) handleChargeSuccess(ctx context.Context, reference stri
 
 		// Update cart status to Converted
 		if err := tx.Model(&models.Cart{}).
-    Where("user_id = ? AND status = ?", order.UserID, models.CartStatusActive).
-    UpdateColumn("status", models.CartStatusConverted).Error; err != nil {
-    return fmt.Errorf("failed to update cart status: %w", err)
-}
+			Where("user_id = ? AND status = ?", order.UserID, models.CartStatusActive).
+			UpdateColumn("status", models.CartStatusConverted).Error; err != nil {
+			return fmt.Errorf("failed to update cart status: %w", err)
+		}
 
 		// Reflect updated payment
 		*payment = p
@@ -649,39 +624,24 @@ func (s *PaymentService) handleChargeSuccess(ctx context.Context, reference stri
 	return s.mapPaymentToDTO(payment), nil
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // GetPaymentByOrderID retrieves a payment by order ID
 func (s *PaymentService) GetPaymentByOrderID(ctx context.Context, orderID uint) (*models.Payment, error) {
 	if orderID == 0 {
 		return nil, errors.New("invalid order ID")
 	}
-	return s.paymentRepo.FindByOrderID(ctx,orderID)
+	return s.paymentRepo.FindByOrderID(ctx, orderID)
 }
 
 // GetPaymentsByUserID retrieves all payments for a user
-func (s *PaymentService) GetPaymentsByUserID(ctx context.Context,userID uint) ([]models.Payment, error) {
+func (s *PaymentService) GetPaymentsByUserID(ctx context.Context, userID uint) ([]models.Payment, error) {
 	if userID == 0 {
 		return nil, errors.New("invalid user ID")
 	}
-	return s.paymentRepo.FindByUserID(ctx,userID)
+	return s.paymentRepo.FindByUserID(ctx, userID)
 }
 
 // UpdatePaymentStatus updates the status of a payment
-func (s *PaymentService) UpdatePaymentStatus(ctx context.Context,paymentID uint, status string) (*models.Payment, error) {
+func (s *PaymentService) UpdatePaymentStatus(ctx context.Context, paymentID uint, status string) (*models.Payment, error) {
 	if paymentID == 0 {
 		return nil, errors.New("invalid payment ID")
 	}
@@ -689,17 +649,17 @@ func (s *PaymentService) UpdatePaymentStatus(ctx context.Context,paymentID uint,
 		return nil, err
 	}
 
-	payment, err := s.paymentRepo.FindByID(ctx ,paymentID)
+	payment, err := s.paymentRepo.FindByID(ctx, paymentID)
 	if err != nil {
 		return nil, err
 	}
 
 	payment.Status = models.PaymentStatus(status)
-	if err := s.paymentRepo.Update(ctx ,payment); err != nil {
+	if err := s.paymentRepo.Update(ctx, payment); err != nil {
 		return nil, err
 	}
 
-	return s.paymentRepo.FindByID(ctx ,paymentID)
+	return s.paymentRepo.FindByID(ctx, paymentID)
 }
 
 // HandleWebhook processes the forwarded Paystack event
@@ -726,7 +686,7 @@ func (s *PaymentService) HandleWebhook(ctx context.Context, event map[string]int
 	case "transfer.success":
 		return s.handleTransferSuccess(ctx, data)
 	case "transfer.failed", "transfer.reversed":
-		return s.handleTransferFailure(ctx,  data)
+		return s.handleTransferFailure(ctx, data)
 	case "charge.success":
 		// Handle if needed for order processing
 		s.logger.Info("Charge success event received", zap.Any("reference", data["reference"]))
@@ -743,6 +703,7 @@ func (s *PaymentService) HandleWebhook(ctx context.Context, event map[string]int
 		return nil
 	}
 }
+
 // handleTransferSuccess handles transfer.success event
 func (s *PaymentService) handleTransferSuccess(ctx context.Context, data map[string]interface{}) error {
 	transferCode, ok := data["recipient_code"].(string)
@@ -775,8 +736,8 @@ func (s *PaymentService) handleTransferSuccess(ctx context.Context, data map[str
 		return err
 	}
 
-	merchant.TotalPayouts = merchant.TotalPayouts +  payout.Amount
-	merchant.LastPayoutDate = func() *time.Time { t := time.Now(); return &t }()	// if err := s.merchantRepo.Update(ctx, merchant); err != nil {
+	merchant.TotalPayouts = merchant.TotalPayouts + payout.Amount
+	merchant.LastPayoutDate = func() *time.Time { t := time.Now(); return &t }() // if err := s.merchantRepo.Update(ctx, merchant); err != nil {
 	// 	return err
 	// }
 

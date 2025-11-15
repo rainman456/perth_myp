@@ -146,6 +146,7 @@ func ToCartResponse(cart *models.Cart) *dto.CartResponse {
 		// TaxTotal:      taxTotal,
 		// ShippingTotal: shippingTotal,
 		// GrandTotal:    math.Round((subtotal+taxTotal+shippingTotal)*100) / 100,
+		Total:     math.Round(subtotal*100) / 100,
 		CreatedAt:     cart.CreatedAt,
 		UpdatedAt:     cart.UpdatedAt,
 	}
