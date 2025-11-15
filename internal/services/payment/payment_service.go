@@ -200,110 +200,6 @@ func (s *PaymentService) InitializeCheckout(ctx context.Context, req dto.Initial
 	return response, nil
 }
 
-/*
-func (s *PaymentService) VerifyPayment(ctx context.Context, reference string) (*dto.PaymentResponse, error) {
-	logger := s.logger.With(zap.String("reference", reference))
-
-
-
-	// Verify with Paystack
-	psClient := paystack.NewClient(paystack.WithSecretKey(s.config.PaystackSecretKey))
-	var psResp m.Response[m.Transaction]
-	 err := psClient.Transactions.Verify(ctx, reference, &psResp)
-	if err != nil {
-		logger.Error("Paystack verify failed", zap.Error(err))
-		return nil, fmt.Errorf("paystack verify failed: %w", err)
-	}
-	if psResp.Data.Status != "success" {
-		logger.Warn("Payment not successful", zap.String("status", string(psResp.Data.Status)))
-		return nil, fmt.Errorf("payment not successful: status %s",string(psResp.Data.Status))
-	}
-
-	// Fetch and update payment
-	payment, err := s.paymentRepo.FindByTransactionID(ctx, reference)
-	if err != nil {
-		logger.Error("Payment not found", zap.Error(err))
-		return nil, fmt.Errorf("payment not found: %w", err)
-	}
-	payment.Status = "success"
-	if err := s.paymentRepo.Update(payment); err != nil {
-		logger.Error("Failed to update payment", zap.Error(err))
-		return nil, fmt.Errorf("failed to update payment: %w", err)
-	}
-
-	// Update order status
-	order, err := s.orderRepo.FindByID(ctx ,payment.OrderID)
-	if err != nil {
-		logger.Error("Order not found", zap.Error(err))
-		return nil, fmt.Errorf("order not found: %w", err)
-	}
-	order.Status = "paid"
-	if err := s.orderRepo.Update(order); err != nil {
-		logger.Error("Failed to update order", zap.Error(err))
-		return nil, fmt.Errorf("failed to update order: %w", err)
-	}
-
-	// Manual mapping
-	response := &dto.PaymentResponse{
-		ID:            payment.ID,
-		OrderID:       payment.OrderID,
-		Amount:        payment.Amount.InexactFloat64(),
-		Currency:      payment.Currency,
-		Status:       string(payment.Status),
-		TransactionID: payment.TransactionID,
-		CreatedAt:     payment.CreatedAt,
-		UpdatedAt:     payment.UpdatedAt,
-	}
-	return response, nil
-}
-*/
-
-// func (s *PaymentService) VerifyPayment(ctx context.Context, reference string) (*dto.PaymentResponse, error) {
-// 	logger := s.logger.With(zap.String("operation", "VerifyPayment"), zap.String("reference", reference))
-
-// 	payment, perr := s.paymentRepo.FindByTransactionID(ctx, reference)
-// 	if perr != nil {
-// 		return nil, fmt.Errorf("payment not found: %w", perr)
-// 	}
-
-// 	psClient := paystack.NewClient(paystack.WithSecretKey(s.config.PaystackSecretKey))
-// 	var resp m.Response[m.Transaction]
-// 	 err := psClient.Transactions.Verify(ctx, reference, &resp)
-// 	if err != nil || !resp.Status  || resp.Data.Status != "success" {
-// 		logger.Error("Paystack verification failed", zap.Error(err))
-// 		// Update to failed
-// 		payment.Status = models.PaymentStatusFailed
-// 		s.paymentRepo.Update(ctx, payment)
-// 		return nil, ErrVerificationFailed
-// 	}
-
-// 	// Update success
-// 	payment.Status = models.PaymentStatusCompleted
-// 	payment.UpdatedAt = time.Now()
-// 	if err := s.paymentRepo.Update(ctx, payment); err != nil {
-// 		return nil, err
-// 	}
-
-// 	// Update order status
-// 	order, err := s.orderRepo.FindByID(ctx, payment.OrderID)
-// 	if err == nil {
-// 		order.Status = models.OrderStatusCompleted
-// 		s.orderRepo.Update(ctx, order)
-// 	}
-
-// 	logger.Info("Payment verified", zap.Uint("payment_id", payment.ID))
-// 	response := &dto.PaymentResponse{
-// 		ID:            payment.ID,
-// 		OrderID:       payment.OrderID,
-// 		Amount:        payment.Amount.InexactFloat64(),
-// 		Currency:      payment.Currency,
-// 		Status:       string(payment.Status),
-// 		TransactionID: payment.TransactionID,
-// 		CreatedAt:     payment.CreatedAt,
-// 		UpdatedAt:     payment.UpdatedAt,
-// 	}
-// 	return response, nil
-// }
 
 func (s *PaymentService) VerifyPayment(ctx context.Context, reference string) (*dto.PaymentResponse, error) {
 	logger := s.logger.With(zap.String("operation", "VerifyPayment"), zap.String("reference", reference))
@@ -428,6 +324,13 @@ func (s *PaymentService) VerifyPayment(ctx context.Context, reference string) (*
 		order.Status = models.OrderStatusProcessing
 		if err := tx.Save(&order).Error; err != nil {
 			return fmt.Errorf("failed to update order status: %w", err)
+		}
+
+		// Update merchant splits to processing
+		if err := tx.Model(&models.OrderMerchantSplit{}).
+			Where("order_id = ? AND status = ?", order.ID, "pending").
+			Update("status", "processing").Error; err != nil {
+			return fmt.Errorf("failed to update merchant splits: %w", err)
 		}
 
 		// Clear cart items using join (fix user_id issue)
