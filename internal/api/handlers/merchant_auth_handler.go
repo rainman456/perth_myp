@@ -28,8 +28,8 @@ func NewMerchantAuthHandler(s *merchant.MerchantService) *MerchantHandler {
 // @Tags Merchant
 // @Accept json
 // @Produce json
-// @Param body body object{first_name=string,last_name=string,email=string,phone=string,personal_address=object{street=string,city=string,state=string,postal_code=string,country=string},work_address=object{street=string,city=string,state=string,postal_code=string,country=string},business_name=string,business_type=string,tax_id=string,documents=object{business_license=string,identification=string}} true "Merchant application details"
-// @Success 201 {object} object{id=string,first_name=string,last_name=string,email=string,phone=string,personal_address=object{street=string,city=string,state=string,postal_code=string,country=string},work_address=object{street=string,city=string,state=string,postal_code=string,country=string},business_name=string,business_type=string,tax_id=string,documents=object{business_license=string,identification=string},status=string,created_at=string} "Created application"
+// @Param body body dto.MerchantApplyDTO true "Merchant application details"
+// @Success 201 {object} dto.MerchantApplyResponse "Created application"
 // @Failure 400 {object} object{error=string} "Invalid request body or malformed JSON"
 // @Failure 500 {object} object{error=string} "Failed to submit application"
 // @Router /merchant/apply [post]
@@ -164,7 +164,7 @@ func (h *MerchantHandler) GetApplication(c *gin.Context) {
 // @Tags Merchant
 // @Produce json
 // @Security BearerAuth
-// @Success 200 {object} object{id=string,user_id=string,business_name=string,business_type=string,tax_id=string,personal_address=object{street=string,city=string,state=string,zip=string,country=string},work_address=object{street=string,city=string,state=string,zip=string,country=string},status=string,created_at=string,updated_at=string} "Merchant account details"
+// @Success 200 {object}   dto.MerchantApplyResponse  "Merchant account details"
 // @Failure 401 {object} object{error=string} "Unauthorized: Missing or invalid authentication"
 // @Failure 404 {object} object{error=string} "Merchant account not found"
 // @Router /merchant/me [get]
