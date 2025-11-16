@@ -16,12 +16,14 @@ const (
 	OrderStatusProcessing OrderStatus = "Processing"
 	OrderStatusCompleted  OrderStatus = "Completed"
 	OrderStatusCancelled  OrderStatus = "Cancelled"
+	OrderStatusOutForDelivery  OrderStatus = "OutForDelivery"
+	OrderStatusDelivered  OrderStatus  = "Delivered"
 )
 
 // Valid checks if the status is one of the allowed values
 func (s OrderStatus) Valid() error {
 	switch s {
-	case OrderStatusPending, OrderStatusPaid, OrderStatusProcessing, OrderStatusCompleted, OrderStatusCancelled:
+	case OrderStatusPending, OrderStatusPaid, OrderStatusProcessing, OrderStatusCompleted, OrderStatusCancelled ,OrderStatusOutForDelivery,OrderStatusDelivered:
 		return nil
 	default:
 		return fmt.Errorf("invalid order status: %s", s)

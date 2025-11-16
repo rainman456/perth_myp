@@ -9,11 +9,15 @@ import (
 type OrderMerchantSplit struct {
     gorm.Model
     OrderID    uint    `gorm:"index"`
-    MerchantID string  `gorm:"type:uuid;index"`  // Match Merchant.ID type
-    AmountDue  decimal.Decimal
-    Fee        decimal.Decimal  // Platform cut
-    Status     string  `gorm:"default:'pending'"`  // pending, payout_requested, paid, reversed
+    MerchantID string  `gorm:"type:uuid;index"`
+    
+    // Use gorm:"type:numeric(12,2)" to force PostgreSQL numeric
+    AmountDue  decimal.Decimal `gorm:"type:numeric(12,2)"`
+    Fee        decimal.Decimal `gorm:"type:numeric(12,2)"`
+    
+    Status     string  `gorm:"default:'pending'"`
     HoldUntil  time.Time
-	Merchant   Merchant `gorm:"foreignKey:MerchantID;references:MerchantID"`
-	Order             Order             `gorm:"foreignKey:OrderID"`
+    
+    Merchant   Merchant `gorm:"foreignKey:MerchantID;references:MerchantID"`
+    Order      Order    `gorm:"foreignKey:OrderID"`
 }

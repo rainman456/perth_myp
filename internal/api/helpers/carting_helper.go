@@ -158,7 +158,7 @@ func ToCartProductResponse(
 	variants []dto.CartVariantResponse,
 	reviews []dto.ReviewResponseDTO,
 	merchant *models.Merchant,
-) *dto.CartProductResponse {
+) dto.CartProductResponse {
 	// First image as primary
 	primaryImage := ""
 	for _, media := range p.Media {
@@ -168,7 +168,7 @@ func ToCartProductResponse(
 		}
 	}
 
-	resp := &dto.CartProductResponse{
+	resp := dto.CartProductResponse{
 		ID:           p.ID,
 		//Name:         p.Name,
 		//Slug:         p.Slug,

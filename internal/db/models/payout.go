@@ -21,6 +21,8 @@ func (s PayoutStatus) Valid() error {
 	default:
 		return fmt.Errorf("invalid payout status: %s", s)
 	}
+
+	
 }
 
 type Payout struct {
@@ -28,8 +30,8 @@ type Payout struct {
 	MerchantID      string         `gorm:"not null" json:"merchant_id"`
 	Amount          float64      `gorm:"type:decimal(10,2);not null" json:"amount"`
 	Status          PayoutStatus `gorm:"type:varchar(20);not null;default:'Pending'" json:"status"`
-	PayoutAccountID string       `gorm:"size:255;not null" json:"payout_account_id"`
-	PayStackTransferID string       `gorm:"size:255;not null" json:"paystack_transfer_id"`
+	PayoutAccountID     string `gorm:"size:255" json:"payout_account_id"`        // ← Remove not null
+    PayStackTransferID  string `gorm:"size:255" json:"paystack_transfer_id"`     // ← R
 	Merchant        Merchant     `gorm:"foreignKey:MerchantID"`
 }
 

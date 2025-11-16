@@ -68,26 +68,33 @@ func (s *PayoutService) GetPayoutsByMerchantID(merchantID string) ([]models.Payo
 
 // RequestPayout requests a payout for a merchant
 func (s *PayoutService) RequestPayout(ctx context.Context, merchantID string) (*models.Payout, error) {
-	// Calc eligible: sum splits where status=pending AND hold_until < now
-	var totalDue decimal.Decimal
-	db.DB.Model(&models.OrderMerchantSplit{}).
-		Where("merchant_id = ? AND status = 'pending' AND hold_until < ?", merchantID, time.Now()).
-		Select("SUM(amount_due)").Scan(&totalDue)
-	if totalDue.LessThanOrEqual(decimal.Zero) {
-		return nil, errors.New("no eligible balance")
-	}
+    var sumStr string
+    err := db.DB.Model(&models.OrderMerchantSplit{}).
+        Where("merchant_id = ? AND status = 'pending' AND hold_until < ?", merchantID, time.Now()).
+        Pluck("COALESCE(SUM(amount_due), '0')", &sumStr).Error
+    if err != nil {
+        return nil, err
+    }
 
-	payout := &models.Payout{
-		MerchantID: merchantID,
-		Amount:     totalDue.InexactFloat64(),
-		Status:     "pending", // Admin approves/sends
-	}
-	if err := s.payoutRepo.Create(ctx, payout); err != nil {
-		return nil, err
-	}
-	// Update splits to 'payout_requested'
-	db.DB.Model(&models.OrderMerchantSplit{}).
-		Where("merchant_id = ? AND status = 'pending' AND hold_until < ?", merchantID, time.Now()).
-		Update("status", "payout_requested")
-	return payout, nil
+    totalDue, err := decimal.NewFromString(sumStr)
+    if err != nil || totalDue.LessThanOrEqual(decimal.Zero) {
+        return nil, errors.New("no eligible balance")
+    }
+
+    payout := &models.Payout{
+        MerchantID: merchantID,
+        Amount:     totalDue.InexactFloat64(),
+        Status:    models.PayoutStatusPending,
+    }
+
+    if err := s.payoutRepo.Create(ctx, payout); err != nil {
+        return nil, err
+    }
+
+    // Update splits
+    db.DB.Model(&models.OrderMerchantSplit{}).
+        Where("merchant_id = ? AND status = 'pending' AND hold_until < ?", merchantID, time.Now()).
+        Update("status", "payout_requested")
+
+    return payout, nil
 }
