@@ -644,7 +644,7 @@ func (s *PaymentService) handleTransferSuccess(ctx context.Context, data map[str
 	// 	return err
 	// }
 
-	s.logger.Info("Payout completed successfully", zap.Uint("payout_id", payout.ID))
+	s.logger.Info("Payout completed successfully", zap.String("payout_id", payout.ID))
 	return nil
 }
 
@@ -682,6 +682,6 @@ func (s *PaymentService) handleTransferFailure(ctx context.Context, data map[str
 	// 	// Stub or implement the email function
 	// }
 
-	s.logger.Error("Payout failed", zap.Uint("payout_id", payout.ID), zap.String("reason", reason))
+	s.logger.Error("Payout failed", zap.String("payout_id", payout.ID), zap.String("reason", reason))
 	return nil
 }

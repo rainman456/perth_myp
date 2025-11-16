@@ -22,7 +22,7 @@ func (r *PayoutRepository) Create(ctx context.Context,payout *models.Payout) err
 }
 
 // FindByID retrieves a payout by ID with associated Merchant
-func (r *PayoutRepository) FindByID(ctx context.Context,id uint) (*models.Payout, error) {
+func (r *PayoutRepository) FindByID(ctx context.Context,id string) (*models.Payout, error) {
 	var payout models.Payout
 	err := r.db.WithContext(ctx).Preload("Merchant").First(&payout, id).Error
 	return &payout, err

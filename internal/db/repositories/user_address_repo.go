@@ -43,9 +43,23 @@ func (r *UserAddressRepository) ListByUser(userID uint) ([]models.UserAddress, e
 }
 
 func (r *UserAddressRepository) Update(addr *models.UserAddress) error {
-	return r.db.Save(addr).Error
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		// If setting this address as default, unset all other addresses for this user
+		if addr.IsDefault {
+			if err := tx.Model(&models.UserAddress{}).
+				Where("user_id = ? AND id != ?", addr.UserID, addr.ID).
+				Update("is_default", false).Error; err != nil {
+				return err
+			}
+		}
+		
+		// Now save the current address
+		return tx.Save(addr).Error
+	})
 }
 
 func (r *UserAddressRepository) Delete(id uint) error {
 	return r.db.Delete(&models.UserAddress{}, id).Error
 }
+
+

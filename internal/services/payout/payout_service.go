@@ -51,8 +51,8 @@ func (s *PayoutService) CreatePayout(merchantID string, amount float64) (*models
 }
 
 // GetPayoutByID retrieves a payout by ID
-func (s *PayoutService) GetPayoutByID(id uint) (*models.Payout, error) {
-	if id == 0 {
+func (s *PayoutService) GetPayoutByID(id string) (*models.Payout, error) {
+	if id == "" {
 		return nil, errors.New("invalid payout ID")
 	}
 	return s.payoutRepo.FindByID(context.Background(), id)
@@ -67,34 +67,68 @@ func (s *PayoutService) GetPayoutsByMerchantID(merchantID string) ([]models.Payo
 }
 
 // RequestPayout requests a payout for a merchant
-func (s *PayoutService) RequestPayout(ctx context.Context, merchantID string) (*models.Payout, error) {
-    var sumStr string
-    err := db.DB.Model(&models.OrderMerchantSplit{}).
-        Where("merchant_id = ? AND status = 'pending' AND hold_until < ?", merchantID, time.Now()).
-        Pluck("COALESCE(SUM(amount_due), '0')", &sumStr).Error
-    if err != nil {
-        return nil, err
-    }
+func (s *PayoutService) RequestPayout(ctx context.Context, merchantID string, requestedAmount float64) (*models.Payout, error) {
+	// Calculate total available balance
+	var sumStr string
+	err := db.DB.Model(&models.OrderMerchantSplit{}).
+		Where("merchant_id = ? AND status = 'pending' AND hold_until < ?", merchantID, time.Now()).
+		Pluck("COALESCE(SUM(amount_due), '0')", &sumStr).Error
+	if err != nil {
+		return nil, err
+	}
 
-    totalDue, err := decimal.NewFromString(sumStr)
-    if err != nil || totalDue.LessThanOrEqual(decimal.Zero) {
-        return nil, errors.New("no eligible balance")
-    }
+	totalAvailable, err := decimal.NewFromString(sumStr)
+	if err != nil || totalAvailable.LessThanOrEqual(decimal.Zero) {
+		return nil, errors.New("no eligible balance available")
+	}
 
-    payout := &models.Payout{
-        MerchantID: merchantID,
-        Amount:     totalDue.InexactFloat64(),
-        Status:    models.PayoutStatusPending,
-    }
+	// Validate requested amount
+	requestedDec := decimal.NewFromFloat(requestedAmount)
+	if requestedDec.LessThanOrEqual(decimal.Zero) {
+		return nil, errors.New("requested amount must be greater than zero")
+	}
+	
+	if requestedDec.GreaterThan(totalAvailable) {
+		return nil, errors.New("requested amount exceeds available balance")
+	}
 
-    if err := s.payoutRepo.Create(ctx, payout); err != nil {
-        return nil, err
-    }
+	// Create payout with requested amount
+	payout := &models.Payout{
+		MerchantID: merchantID,
+		Amount:     requestedAmount,
+		Status:     models.PayoutStatusPending,
+	}
 
-    // Update splits
-    db.DB.Model(&models.OrderMerchantSplit{}).
-        Where("merchant_id = ? AND status = 'pending' AND hold_until < ?", merchantID, time.Now()).
-        Update("status", "payout_requested")
+	if err := s.payoutRepo.Create(ctx, payout); err != nil {
+		return nil, err
+	}
 
-    return payout, nil
+	// Update splits to cover the requested amount
+	// This marks splits as "payout_requested" up to the requested amount
+	var splits []models.OrderMerchantSplit
+	err = db.DB.Where("merchant_id = ? AND status = 'pending' AND hold_until < ?", merchantID, time.Now()).
+		Order("hold_until ASC").  // Process oldest first
+		Find(&splits).Error
+	if err != nil {
+		return nil, err
+	}
+
+	remaining := requestedDec
+	var splitIDs []uint
+	for _, split := range splits {
+		if remaining.LessThanOrEqual(decimal.Zero) {
+			break
+		}
+		splitIDs = append(splitIDs, split.ID)
+		remaining = remaining.Sub(split.AmountDue)
+	}
+
+	// Update the selected splits
+	if len(splitIDs) > 0 {
+		db.DB.Model(&models.OrderMerchantSplit{}).
+			Where("id IN ?", splitIDs).
+			Update("status", "payout_requested")
+	}
+
+	return payout, nil
 }

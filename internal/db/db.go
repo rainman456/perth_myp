@@ -183,7 +183,7 @@ func AutoMigrate() {
 	 //&models.Inventory{},
 	// &models.Promotion{},
 	// &models.ReturnRequest{},
-	// &models.Payout{},
+	 //&models.Payout{},
 	//&models.Payment{},
 	//&models.Review{},
 	//&models.UserWishlist{},

@@ -35,8 +35,8 @@ func (r *CartRepository) FindByID(ctx context.Context, id uint) (*models.Cart, e
 	var cart models.Cart
 	err := r.db.WithContext(ctx).
 		//Preload("User").
-		Preload("CartItems.Product.Category").  // For category_name/slug
-		Preload("CartItems.Product.Media").      // For images
+		Preload("CartItems.Product.Category"). // For category_name/slug
+		Preload("CartItems.Product.Media").    // For images
 		//Preload("CartItems.Product.Merchant").   // For merchant_name/store_name
 		//Preload("CartItems.Product.Reviews").    // For avg_rating/review_count (or limit: Preload("CartItems.Product.Reviews", func(db *gorm.DB) *gorm.DB { return db.Limit(10).Order("created_at DESC") }))
 		Preload("CartItems.Variant.Inventory"). // Existing + variants for full response
@@ -48,6 +48,7 @@ func (r *CartRepository) FindByID(ctx context.Context, id uint) (*models.Cart, e
 	}
 	return &cart, err
 }
+
 // FindActiveCart retrieves the user's most recent active cart
 // func (r *CartRepository) FindActiveCart(userID uint) (*models.Cart, error) {
 // 	var cart models.Cart
@@ -57,31 +58,69 @@ func (r *CartRepository) FindByID(ctx context.Context, id uint) (*models.Cart, e
 
 func (r *CartRepository) FindActiveCart(ctx context.Context, userID uint) (*models.Cart, error) {
 	var cart models.Cart
+
 	err := r.db.WithContext(ctx).
-	Preload("CartItems", func(db *gorm.DB) *gorm.DB {
-		return db.Select("id, cart_id, product_id, variant_id, quantity, merchant_id")
-	}).
-	Preload("CartItems.Product", func(db *gorm.DB) *gorm.DB {
-		return db.Select("id, name, base_price, final_price, merchant_id, category_id")
-	}).
-	Preload("CartItems.Product.Category", func(db *gorm.DB) *gorm.DB {
-		return db.Select("id, name, category_slug")
-	}).
-	Preload("CartItems.Product.Media", func(db *gorm.DB) *gorm.DB {
-		return db.Select("id, product_id, url, type").Where("type = ?", "image").Limit(1)
-	}).
-	Preload("CartItems.Variant.Inventory", func(db *gorm.DB) *gorm.DB {
-		return db.Select("id, variant_id, quantity, reserved_quantity, backorder_allowed")
-	}).
-	Preload("CartItems.Merchant", func(db *gorm.DB) *gorm.DB {
-		return db.Select("id, merchant_id, name, store_name")
-	}).
-	Where("user_id = ? AND status = ?", userID, models.CartStatusActive).
-	Order("created_at DESC").First(&cart).Error
+		Preload("CartItems", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, cart_id, product_id, variant_id, quantity, merchant_id")
+		}).
+		Preload("CartItems.Product", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, name, base_price, final_price, merchant_id, category_id")
+		}).
+		Preload("CartItems.Product.Category", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, name, category_slug")
+		}).
+		Preload("CartItems.Variant.Inventory", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, variant_id, quantity, reserved_quantity, backorder_allowed")
+		}).
+		Preload("CartItems.Merchant", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, merchant_id, name, store_name")
+		}).
+		Where("user_id = ? AND status = ?", userID, models.CartStatusActive).
+		Order("created_at DESC").
+		First(&cart).Error
+
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, gorm.ErrRecordNotFound //ErrCartNotFound
+		return nil, gorm.ErrRecordNotFound
 	}
-	return &cart, err
+	if err != nil {
+		return nil, err
+	}
+
+	// Load Media SEPARATELY
+	productIDs := make([]string, 0, len(cart.CartItems))
+	for _, item := range cart.CartItems {
+		if item.Product.ID != "" {
+			productIDs = append(productIDs, item.Product.ID)
+		}
+	}
+
+	if len(productIDs) > 0 {
+		var mediaList []models.Media
+		err := r.db.WithContext(ctx).
+			Where("product_id IN ? AND type = ?", productIDs, "image").
+			Order("product_id, id ASC"). // ← Use id ASC
+			Find(&mediaList).Error
+		if err != nil {
+			return nil, err
+		}
+
+		// Map: product_id → first image URL
+		mediaMap := make(map[string]string)
+		for _, m := range mediaList {
+			if _, exists := mediaMap[m.ProductID]; !exists {
+				mediaMap[m.ProductID] = m.URL
+			}
+		}
+
+		// Assign to products
+		for i := range cart.CartItems {
+			if url, ok := mediaMap[cart.CartItems[i].Product.ID]; ok {
+				cart.CartItems[i].Product.Media = []models.Media{{URL: url, Type: "image"}} // ← Add Type: "image" (match your MediaType enum value)
+			}
+		}
+	}
+
+	return &cart, nil
 }
 
 // FindByUserIDAndStatus retrieves carts for a user by status
@@ -110,9 +149,9 @@ func (r *CartRepository) Delete(ctx context.Context, id uint) error {
 }
 
 func (r *CartRepository) FindActiveCartLight(ctx context.Context, userID uint) (*models.Cart, error) {
-    var cart models.Cart
-    err := r.db.WithContext(ctx).
-        Where("user_id = ? AND status = ?", userID, models.CartStatusActive).
-        Order("created_at DESC").First(&cart).Error
-    return &cart, err
+	var cart models.Cart
+	err := r.db.WithContext(ctx).
+		Where("user_id = ? AND status = ?", userID, models.CartStatusActive).
+		Order("created_at DESC").First(&cart).Error
+	return &cart, err
 }

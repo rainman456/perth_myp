@@ -89,7 +89,6 @@ func (h *PayoutHandler) GetMerchantPayouts(c *gin.Context) {
 func (h *PayoutHandler) RequestPayout(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	// Get merchant ID from context
 	merchantID, exists := c.Get("merchantID")
 	if !exists {
 		h.logger.Warn("Unauthorized access to RequestPayout")
@@ -111,9 +110,21 @@ func (h *PayoutHandler) RequestPayout(c *gin.Context) {
 		return
 	}
 
-	payout, err := h.payoutService.RequestPayout(ctx, merchantIDStr)
+	// NOW USING THE AMOUNT FROM DTO
+	payout, err := h.payoutService.RequestPayout(ctx, merchantIDStr, req.Amount)
 	if err != nil {
 		h.logger.Error("Failed to request payout", zap.Error(err))
+		
+		// Better error messages
+		if err.Error() == "no eligible balance available" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "no eligible balance available"})
+			return
+		}
+		if err.Error() == "requested amount exceeds available balance" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "requested amount exceeds available balance"})
+			return
+		}
+		
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to request payout"})
 		return
 	}

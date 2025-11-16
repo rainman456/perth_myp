@@ -83,11 +83,11 @@ type PayoutRequest struct {
 }
 
 type PayoutResponse struct {
-	ID              uint    `json:"id"`
+	ID                 string  `json:"id"`
 	MerchantID      string  `json:"merchant_id"`
 	Amount          float64 `json:"amount"`
 	Status          string  `json:"status"`
-	PayoutAccountID string  `json:"payout_account_id"`
+	PayoutAccountID    string  `json:"payout_account_id,omitempty"`
 	CreatedAt       string  `json:"created_at"`
 	UpdatedAt       string  `json:"updated_at"`
 }
