@@ -2,6 +2,8 @@ package user
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"log"
@@ -12,6 +14,7 @@ import (
 	//"api-customer-merchant/internal/db"
 	"api-customer-merchant/internal/db/models"
 	"api-customer-merchant/internal/db/repositories"
+	"api-customer-merchant/internal/utils"
 
 	//"google.golang.org/api/oauth2/v2"
 
@@ -273,6 +276,72 @@ func (s *AuthService) UpdateProfile(ctx context.Context ,userID uint, name, coun
 	return s.userRepo.Update(user)
 }
 
+// GeneratePasswordResetToken generates a secure reset token and stores it in Redis
+func (s *AuthService) GeneratePasswordResetToken(email string) (string, time.Time, error) {
+	// Verify user exists
+	user, err := s.userRepo.FindByEmail(email)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// For security, don't reveal if email exists
+			return "", time.Time{}, nil
+		}
+		return "", time.Time{}, err
+	}
+
+	// Generate secure random token
+	tokenBytes := make([]byte, 32)
+	if _, err := rand.Read(tokenBytes); err != nil {
+		return "", time.Time{}, err
+	}
+	token := base64.URLEncoding.EncodeToString(tokenBytes)
+
+	// Store token in Redis with 1-hour expiration
+	expiresAt := time.Now().Add(1 * time.Hour)
+	ctx := context.Background()
+	
+	if utils.RedisClient != nil {
+		key := "password_reset:" + token
+		err = utils.RedisClient.Set(ctx, key, user.Email, 1*time.Hour).Err()
+		if err != nil {
+			log.Printf("Failed to store reset token in Redis: %v", err)
+			return "", time.Time{}, err
+		}
+	} else {
+		return "", time.Time{}, errors.New("redis not available")
+	}
+
+	return token, expiresAt, nil
+}
+
+
+
+
+// ResetPasswordWithToken validates the token and resets the password
+func (s *AuthService) ResetPasswordWithToken(token, newPassword string) error {
+	if token == "" || newPassword == "" {
+		return errors.New("token and password are required")
+	}
+
+	// Retrieve email from Redis using token
+	ctx := context.Background()
+	key := "password_reset:" + token
+	
+	if utils.RedisClient == nil {
+		return errors.New("redis not available")
+	}
+
+	email, err := utils.RedisClient.Get(ctx, key).Result()
+	if err != nil {
+		return errors.New("invalid or expired reset token")
+	}
+
+	// Delete token from Redis (one-time use)
+	utils.RedisClient.Del(ctx, key)
+
+	// Reset password
+	return s.ResetPassword(email, newPassword)
+}
+
 func (s *AuthService) ResetPassword(email, newPassword string) error {
 	user, err := s.userRepo.FindByEmail(email)
 	if err != nil {
@@ -285,6 +354,16 @@ func (s *AuthService) ResetPassword(email, newPassword string) error {
 	user.Password = string(hashed)
 	return s.userRepo.Update(user)
 }
+
+
+
+
+
+
+
+
+
+
 
 
 

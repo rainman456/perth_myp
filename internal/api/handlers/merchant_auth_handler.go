@@ -2,12 +2,16 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
+	"log"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
 	"api-customer-merchant/internal/api/dto"
 	"api-customer-merchant/internal/db/models"
+	"api-customer-merchant/internal/services/email"
 	"api-customer-merchant/internal/services/merchant"
 	"api-customer-merchant/internal/utils"
 
@@ -15,11 +19,14 @@ import (
 )
 
 type MerchantHandler struct {
-	service *merchant.MerchantService
+	service      *merchant.MerchantService
+	emailService *email.EmailService
 }
 
-func NewMerchantAuthHandler(s *merchant.MerchantService) *MerchantHandler {
-	return &MerchantHandler{service: s}
+func NewMerchantAuthHandler(s *merchant.MerchantService,emailSvc *email.EmailService) *MerchantHandler {
+	return &MerchantHandler{	
+		service:      s,
+		emailService: emailSvc,}
 }
 
 // Apply godoc
@@ -242,3 +249,95 @@ func (h *MerchantHandler) Logout(c *gin.Context) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// RequestPasswordReset godoc
+// @Summary Request password reset for merchant
+// @Description Sends a password reset email with a secure token
+// @Tags Merchant
+// @Accept json
+// @Produce json
+// @Param body body dto.RequestPasswordResetRequest true "Work email address"
+// @Success 200 {object} object{message=string} "Password reset email sent"
+// @Failure 400 {object} object{error=string} "Invalid input"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Router /merchant/request-password-reset [post]
+func (h *MerchantHandler) RequestPasswordReset(c *gin.Context) {
+	var req dto.MerchRequestPasswordResetRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Generate reset token
+	token, expiresAt, err := h.service.GeneratePasswordResetToken(req.Email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Send reset email
+	frontendURL := os.Getenv("FRONTEND_URL")
+	if frontendURL == "" {
+		frontendURL = "http://localhost:3000"
+	}
+
+	resetLink := fmt.Sprintf("%s/merchant/reset-password?token=%s", frontendURL, token)
+	
+	emailData := map[string]interface{}{
+		"Name":      req.Email,
+		"ResetLink": resetLink,
+		"ExpiresAt": expiresAt.Format("January 2, 2006 at 3:04 PM"),
+	}
+
+	if err := h.emailService.SendPasswordReset(req.Email, emailData); err != nil {
+		log.Printf("Failed to send password reset email to %s: %v", req.Email, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send reset email"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Password reset email sent"})
+}
+
+// ResetPassword godoc
+// @Summary Reset merchant password
+// @Description Resets the merchant's password using a valid reset token
+// @Tags Merchant
+// @Accept json
+// @Produce json
+// @Param body body dto.ResetPasswordRequest true "Reset details with token"
+// @Success 200 {object} object{message=string} "Password reset successful"
+// @Failure 400 {object} object{error=string} "Invalid input or token"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Router /merchant/reset-password [post]
+func (h *MerchantHandler) ResetPassword(c *gin.Context) {
+	var req dto.MerchResetPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Validate token and reset password
+	err := h.service.ResetPasswordWithToken(req.Token, req.NewPassword)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Password reset successful"})
+}

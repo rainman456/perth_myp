@@ -1251,9 +1251,70 @@ const docTemplate = `{
                 }
             }
         },
+        "/customer/request-password-reset": {
+            "post": {
+                "description": "Sends a password reset email with a secure token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Customer"
+                ],
+                "summary": "Request password reset",
+                "parameters": [
+                    {
+                        "description": "Email address",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.RequestPasswordResetRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Password reset email sent",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/customer/reset-password": {
             "post": {
-                "description": "Resets the customer's password (unprotected; add verification in production)",
+                "description": "Resets the customer's password using a valid reset token",
                 "consumes": [
                     "application/json"
                 ],
@@ -1266,7 +1327,7 @@ const docTemplate = `{
                 "summary": "Reset customer password",
                 "parameters": [
                     {
-                        "description": "Reset details",
+                        "description": "Reset details with token",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -1288,7 +1349,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Invalid input",
+                        "description": "Invalid input or token",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -1608,112 +1669,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Application details retrieved",
                         "schema": {
-                            "type": "object",
-                            "properties": {
-                                "created_at": {
-                                    "type": "string"
-                                },
-                                "id": {
-                                    "type": "string"
-                                },
-                                "merchant_basic_info": {
-                                    "type": "object",
-                                    "properties": {
-                                        "name": {
-                                            "type": "string"
-                                        },
-                                        "password": {
-                                            "type": "string"
-                                        },
-                                        "personal_email": {
-                                            "type": "string"
-                                        },
-                                        "store_name": {
-                                            "type": "string"
-                                        },
-                                        "work_email": {
-                                            "type": "string"
-                                        }
-                                    }
-                                },
-                                "merchant_business_info": {
-                                    "type": "object",
-                                    "properties": {
-                                        "annual_revenue": {
-                                            "type": "number"
-                                        },
-                                        "business_type": {
-                                            "type": "string"
-                                        },
-                                        "tax_id": {
-                                            "type": "string"
-                                        },
-                                        "years_in_business": {
-                                            "type": "integer"
-                                        }
-                                    }
-                                },
-                                "merchant_documents": {
-                                    "type": "object",
-                                    "properties": {
-                                        "bank_statement": {
-                                            "type": "string"
-                                        },
-                                        "business_license": {
-                                            "type": "string"
-                                        },
-                                        "id_proof": {
-                                            "type": "string"
-                                        }
-                                    }
-                                },
-                                "personal_address": {
-                                    "type": "object",
-                                    "properties": {
-                                        "city": {
-                                            "type": "string"
-                                        },
-                                        "country": {
-                                            "type": "string"
-                                        },
-                                        "state": {
-                                            "type": "string"
-                                        },
-                                        "street": {
-                                            "type": "string"
-                                        },
-                                        "zip": {
-                                            "type": "string"
-                                        }
-                                    }
-                                },
-                                "status": {
-                                    "type": "string"
-                                },
-                                "updated_at": {
-                                    "type": "string"
-                                },
-                                "work_address": {
-                                    "type": "object",
-                                    "properties": {
-                                        "city": {
-                                            "type": "string"
-                                        },
-                                        "country": {
-                                            "type": "string"
-                                        },
-                                        "state": {
-                                            "type": "string"
-                                        },
-                                        "street": {
-                                            "type": "string"
-                                        },
-                                        "zip": {
-                                            "type": "string"
-                                        }
-                                    }
-                                }
-                            }
+                            "$ref": "#/definitions/dto.MerchantApplyResponse"
                         }
                     },
                     "404": {
@@ -1761,81 +1717,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object",
-                            "properties": {
-                                "business_name": {
-                                    "type": "string"
-                                },
-                                "business_type": {
-                                    "type": "string"
-                                },
-                                "documents": {
-                                    "type": "object",
-                                    "properties": {
-                                        "business_license": {
-                                            "type": "string"
-                                        },
-                                        "identification": {
-                                            "type": "string"
-                                        }
-                                    }
-                                },
-                                "email": {
-                                    "type": "string"
-                                },
-                                "first_name": {
-                                    "type": "string"
-                                },
-                                "last_name": {
-                                    "type": "string"
-                                },
-                                "personal_address": {
-                                    "type": "object",
-                                    "properties": {
-                                        "city": {
-                                            "type": "string"
-                                        },
-                                        "country": {
-                                            "type": "string"
-                                        },
-                                        "postal_code": {
-                                            "type": "string"
-                                        },
-                                        "state": {
-                                            "type": "string"
-                                        },
-                                        "street": {
-                                            "type": "string"
-                                        }
-                                    }
-                                },
-                                "phone": {
-                                    "type": "string"
-                                },
-                                "tax_id": {
-                                    "type": "string"
-                                },
-                                "work_address": {
-                                    "type": "object",
-                                    "properties": {
-                                        "city": {
-                                            "type": "string"
-                                        },
-                                        "country": {
-                                            "type": "string"
-                                        },
-                                        "postal_code": {
-                                            "type": "string"
-                                        },
-                                        "state": {
-                                            "type": "string"
-                                        },
-                                        "street": {
-                                            "type": "string"
-                                        }
-                                    }
-                                }
-                            }
+                            "$ref": "#/definitions/dto.MerchantApplyDTO"
                         }
                     }
                 ],
@@ -1843,90 +1725,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created application",
                         "schema": {
-                            "type": "object",
-                            "properties": {
-                                "business_name": {
-                                    "type": "string"
-                                },
-                                "business_type": {
-                                    "type": "string"
-                                },
-                                "created_at": {
-                                    "type": "string"
-                                },
-                                "documents": {
-                                    "type": "object",
-                                    "properties": {
-                                        "business_license": {
-                                            "type": "string"
-                                        },
-                                        "identification": {
-                                            "type": "string"
-                                        }
-                                    }
-                                },
-                                "email": {
-                                    "type": "string"
-                                },
-                                "first_name": {
-                                    "type": "string"
-                                },
-                                "id": {
-                                    "type": "string"
-                                },
-                                "last_name": {
-                                    "type": "string"
-                                },
-                                "personal_address": {
-                                    "type": "object",
-                                    "properties": {
-                                        "city": {
-                                            "type": "string"
-                                        },
-                                        "country": {
-                                            "type": "string"
-                                        },
-                                        "postal_code": {
-                                            "type": "string"
-                                        },
-                                        "state": {
-                                            "type": "string"
-                                        },
-                                        "street": {
-                                            "type": "string"
-                                        }
-                                    }
-                                },
-                                "phone": {
-                                    "type": "string"
-                                },
-                                "status": {
-                                    "type": "string"
-                                },
-                                "tax_id": {
-                                    "type": "string"
-                                },
-                                "work_address": {
-                                    "type": "object",
-                                    "properties": {
-                                        "city": {
-                                            "type": "string"
-                                        },
-                                        "country": {
-                                            "type": "string"
-                                        },
-                                        "postal_code": {
-                                            "type": "string"
-                                        },
-                                        "state": {
-                                            "type": "string"
-                                        },
-                                        "street": {
-                                            "type": "string"
-                                        }
-                                    }
-                                }
-                            }
+                            "$ref": "#/definitions/dto.MerchantApplyResponse"
                         }
                     },
                     "400": {
@@ -1942,6 +1741,265 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Failed to submit application",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/merchant/bank-details": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve bank account details for the authenticated merchant",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Merchant Bank Details"
+                ],
+                "summary": "Get bank details",
+                "responses": {
+                    "200": {
+                        "description": "Bank details retrieved successfully",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BankDetailsResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Bank details not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to retrieve bank details",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update bank account details for the authenticated merchant",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Merchant Bank Details"
+                ],
+                "summary": "Update bank details",
+                "parameters": [
+                    {
+                        "description": "Bank details",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.BankDetailsRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Bank details updated successfully",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BankDetailsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to update bank details",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Add bank account details for the authenticated merchant",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Merchant Bank Details"
+                ],
+                "summary": "Add bank details",
+                "parameters": [
+                    {
+                        "description": "Bank details",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.BankDetailsRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Bank details created successfully",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BankDetailsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to add bank details",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete bank account details for the authenticated merchant",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Merchant Bank Details"
+                ],
+                "summary": "Delete bank details",
+                "responses": {
+                    "200": {
+                        "description": "Bank details deleted successfully",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Bank details not found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to delete bank details",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -2212,73 +2270,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Merchant account details",
                         "schema": {
-                            "type": "object",
-                            "properties": {
-                                "business_name": {
-                                    "type": "string"
-                                },
-                                "business_type": {
-                                    "type": "string"
-                                },
-                                "created_at": {
-                                    "type": "string"
-                                },
-                                "id": {
-                                    "type": "string"
-                                },
-                                "personal_address": {
-                                    "type": "object",
-                                    "properties": {
-                                        "city": {
-                                            "type": "string"
-                                        },
-                                        "country": {
-                                            "type": "string"
-                                        },
-                                        "state": {
-                                            "type": "string"
-                                        },
-                                        "street": {
-                                            "type": "string"
-                                        },
-                                        "zip": {
-                                            "type": "string"
-                                        }
-                                    }
-                                },
-                                "status": {
-                                    "type": "string"
-                                },
-                                "tax_id": {
-                                    "type": "string"
-                                },
-                                "updated_at": {
-                                    "type": "string"
-                                },
-                                "user_id": {
-                                    "type": "string"
-                                },
-                                "work_address": {
-                                    "type": "object",
-                                    "properties": {
-                                        "city": {
-                                            "type": "string"
-                                        },
-                                        "country": {
-                                            "type": "string"
-                                        },
-                                        "state": {
-                                            "type": "string"
-                                        },
-                                        "street": {
-                                            "type": "string"
-                                        },
-                                        "zip": {
-                                            "type": "string"
-                                        }
-                                    }
-                                }
-                            }
+                            "$ref": "#/definitions/dto.MerchantApplyResponse"
                         }
                     },
                     "401": {
@@ -2914,9 +2906,9 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Creates a product with variants and media for authenticated merchant",
+                "description": "Creates a product with variants and uploads images in a single request",
                 "consumes": [
-                    "application/json"
+                    "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
@@ -2924,16 +2916,71 @@ const docTemplate = `{
                 "tags": [
                     "Merchant"
                 ],
-                "summary": "Create a new product",
+                "summary": "Create a new product with images",
                 "parameters": [
                     {
-                        "description": "Product details",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dto.ProductInput"
-                        }
+                        "type": "string",
+                        "description": "Product name",
+                        "name": "name",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Product description",
+                        "name": "description",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "number",
+                        "description": "Base price",
+                        "name": "base_price",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Category ID",
+                        "name": "category_id",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Category name",
+                        "name": "category_name",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Initial stock (for simple products)",
+                        "name": "initial_stock",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "number",
+                        "description": "Discount amount",
+                        "name": "discount",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Discount type (fixed/percentage)",
+                        "name": "discount_type",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "JSON array of variants",
+                        "name": "variants",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Product images (multiple files allowed)",
+                        "name": "images",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
@@ -3900,6 +3947,128 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Failed to update profile",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/merchant/request-password-reset": {
+            "post": {
+                "description": "Sends a password reset email with a secure token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Merchant"
+                ],
+                "summary": "Request password reset for merchant",
+                "parameters": [
+                    {
+                        "description": "Work email address",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.RequestPasswordResetRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Password reset email sent",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/merchant/reset-password": {
+            "post": {
+                "description": "Resets the merchant's password using a valid reset token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Merchant"
+                ],
+                "summary": "Reset merchant password",
+                "parameters": [
+                    {
+                        "description": "Reset details with token",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.ResetPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Password reset successful",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input or token",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -5581,6 +5750,64 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.BankDetailsRequest": {
+            "type": "object",
+            "properties": {
+                "account_name": {
+                    "type": "string"
+                },
+                "account_number": {
+                    "type": "string"
+                },
+                "bank_code": {
+                    "type": "string"
+                },
+                "bank_name": {
+                    "type": "string"
+                },
+                "currency": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.BankDetailsResponse": {
+            "type": "object",
+            "properties": {
+                "account_name": {
+                    "type": "string"
+                },
+                "account_number": {
+                    "type": "string"
+                },
+                "bank_code": {
+                    "type": "string"
+                },
+                "bank_name": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "merchant_id": {
+                    "type": "string"
+                },
+                "recipient_code": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.BankListItemDTO": {
             "type": "object",
             "properties": {
@@ -6206,6 +6433,119 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.MerchantApplyDTO": {
+            "type": "object",
+            "required": [
+                "business_registration_number",
+                "name",
+                "personal_address",
+                "personal_email",
+                "store_name",
+                "work_address",
+                "work_email"
+            ],
+            "properties": {
+                "business_description": {
+                    "type": "string"
+                },
+                "business_registration_certificate": {
+                    "type": "string"
+                },
+                "business_registration_number": {
+                    "type": "string"
+                },
+                "business_type": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "personal_address": {
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "personal_email": {
+                    "type": "string"
+                },
+                "phone_number": {
+                    "type": "string"
+                },
+                "store_logo_url": {
+                    "type": "string"
+                },
+                "store_name": {
+                    "type": "string"
+                },
+                "website": {
+                    "type": "string"
+                },
+                "work_address": {
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "work_email": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.MerchantApplyResponse": {
+            "type": "object",
+            "properties": {
+                "business_description": {
+                    "type": "string"
+                },
+                "business_registration_certificate": {
+                    "type": "string"
+                },
+                "business_registration_number": {
+                    "type": "string"
+                },
+                "business_type": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "personal_address": {
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "personal_email": {
+                    "type": "string"
+                },
+                "phone_number": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "store_logo_url": {
+                    "type": "string"
+                },
+                "store_name": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "website": {
+                    "type": "string"
+                },
+                "work_address": {
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "work_email": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.MerchantLogin": {
             "type": "object",
             "required": [
@@ -6483,7 +6823,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "merchant_id": {
                     "type": "string"
@@ -6763,17 +7103,29 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.ResetPasswordRequest": {
+        "dto.RequestPasswordResetRequest": {
             "type": "object",
             "required": [
-                "email",
-                "new_password"
+                "email"
             ],
             "properties": {
                 "email": {
                     "type": "string"
-                },
+                }
+            }
+        },
+        "dto.ResetPasswordRequest": {
+            "type": "object",
+            "required": [
+                "new_password",
+                "token"
+            ],
+            "properties": {
                 "new_password": {
+                    "type": "string",
+                    "minLength": 6
+                },
+                "token": {
                     "type": "string"
                 }
             }

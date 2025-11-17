@@ -36,6 +36,19 @@ type MerchantApplyResponse struct {
 	UpdatedAt                       string         `json:"updated_at"`
 }
 
+
+
+
+type MerchRequestPasswordResetRequest struct {
+	Email string `json:"email" binding:"required,email"`
+}
+
+// ResetPasswordRequest is used to reset password with a token
+type MerchResetPasswordRequest struct {
+	Token       string `json:"token" binding:"required"`
+	NewPassword string `json:"new_password" binding:"required,min=6"`
+}
+
 type MerchantLogin struct {
 	Work_Email string `json:"work_email" binding:"required,email"`
 	Password   string `json:"password" binding:"required"`

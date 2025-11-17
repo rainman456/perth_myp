@@ -2,8 +2,12 @@ package handlers
 
 import (
 	//"encoding/csv"
+	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"strings"
 	"time"
 
 	//"fmt"
@@ -47,15 +51,129 @@ func NewProductHandlers(productService *product.ProductService, logger *zap.Logg
 	}
 }
 
-// CreateProduct handles product creation for a merchant
+// // CreateProduct handles product creation for a merchant
+// // CreateProduct godoc
+// // @Summary Create a new product
+// // @Description Creates a product with variants and media for authenticated merchant
+// // @Tags Merchant
+// // @Accept json
+// // @Produce json
+// // @Security BearerAuth
+// // @Param body body dto.ProductInput true "Product details"
+// // @Success 201 {object} dto.MerchantProductResponse
+// // @Failure 400 {object} object{error=string}
+// // @Failure 401 {object} object{error=string}
+// // @Router /merchant/products [post]
+// func (h *ProductHandler) CreateProduct(c *gin.Context) {
+// 	logger := h.logger.With(zap.String("operation", "CreateProduct"))
+
+// 	// Check merchant authorization
+// 	merchantID, exists := c.Get("merchantID")
+// 	if !exists {
+// 		logger.Warn("Unauthorized access attempt")
+// 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+// 		return
+// 	}
+// 	merchantIDStr, ok := merchantID.(string)
+// 	if !ok || merchantIDStr == "" {
+// 		logger.Warn("Invalid merchant ID in context")
+// 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid merchant ID"})
+// 		return
+// 	}
+
+// 	// Bind and validate input
+// 	var input dto.ProductInput
+// 	if err := c.ShouldBindJSON(&input); err != nil {
+// 		logger.Error("Failed to bind JSON", zap.Error(err))
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request payload"})
+// 		return
+// 	}
+// 	if err := h.validator.Struct(&input); err != nil {
+// 		logger.Error("Input validation failed", zap.Error(err))
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+// 		return
+// 	}
+
+// 	// Set merchant ID from context
+// 	//input.MerchantID = merchantIDStr
+// 	//merchantIDStr = input.MerchantID
+
+// 	// Call service
+// 	response, err := h.productService.CreateProductWithVariants(c.Request.Context(), merchantIDStr, &input)
+// 	if err != nil {
+// 		logger.Error("Failed to create product", zap.Error(err))
+// 		if errors.Is(err, product.ErrInvalidProduct) || errors.Is(err, product.ErrInvalidMediaURL) || errors.Is(err, product.ErrInvalidAttributes) ||
+// 			errors.Is(err, product.ErrInvalidProduct) {
+// 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+// 			return
+// 		}
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create product"})
+// 		return
+// 	}
+
+// 	logger.Info("Product created successfully", zap.String("product_id", response.ID))
+// 	c.JSON(http.StatusCreated, response)
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// CreateProduct handles product creation for a merchant with image uploads
 // CreateProduct godoc
-// @Summary Create a new product
-// @Description Creates a product with variants and media for authenticated merchant
+// @Summary Create a new product with images
+// @Description Creates a product with variants and uploads images in a single request
 // @Tags Merchant
-// @Accept json
+// @Accept multipart/form-data
 // @Produce json
 // @Security BearerAuth
-// @Param body body dto.ProductInput true "Product details"
+// @Param name formData string true "Product name"
+// @Param description formData string false "Product description"
+// @Param base_price formData number true "Base price"
+// @Param category_id formData int true "Category ID"
+// @Param category_name formData string true "Category name"
+// @Param initial_stock formData int false "Initial stock (for simple products)"
+// @Param discount formData number false "Discount amount"
+// @Param discount_type formData string false "Discount type (fixed/percentage)"
+// @Param variants formData string false "JSON array of variants"
+// @Param images formData file false "Product images (multiple files allowed)"
 // @Success 201 {object} dto.MerchantProductResponse
 // @Failure 400 {object} object{error=string}
 // @Failure 401 {object} object{error=string}
@@ -77,29 +195,151 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 		return
 	}
 
-	// Bind and validate input
-	var input dto.ProductInput
-	if err := c.ShouldBindJSON(&input); err != nil {
-		logger.Error("Failed to bind JSON", zap.Error(err))
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request payload"})
+	// Parse multipart form
+	if err := c.Request.ParseMultipartForm(32 << 20); err != nil { // 32 MB max
+		logger.Error("Failed to parse multipart form", zap.Error(err))
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid form data"})
 		return
 	}
+
+	// Build ProductInput from form data
+	var input dto.ProductInput
+	
+	// Parse basic fields
+	input.Name = strings.TrimSpace(c.PostForm("name"))
+	input.Description = strings.TrimSpace(c.PostForm("description"))
+	input.CategoryName = strings.TrimSpace(c.PostForm("category_name"))
+	input.DiscountType = strings.TrimSpace(c.PostForm("discount_type"))
+
+	// Parse numeric fields
+	basePrice, err := strconv.ParseFloat(c.PostForm("base_price"), 64)
+	if err != nil {
+		logger.Error("Invalid base_price", zap.Error(err))
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid base_price"})
+		return
+	}
+	input.BasePrice = basePrice
+
+	categoryID, err := strconv.ParseUint(c.PostForm("category_id"), 10, 32)
+	if err != nil {
+		logger.Error("Invalid category_id", zap.Error(err))
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid category_id"})
+		return
+	}
+	input.CategoryID = uint(categoryID)
+
+	// Parse optional discount
+	if discountStr := c.PostForm("discount"); discountStr != "" {
+		discount, err := strconv.ParseFloat(discountStr, 64)
+		if err != nil {
+			logger.Error("Invalid discount", zap.Error(err))
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid discount"})
+			return
+		}
+		input.Discount = discount
+	}
+
+	// Parse optional initial_stock (for simple products)
+	if stockStr := c.PostForm("initial_stock"); stockStr != "" {
+		stock, err := strconv.Atoi(stockStr)
+		if err != nil {
+			logger.Error("Invalid initial_stock", zap.Error(err))
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid initial_stock"})
+			return
+		}
+		input.InitialStock = &stock
+	}
+
+	// Parse variants JSON if provided
+	if variantsJSON := c.PostForm("variants"); variantsJSON != "" {
+		var variants []dto.VariantInput
+		if err := json.Unmarshal([]byte(variantsJSON), &variants); err != nil {
+			logger.Error("Invalid variants JSON", zap.Error(err))
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid variants format"})
+			return
+		}
+		input.Variants = variants
+	}
+
+	// Validate input
 	if err := h.validator.Struct(&input); err != nil {
 		logger.Error("Input validation failed", zap.Error(err))
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Set merchant ID from context
-	//input.MerchantID = merchantIDStr
-	//merchantIDStr = input.MerchantID
+	// Handle file uploads
+	uploadedMediaURLs := []dto.MediaInput{}
+	uploadedPublicIDs := []string{} // Track for cleanup on failure
+	
+	form, err := c.MultipartForm()
+	if err == nil && form.File["images"] != nil {
+		files := form.File["images"]
+		
+		for i, fileHeader := range files {
+			logger.Info("Processing image upload", zap.Int("index", i), zap.String("filename", fileHeader.Filename))
+			
+			// Validate file type
+			contentType := fileHeader.Header.Get("Content-Type")
+			if !strings.HasPrefix(contentType, "image/") {
+				logger.Error("Invalid file type", zap.String("content_type", contentType))
+				h.cleanupCloudinaryUploads(c.Request.Context(), uploadedPublicIDs)
+				c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("file %d is not an image", i+1)})
+				return
+			}
+			
+			// Create temp file
+			tmpFile, err := os.CreateTemp(os.TempDir(), "product-*.tmp")
+			if err != nil {
+				logger.Error("Failed to create temp file", zap.Error(err))
+				h.cleanupCloudinaryUploads(c.Request.Context(), uploadedPublicIDs)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to process image upload"})
+				return
+			}
+			tmpPath := tmpFile.Name()
+			tmpFile.Close()
+			
+			// Save uploaded file to temp location
+			if err := c.SaveUploadedFile(fileHeader, tmpPath); err != nil {
+				logger.Error("Failed to save uploaded file", zap.Error(err))
+				os.Remove(tmpPath)
+				h.cleanupCloudinaryUploads(c.Request.Context(), uploadedPublicIDs)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save uploaded file"})
+				return
+			}
+			
+			// Upload to Cloudinary
+			cloudinaryURL, publicID, err := h.productService.UploadToCloudinary(c.Request.Context(), tmpPath, "image")
+			os.Remove(tmpPath) // Clean up temp file immediately
+			
+			if err != nil {
+				logger.Error("Cloudinary upload failed", zap.Error(err), zap.String("filename", fileHeader.Filename))
+				h.cleanupCloudinaryUploads(c.Request.Context(), uploadedPublicIDs)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to upload image %d", i+1)})
+				return
+			}
+			
+			uploadedPublicIDs = append(uploadedPublicIDs, publicID)
+			uploadedMediaURLs = append(uploadedMediaURLs, dto.MediaInput{
+				URL:  cloudinaryURL,
+				Type: "image",
+			})
+			
+			logger.Info("Image uploaded successfully", zap.String("public_id", publicID))
+		}
+	}
 
-	// Call service
+	// Add uploaded images to input
+	input.Images = uploadedMediaURLs
+
+	// Call service to create product
 	response, err := h.productService.CreateProductWithVariants(c.Request.Context(), merchantIDStr, &input)
 	if err != nil {
 		logger.Error("Failed to create product", zap.Error(err))
-		if errors.Is(err, product.ErrInvalidProduct) || errors.Is(err, product.ErrInvalidMediaURL) || errors.Is(err, product.ErrInvalidAttributes) ||
-			errors.Is(err, product.ErrInvalidProduct) {
+		// Clean up uploaded images if product creation fails
+		h.cleanupCloudinaryUploads(c.Request.Context(), uploadedPublicIDs)
+		
+		if errors.Is(err, product.ErrInvalidProduct) || errors.Is(err, product.ErrInvalidMediaURL) || errors.Is(err, product.ErrInvalidAttributes) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
@@ -107,9 +347,46 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 		return
 	}
 
-	logger.Info("Product created successfully", zap.String("product_id", response.ID))
+	logger.Info("Product created successfully with images", zap.String("product_id", response.ID), zap.Int("image_count", len(uploadedMediaURLs)))
 	c.JSON(http.StatusCreated, response)
 }
+
+// cleanupCloudinaryUploads removes uploaded images from Cloudinary if operation fails
+func (h *ProductHandler) cleanupCloudinaryUploads(ctx context.Context, publicIDs []string) {
+	if len(publicIDs) == 0 {
+		return
+	}
+	
+	h.logger.Info("Cleaning up Cloudinary uploads", zap.Int("count", len(publicIDs)))
+	for _, publicID := range publicIDs {
+		if err := h.productService.DeleteFromCloudinary(ctx, publicID); err != nil {
+			h.logger.Error("Failed to cleanup Cloudinary upload", zap.String("public_id", publicID), zap.Error(err))
+		}
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // GetAllProducts handles fetching paginated products for the landing page
 // GetAllProducts godoc

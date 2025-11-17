@@ -750,6 +750,75 @@ func (s *ProductService) DeleteMedia(ctx context.Context, mediaID, productID, me
 	return nil
 }
 
+
+
+
+
+
+func (s *ProductService) UploadToCloudinary(ctx context.Context, filePath, mediaType string) (string, string, error) {
+	logger := s.logger.With(zap.String("operation", "UploadToCloudinary"), zap.String("file_path", filePath))
+
+	// Validate file exists
+	if filePath == "" {
+		return "", "", fmt.Errorf("file path is required")
+	}
+
+	// Upload to Cloudinary
+	params := uploader.UploadParams{
+		Folder:       "merchant_products", // Organized folder for product images
+		ResourceType: mediaType,           // "image" or "video"
+		PublicID:     filepath.Base(filePath), // Use filename as base for public ID
+	}
+
+	resp, err := s.cld.Upload.Upload(ctx, filePath, params)
+	if err != nil {
+		logger.Error("Cloudinary upload failed", zap.Error(err))
+		return "", "", fmt.Errorf("cloudinary upload failed: %w", err)
+	}
+
+	logger.Info("File uploaded to Cloudinary successfully", 
+		zap.String("public_id", resp.PublicID),
+		zap.String("secure_url", resp.SecureURL))
+
+	return resp.SecureURL, resp.PublicID, nil
+}
+
+// DeleteFromCloudinary deletes a file from Cloudinary by public ID
+func (s *ProductService) DeleteFromCloudinary(ctx context.Context, publicID string) error {
+	logger := s.logger.With(zap.String("operation", "DeleteFromCloudinary"), zap.String("public_id", publicID))
+
+	if publicID == "" {
+		return fmt.Errorf("public ID is required")
+	}
+
+	_, err := s.cld.Upload.Destroy(ctx, uploader.DestroyParams{
+		PublicID: publicID,
+	})
+
+	if err != nil {
+		logger.Error("Failed to delete from Cloudinary", zap.Error(err))
+		return fmt.Errorf("cloudinary delete failed: %w", err)
+	}
+
+	logger.Info("File deleted from Cloudinary successfully")
+	return nil
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // Helper: Check merchant owns product
 func (s *ProductService) merchantOwnsProduct(ctx context.Context, productID, merchantID string) bool {
 	product, err := s.productRepo.FindByID(ctx, productID)

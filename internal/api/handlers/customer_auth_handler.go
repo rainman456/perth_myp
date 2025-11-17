@@ -18,6 +18,7 @@ import (
 	//"api-customer-merchant/internal/db/repositories"
 	"api-customer-merchant/internal/api/dto"
 	//"api-customer-merchant/internal/db/models"
+	"api-customer-merchant/internal/services/email"
 	services "api-customer-merchant/internal/services/user"
 	"api-customer-merchant/internal/utils"
 
@@ -26,13 +27,15 @@ import (
 )
 
 type AuthHandler struct {
-	service *services.AuthService
+	service      *services.AuthService
+	emailService *email.EmailService
 }
 
 // In customer/handlers/auth_handler.go AND merchant/handlers/auth_handler.go
-func NewAuthHandler(s *services.AuthService) *AuthHandler {
+func NewAuthHandler(s *services.AuthService , emailSvc *email.EmailService) *AuthHandler {
 	return &AuthHandler{
 		service: s,
+		emailService: emailSvc,
 	}
 }
 
@@ -61,11 +64,27 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	user, err := h.service.RegisterUser(req.Email, req.Name, req.Password,req.Country)
+	user, err := h.service.RegisterUser(req.Email, req.Name, req.Password, req.Country)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	go func() {
+		frontendURL := os.Getenv("FRONTEND_URL")
+		if frontendURL == "" {
+			frontendURL = "http://localhost:3000"
+		}
+		
+		emailData := map[string]interface{}{
+			"Name":           user.Name,
+			"MarketplaceURL": frontendURL,
+		}
+		
+		if err := h.emailService.SendWelcome(user.Email, emailData); err != nil {
+			log.Printf("Failed to send welcome email to %s: %v", user.Email, err)
+		}
+	}()
 
 	token, err := h.service.GenerateJWT(user)
 	if err != nil {
@@ -157,12 +176,32 @@ func (h *AuthHandler) GoogleCallback(c *gin.Context) {
 		return
 	}
 
-	_, token, err := h.service.GoogleLogin(code, os.Getenv("BASE_URL"), "customer")
+	user, token, err := h.service.GoogleLogin(code, os.Getenv("BASE_URL"), "customer")
 	if err != nil {
 		log.Printf("Google login failed: %v", err)
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
+
+
+
+
+	go func() {
+		frontendURL := os.Getenv("FRONTEND_URL")
+		if frontendURL == "" {
+			frontendURL = "http://localhost:3000"
+		}
+		
+		emailData := map[string]interface{}{
+			"Name":           user.Name,
+			"MarketplaceURL": frontendURL,
+		}
+		
+		// Send welcome email (the service should handle duplicate prevention if needed)
+		if err := h.emailService.SendWelcome(user.Email, emailData); err != nil {
+			log.Printf("Failed to send welcome email to %s: %v", user.Email, err)
+		}
+	}()
 
 	// // --- Determine redirect URL dynamically ---
 	// var frontendURL string
@@ -190,14 +229,13 @@ func (h *AuthHandler) GoogleCallback(c *gin.Context) {
 	// } else {
 	// 	frontendURL = "http://localhost:3000"
 	// }
-	 // Decode the frontend URL
+	// Decode the frontend URL
 	//  frontendURL, err := url.QueryUnescape(state)
 	//  if err != nil {
 	// 	 frontendURL = os.Getenv("FRONTEND_URL")
 	//  }
 
 	//c.JSON(http.StatusCreated, gin.H{"token": token, "user": user})
-
 
 	// c.SetCookie(
 	// 	"auth_token",        // name
@@ -368,18 +406,17 @@ func (h *AuthHandler) GetProfile(c *gin.Context) {
 		return
 	}
 	//prof dto.Pr
-	
-	
+
 	// addressList := make([]string, len(user.Addresses))
 	// for i, addr := range user.Addresses {
 	// 	addressList[i] = addr.Address // Access the Address field from the UserAddress struct
 	// }
 
 	resp := &dto.ProfileResponse{
-		ID:        user.ID,
-		Email:     user.Email,
-		Name:      user.Name,
-		Country:   user.Country,
+		ID:      user.ID,
+		Email:   user.Email,
+		Name:    user.Name,
+		Country: user.Country,
 		//Addresses: addressList, // Assign the converted slice
 	}
 	// if err := utils.RespMap(user, resp); err != nil {
@@ -389,16 +426,63 @@ func (h *AuthHandler) GetProfile(c *gin.Context) {
 
 	//c.JSON(http.StatusOK, user)
 }
-
-// ResetPassword godoc
-// @Summary Reset customer password
-// @Description Resets the customer's password (unprotected; add verification in production)
+// RequestPasswordReset godoc
+// @Summary Request password reset
+// @Description Sends a password reset email with a secure token
 // @Tags Customer
 // @Accept json
 // @Produce json
-// @Param body body dto.ResetPasswordRequest true "Reset details"
-// @Success 200 {object} object{message=string} "Password reset successful"
+// @Param body body dto.RequestPasswordResetRequest true "Email address"
+// @Success 200 {object} object{message=string} "Password reset email sent"
 // @Failure 400 {object} object{error=string} "Invalid input"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Router /customer/request-password-reset [post]
+func (h *AuthHandler) RequestPasswordReset(c *gin.Context) {
+	var req dto.RequestPasswordResetRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Generate reset token
+	token, expiresAt, err := h.service.GeneratePasswordResetToken(req.Email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Send reset email
+	frontendURL := os.Getenv("FRONTEND_URL")
+	if frontendURL == "" {
+		frontendURL = "http://localhost:3000"
+	}
+
+	resetLink := fmt.Sprintf("%s/reset-password?token=%s", frontendURL, token)
+	
+	emailData := map[string]interface{}{
+		"Name":      req.Email, // Use email if name not available
+		"ResetLink": resetLink,
+		"ExpiresAt": expiresAt.Format("January 2, 2006 at 3:04 PM"),
+	}
+
+	if err := h.emailService.SendPasswordReset(req.Email, emailData); err != nil {
+		log.Printf("Failed to send password reset email to %s: %v", req.Email, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send reset email"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Password reset email sent"})
+}
+
+// ResetPassword godoc
+// @Summary Reset customer password
+// @Description Resets the customer's password using a valid reset token
+// @Tags Customer
+// @Accept json
+// @Produce json
+// @Param body body dto.ResetPasswordRequest true "Reset details with token"
+// @Success 200 {object} object{message=string} "Password reset successful"
+// @Failure 400 {object} object{error=string} "Invalid input or token"
 // @Failure 500 {object} object{error=string} "Internal server error"
 // @Router /customer/reset-password [post]
 func (h *AuthHandler) ResetPassword(c *gin.Context) {
@@ -408,16 +492,12 @@ func (h *AuthHandler) ResetPassword(c *gin.Context) {
 		return
 	}
 
-	err := h.service.ResetPassword(req.Email, req.NewPassword)
+	// Validate token and reset password
+	err := h.service.ResetPasswordWithToken(req.Token, req.NewPassword)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Password reset successful"})
 }
-
-
-
-
-

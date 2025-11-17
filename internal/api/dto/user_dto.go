@@ -46,10 +46,15 @@ type LoginRequest struct {
   }	
 
 
-  type ResetPasswordRequest struct{
-	  Email      string       `json:"email" validate:"required,email"`
-	  NewPassword string `json:"new_password" binding:"required"`
-  }
+  type RequestPasswordResetRequest struct {
+	Email string `json:"email" binding:"required,email"`
+}
+
+// ResetPasswordRequest is used to reset password with a token
+type ResetPasswordRequest struct {
+	Token       string `json:"token" binding:"required"`
+	NewPassword string `json:"new_password" binding:"required,min=6"`
+}
 
 
 

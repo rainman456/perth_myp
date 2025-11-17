@@ -4,6 +4,7 @@ import (
 	"api-customer-merchant/internal/api/handlers"
 	"api-customer-merchant/internal/db/repositories"
 	"api-customer-merchant/internal/middleware"
+	"api-customer-merchant/internal/services/email"
 	"api-customer-merchant/internal/services/user"
 
 	"github.com/gin-gonic/gin"
@@ -15,11 +16,14 @@ func RegisterCustomerRoutes(r *gin.Engine) {
 	addrRepo := repositories.NewUserAddressRepository()
 	addrSvc := user.NewAddressService(addrRepo)
 	addrHandler := handlers.NewAddressHandler(addrSvc)
+	emailService := email.NewEmailService()
 	customer := r.Group("/customer")
 	{
-		authHandler := handlers.NewAuthHandler(service)
+		authHandler := handlers.NewAuthHandler(service,emailService)
 		customer.POST("/register", authHandler.Register)
 		customer.POST("/login", authHandler.Login)
+		customer.POST("/request-password-reset", authHandler.RequestPasswordReset)
+        customer.POST("/reset-password", authHandler.ResetPassword)
 		customer.GET("/auth/google", authHandler.GoogleAuth)
 		customer.GET("/auth/google/callback", authHandler.GoogleCallback)
 

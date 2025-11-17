@@ -42,6 +42,44 @@ definitions:
           $ref: '#/definitions/dto.ProductAutocompleteResponse'
         type: array
     type: object
+  dto.BankDetailsRequest:
+    properties:
+      account_name:
+        type: string
+      account_number:
+        type: string
+      bank_code:
+        type: string
+      bank_name:
+        type: string
+      currency:
+        type: string
+    type: object
+  dto.BankDetailsResponse:
+    properties:
+      account_name:
+        type: string
+      account_number:
+        type: string
+      bank_code:
+        type: string
+      bank_name:
+        type: string
+      created_at:
+        type: string
+      currency:
+        type: string
+      id:
+        type: integer
+      merchant_id:
+        type: string
+      recipient_code:
+        type: string
+      status:
+        type: string
+      updated_at:
+        type: string
+    type: object
   dto.BankListItemDTO:
     properties:
       code:
@@ -464,6 +502,84 @@ definitions:
         description: Secure Cloudinary URL
         type: string
     type: object
+  dto.MerchantApplyDTO:
+    properties:
+      business_description:
+        type: string
+      business_registration_certificate:
+        type: string
+      business_registration_number:
+        type: string
+      business_type:
+        type: string
+      name:
+        type: string
+      personal_address:
+        additionalProperties: {}
+        type: object
+      personal_email:
+        type: string
+      phone_number:
+        type: string
+      store_logo_url:
+        type: string
+      store_name:
+        type: string
+      website:
+        type: string
+      work_address:
+        additionalProperties: {}
+        type: object
+      work_email:
+        type: string
+    required:
+    - business_registration_number
+    - name
+    - personal_address
+    - personal_email
+    - store_name
+    - work_address
+    - work_email
+    type: object
+  dto.MerchantApplyResponse:
+    properties:
+      business_description:
+        type: string
+      business_registration_certificate:
+        type: string
+      business_registration_number:
+        type: string
+      business_type:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      personal_address:
+        additionalProperties: {}
+        type: object
+      personal_email:
+        type: string
+      phone_number:
+        type: string
+      status:
+        type: string
+      store_logo_url:
+        type: string
+      store_name:
+        type: string
+      updated_at:
+        type: string
+      website:
+        type: string
+      work_address:
+        additionalProperties: {}
+        type: object
+      work_email:
+        type: string
+    type: object
   dto.MerchantLogin:
     properties:
       password:
@@ -649,7 +765,7 @@ definitions:
       created_at:
         type: string
       id:
-        type: integer
+        type: string
       merchant_id:
         type: string
       payout_account_id:
@@ -839,15 +955,23 @@ definitions:
     - name
     - password
     type: object
-  dto.ResetPasswordRequest:
+  dto.RequestPasswordResetRequest:
     properties:
       email:
         type: string
-      new_password:
-        type: string
     required:
     - email
+    type: object
+  dto.ResetPasswordRequest:
+    properties:
+      new_password:
+        minLength: 6
+        type: string
+      token:
+        type: string
+    required:
     - new_password
+    - token
     type: object
   dto.ReturnItemDTO:
     properties:
@@ -1987,14 +2111,52 @@ paths:
       summary: Register a new customer
       tags:
       - Customer
+  /customer/request-password-reset:
+    post:
+      consumes:
+      - application/json
+      description: Sends a password reset email with a secure token
+      parameters:
+      - description: Email address
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RequestPasswordResetRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Password reset email sent
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Request password reset
+      tags:
+      - Customer
   /customer/reset-password:
     post:
       consumes:
       - application/json
-      description: Resets the customer's password (unprotected; add verification in
-        production)
+      description: Resets the customer's password using a valid reset token
       parameters:
-      - description: Reset details
+      - description: Reset details with token
         in: body
         name: body
         required: true
@@ -2011,7 +2173,7 @@ paths:
                 type: string
             type: object
         "400":
-          description: Invalid input
+          description: Invalid input or token
           schema:
             properties:
               error:
@@ -2215,75 +2377,7 @@ paths:
         "200":
           description: Application details retrieved
           schema:
-            properties:
-              created_at:
-                type: string
-              id:
-                type: string
-              merchant_basic_info:
-                properties:
-                  name:
-                    type: string
-                  password:
-                    type: string
-                  personal_email:
-                    type: string
-                  store_name:
-                    type: string
-                  work_email:
-                    type: string
-                type: object
-              merchant_business_info:
-                properties:
-                  annual_revenue:
-                    type: number
-                  business_type:
-                    type: string
-                  tax_id:
-                    type: string
-                  years_in_business:
-                    type: integer
-                type: object
-              merchant_documents:
-                properties:
-                  bank_statement:
-                    type: string
-                  business_license:
-                    type: string
-                  id_proof:
-                    type: string
-                type: object
-              personal_address:
-                properties:
-                  city:
-                    type: string
-                  country:
-                    type: string
-                  state:
-                    type: string
-                  street:
-                    type: string
-                  zip:
-                    type: string
-                type: object
-              status:
-                type: string
-              updated_at:
-                type: string
-              work_address:
-                properties:
-                  city:
-                    type: string
-                  country:
-                    type: string
-                  state:
-                    type: string
-                  street:
-                    type: string
-                  zip:
-                    type: string
-                type: object
-            type: object
+            $ref: '#/definitions/dto.MerchantApplyResponse'
         "404":
           description: Application not found
           schema:
@@ -2313,116 +2407,14 @@ paths:
         name: body
         required: true
         schema:
-          properties:
-            business_name:
-              type: string
-            business_type:
-              type: string
-            documents:
-              properties:
-                business_license:
-                  type: string
-                identification:
-                  type: string
-              type: object
-            email:
-              type: string
-            first_name:
-              type: string
-            last_name:
-              type: string
-            personal_address:
-              properties:
-                city:
-                  type: string
-                country:
-                  type: string
-                postal_code:
-                  type: string
-                state:
-                  type: string
-                street:
-                  type: string
-              type: object
-            phone:
-              type: string
-            tax_id:
-              type: string
-            work_address:
-              properties:
-                city:
-                  type: string
-                country:
-                  type: string
-                postal_code:
-                  type: string
-                state:
-                  type: string
-                street:
-                  type: string
-              type: object
-          type: object
+          $ref: '#/definitions/dto.MerchantApplyDTO'
       produces:
       - application/json
       responses:
         "201":
           description: Created application
           schema:
-            properties:
-              business_name:
-                type: string
-              business_type:
-                type: string
-              created_at:
-                type: string
-              documents:
-                properties:
-                  business_license:
-                    type: string
-                  identification:
-                    type: string
-                type: object
-              email:
-                type: string
-              first_name:
-                type: string
-              id:
-                type: string
-              last_name:
-                type: string
-              personal_address:
-                properties:
-                  city:
-                    type: string
-                  country:
-                    type: string
-                  postal_code:
-                    type: string
-                  state:
-                    type: string
-                  street:
-                    type: string
-                type: object
-              phone:
-                type: string
-              status:
-                type: string
-              tax_id:
-                type: string
-              work_address:
-                properties:
-                  city:
-                    type: string
-                  country:
-                    type: string
-                  postal_code:
-                    type: string
-                  state:
-                    type: string
-                  street:
-                    type: string
-                type: object
-            type: object
+            $ref: '#/definitions/dto.MerchantApplyResponse'
         "400":
           description: Invalid request body or malformed JSON
           schema:
@@ -2440,6 +2432,168 @@ paths:
       summary: Submit a new merchant application
       tags:
       - Merchant
+  /merchant/bank-details:
+    delete:
+      description: Delete bank account details for the authenticated merchant
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Bank details deleted successfully
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Bank details not found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Failed to delete bank details
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete bank details
+      tags:
+      - Merchant Bank Details
+    get:
+      description: Retrieve bank account details for the authenticated merchant
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Bank details retrieved successfully
+          schema:
+            $ref: '#/definitions/dto.BankDetailsResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Bank details not found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Failed to retrieve bank details
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get bank details
+      tags:
+      - Merchant Bank Details
+    post:
+      consumes:
+      - application/json
+      description: Add bank account details for the authenticated merchant
+      parameters:
+      - description: Bank details
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.BankDetailsRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Bank details created successfully
+          schema:
+            $ref: '#/definitions/dto.BankDetailsResponse'
+        "400":
+          description: Invalid request body
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Failed to add bank details
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Add bank details
+      tags:
+      - Merchant Bank Details
+    put:
+      consumes:
+      - application/json
+      description: Update bank account details for the authenticated merchant
+      parameters:
+      - description: Bank details
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.BankDetailsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Bank details updated successfully
+          schema:
+            $ref: '#/definitions/dto.BankDetailsResponse'
+        "400":
+          description: Invalid request body
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Failed to update bank details
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update bank details
+      tags:
+      - Merchant Bank Details
   /merchant/disputes:
     get:
       description: Retrieve all disputes for the authenticated merchant, grouped by
@@ -2602,50 +2756,7 @@ paths:
         "200":
           description: Merchant account details
           schema:
-            properties:
-              business_name:
-                type: string
-              business_type:
-                type: string
-              created_at:
-                type: string
-              id:
-                type: string
-              personal_address:
-                properties:
-                  city:
-                    type: string
-                  country:
-                    type: string
-                  state:
-                    type: string
-                  street:
-                    type: string
-                  zip:
-                    type: string
-                type: object
-              status:
-                type: string
-              tax_id:
-                type: string
-              updated_at:
-                type: string
-              user_id:
-                type: string
-              work_address:
-                properties:
-                  city:
-                    type: string
-                  country:
-                    type: string
-                  state:
-                    type: string
-                  street:
-                    type: string
-                  zip:
-                    type: string
-                type: object
-            type: object
+            $ref: '#/definitions/dto.MerchantApplyResponse'
         "401":
           description: 'Unauthorized: Missing or invalid authentication'
           schema:
@@ -3047,15 +3158,54 @@ paths:
       - Merchant
     post:
       consumes:
-      - application/json
-      description: Creates a product with variants and media for authenticated merchant
+      - multipart/form-data
+      description: Creates a product with variants and uploads images in a single
+        request
       parameters:
-      - description: Product details
-        in: body
-        name: body
+      - description: Product name
+        in: formData
+        name: name
         required: true
-        schema:
-          $ref: '#/definitions/dto.ProductInput'
+        type: string
+      - description: Product description
+        in: formData
+        name: description
+        type: string
+      - description: Base price
+        in: formData
+        name: base_price
+        required: true
+        type: number
+      - description: Category ID
+        in: formData
+        name: category_id
+        required: true
+        type: integer
+      - description: Category name
+        in: formData
+        name: category_name
+        required: true
+        type: string
+      - description: Initial stock (for simple products)
+        in: formData
+        name: initial_stock
+        type: integer
+      - description: Discount amount
+        in: formData
+        name: discount
+        type: number
+      - description: Discount type (fixed/percentage)
+        in: formData
+        name: discount_type
+        type: string
+      - description: JSON array of variants
+        in: formData
+        name: variants
+        type: string
+      - description: Product images (multiple files allowed)
+        in: formData
+        name: images
+        type: file
       produces:
       - application/json
       responses:
@@ -3079,7 +3229,7 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Create a new product
+      summary: Create a new product with images
       tags:
       - Merchant
   /merchant/products/{id}:
@@ -3678,6 +3828,84 @@ paths:
       security:
       - BearerAuth: []
       summary: Update merchant profile
+      tags:
+      - Merchant
+  /merchant/request-password-reset:
+    post:
+      consumes:
+      - application/json
+      description: Sends a password reset email with a secure token
+      parameters:
+      - description: Work email address
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RequestPasswordResetRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Password reset email sent
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Request password reset for merchant
+      tags:
+      - Merchant
+  /merchant/reset-password:
+    post:
+      consumes:
+      - application/json
+      description: Resets the merchant's password using a valid reset token
+      parameters:
+      - description: Reset details with token
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ResetPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Password reset successful
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "400":
+          description: Invalid input or token
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Reset merchant password
       tags:
       - Merchant
   /orders:

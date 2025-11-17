@@ -74,12 +74,11 @@ func SetupMerchantRoutes(r *gin.Engine) {
 
 	// Payout service
 	payoutService := payout.NewPayoutService(payoutRepo)
-
 	merchantOrderHandler := handlers.NewMerchantOrderHandler(orderService, logger)
 	merchantPayoutHandler := handlers.NewPayoutHandler(payoutService, logger)
 	merchantDisputeHandler := handlers.NewMerchantDisputeHandler(disputeService)
 
-	merchantAuthHandler := handlers.NewMerchantAuthHandler(merchantService)
+	merchantAuthHandler := handlers.NewMerchantAuthHandler(merchantService,emailService)
 	merchantBankHandler := handlers.NewMerchantBankHandler(merchantService) 
 
 	mediaHandler := handlers.NewProductMediaHandler(productService, logger)
@@ -90,6 +89,8 @@ func SetupMerchantRoutes(r *gin.Engine) {
 		merchantGroup.POST("/apply", merchantAuthHandler.Apply)
 		merchantGroup.GET("/application/:id", merchantAuthHandler.GetApplication)
 		merchantGroup.POST("/login", merchantAuthHandler.Login)
+		merchantGroup.POST("/request-password-reset", merchantAuthHandler.RequestPasswordReset)
+		merchantGroup.POST("/reset-password", merchantAuthHandler.ResetPassword)
 
 		protected := merchantGroup.Group("")
 		protected.Use(middleware.AuthMiddleware("merchant"))

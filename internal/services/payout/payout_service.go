@@ -74,6 +74,7 @@ func (s *PayoutService) RequestPayout(ctx context.Context, merchantID string, re
 		Where("merchant_id = ? AND status = 'pending' AND hold_until < ?", merchantID, time.Now()).
 		Pluck("COALESCE(SUM(amount_due), '0')", &sumStr).Error
 	if err != nil {
+		
 		return nil, err
 	}
 

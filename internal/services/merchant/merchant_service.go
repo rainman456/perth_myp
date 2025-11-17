@@ -2,14 +2,18 @@ package merchant
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"time"
 
 	"api-customer-merchant/internal/api/dto"
 	"api-customer-merchant/internal/bank"
+	"api-customer-merchant/internal/utils"
 
 	//"api-customer-merchant/internal/db"
 	"api-customer-merchant/internal/db/models"
@@ -17,6 +21,7 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/golang-jwt/jwt/v5"
+	"gorm.io/gorm"
 
 	//"github.com/gray-adeyi/paystack"
 
@@ -288,6 +293,148 @@ func (s *MerchantService) GenerateJWT(entity interface{}) (string, error) {
 // 	return nil
 
 // }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// GeneratePasswordResetToken generates a secure reset token and stores it in Redis
+func (s *MerchantService) GeneratePasswordResetToken(email string) (string, time.Time, error) {
+	// Verify merchant exists
+	merchant, err := s.repo.GetByWorkEmail(context.Background(), email)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// For security, don't reveal if email exists
+			return "", time.Time{}, nil
+		}
+		return "", time.Time{}, err
+	}
+
+	// Generate secure random token
+	tokenBytes := make([]byte, 32)
+	if _, err := rand.Read(tokenBytes); err != nil {
+		return "", time.Time{}, err
+	}
+	token := base64.URLEncoding.EncodeToString(tokenBytes)
+
+	// Store token in Redis with 1-hour expiration
+	expiresAt := time.Now().Add(1 * time.Hour)
+	ctx := context.Background()
+	
+	if utils.RedisClient != nil {
+		key := "merchant_password_reset:" + token
+		err = utils.RedisClient.Set(ctx, key, merchant.WorkEmail, 1*time.Hour).Err()
+		if err != nil {
+			log.Printf("Failed to store reset token in Redis: %v", err)
+			return "", time.Time{}, err
+		}
+	} else {
+		return "", time.Time{}, errors.New("redis not available")
+	}
+
+	return token, expiresAt, nil
+}
+
+// ResetPasswordWithToken validates the token and resets the password
+func (s *MerchantService) ResetPasswordWithToken(token, newPassword string) error {
+	if token == "" || newPassword == "" {
+		return errors.New("token and password are required")
+	}
+
+	// Retrieve email from Redis using token
+	ctx := context.Background()
+	key := "merchant_password_reset:" + token
+	
+	if utils.RedisClient == nil {
+		return errors.New("redis not available")
+	}
+
+	email, err := utils.RedisClient.Get(ctx, key).Result()
+	if err != nil {
+		return errors.New("invalid or expired reset token")
+	}
+
+	// Delete token from Redis (one-time use)
+	utils.RedisClient.Del(ctx, key)
+
+	// Get merchant and reset password
+	merchant, err := s.repo.GetByWorkEmail(ctx, email)
+	if err != nil {
+		return err
+	}
+
+	hashed, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	// Update password using repository
+	updates := map[string]interface{}{
+		"password": string(hashed),
+	}
+	
+	return s.repo.UpdateMerchant(ctx, merchant.MerchantID, updates)
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
