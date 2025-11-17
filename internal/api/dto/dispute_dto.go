@@ -9,6 +9,14 @@ type CreateDisputeDTO struct {
 	Description string `json:"description" binding:"required,max=1000"`
 }
 
+
+type PayoutStatus string
+
+const (
+	PayoutStatusPending   PayoutStatus = "Pending"
+	PayoutStatusCompleted PayoutStatus = "Completed"
+	PayoutStatusOpen PayoutStatus = "Open"
+)
 // DisputeResponseDTO for dispute responses
 type CreateDisputeResponseDTO struct {
 	ID          string    `json:"id"`
@@ -17,8 +25,8 @@ type CreateDisputeResponseDTO struct {
 	MerchantID  string    `json:"merchant_id"`
 	Reason      string    `json:"reason"`
 	Description string    `json:"description"`
-	Status      string    `json:"status"`
-	Resolution  string    `json:"resolution,omitempty"`
+	Status      PayoutStatus    `json:"status"`
+	//Resolution  string    `json:"resolution,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
 	ResolvedAt  time.Time `json:"resolved_at,omitempty"`
 }
@@ -41,7 +49,7 @@ type DisputeItemDTO struct {
 type DisputeResponseDTO struct {
 	OrderID        uint            `json:"order_id"`
 	OrderCreatedAt time.Time       `json:"order_created_at"`
-	Status         string          `json:"status"`
+	Status         PayoutStatus          `json:"status"`
 	CustomerID     uint            `json:"customer_id"`
 	MerchantID     string          `json:"merchant_id"`
 	Disputes       []DisputeItemDTO `json:"disputes"`

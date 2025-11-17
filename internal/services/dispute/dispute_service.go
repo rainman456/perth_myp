@@ -95,8 +95,8 @@ func mapDisputeToDTO(d *models.Dispute) *dto.CreateDisputeResponseDTO {
 		MerchantID:  d.MerchantID,
 		Reason:      d.Reason,
 		Description: d.Description,
-		Status:      d.Status,
-		Resolution:  d.Resolution,
+		Status:        dto.PayoutStatus(d.Status),
+		//Resolution:  d.Resolution,
 		CreatedAt:   d.CreatedAt,
 		ResolvedAt:  d.ResolvedAt,
 	}
@@ -118,7 +118,7 @@ func mapToDisputeResponseDTO(disputes []models.Dispute) *dto.DisputeResponseDTO 
 	resp := &dto.DisputeResponseDTO{
 		OrderID:        parseUint(first.OrderID),
 		OrderCreatedAt: first.Order.CreatedAt,
-		Status:         first.Status,
+		Status:        dto.PayoutStatus(first.Status),
 		CustomerID:     first.CustomerID,
 		MerchantID:     first.MerchantID,
 	}

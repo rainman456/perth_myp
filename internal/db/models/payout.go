@@ -14,6 +14,7 @@ type PayoutStatus string
 const (
 	PayoutStatusPending   PayoutStatus = "Pending"
 	PayoutStatusCompleted PayoutStatus = "Completed"
+	PayoutStatusOpen PayoutStatus = "Open"
 )
 
 // Valid checks if the status is one of the allowed values

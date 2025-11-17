@@ -3,6 +3,15 @@ package dto
 import "time"
 
 
+type PaymentStatus string
+
+const (
+	PaymentStatusPending   PaymentStatus = "Pending"
+	PaymentStatusCompleted PaymentStatus = "Completed"
+	PaymentStatusFailed    PaymentStatus = "Failed"
+	PaymentStatusRefunded    PaymentStatus = "Refunded"
+)
+
 type InitializePaymentRequest struct {
 	OrderID   uint    `json:"order_id" validate:"required"`
 	Amount    float64 `json:"amount" validate:"required,gt=0"` // In kobo for Paystack
@@ -15,7 +24,7 @@ type PaymentResponse struct {
 	OrderID        uint      `json:"order_id"`
 	Amount         float64   `json:"amount"`
 	Currency       string    `json:"currency"`
-	Status         string    `json:"status"` // e.g., "success", "pending"
+	Status         PaymentStatus    `json:"status"` // e.g., "success", "pending"
 	TransactionID  string    `json:"transaction_id"` // Paystack ref
 	AuthorizationURL string  `json:"authorization_url,omitempty"` // For checkout redirect
 	CreatedAt      time.Time `json:"created_at"`

@@ -190,7 +190,7 @@ func (s *PaymentService) InitializeCheckout(ctx context.Context, req dto.Initial
 		OrderID:          payment.OrderID,
 		Amount:           payment.Amount.InexactFloat64(),
 		Currency:         payment.Currency,
-		Status:           string(payment.Status),
+		Status:           dto.PaymentStatus(payment.Status),
 		TransactionID:    payment.TransactionID,
 		AuthorizationURL: psResp.Data.AuthorizationUrl, // used by frontend for redirect
 		CreatedAt:        payment.CreatedAt,
@@ -375,7 +375,7 @@ func (s *PaymentService) mapPaymentToDTO(payment *models.Payment) *dto.PaymentRe
 		OrderID:       payment.OrderID,
 		Amount:        payment.Amount.InexactFloat64(),
 		Currency:      payment.Currency,
-		Status:        string(payment.Status),
+		Status:        dto.PaymentStatus(payment.Status),
 		TransactionID: payment.TransactionID,
 		CreatedAt:     payment.CreatedAt,
 		UpdatedAt:     payment.UpdatedAt,
