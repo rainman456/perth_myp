@@ -163,10 +163,18 @@ func (r *ProductRepository) FindByID(ctx context.Context, id string, preloads ..
 
 func (r *ProductRepository) ListByMerchant(ctx context.Context, merchantID string, limit, offset int, filterActive bool) ([]models.Product, error) {
 	var products []models.Product
-	query := r.db.WithContext(ctx).Where("merchant_id = ?", merchantID).Limit(limit).Offset(offset)
+	query := r.db.WithContext(ctx).
+	Preload("Media").
+	Preload("Variants").
+	Preload("Category").
+	Preload("Variants.Inventory").
+	Preload("SimpleInventory").
+	Preload("Category").
+	Where("merchant_id = ?", merchantID).Limit(limit).Offset(offset)
 	if filterActive {
 		query = query.Where("deleted_at IS NULL")
 	}
+	
 	err := query.Find(&products).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to list products: %w", err)
@@ -174,6 +182,13 @@ func (r *ProductRepository) ListByMerchant(ctx context.Context, merchantID strin
 	return products, nil
 }
 
+
+// "Media",
+// 			"Merchant",
+// 			"Variants",
+// 			"Variants.Inventory",
+// 			"SimpleInventory",
+// 			"Category",
 
 
 
