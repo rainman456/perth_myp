@@ -824,3 +824,45 @@ func (s *ProductService) merchantOwnsProduct(ctx context.Context, productID, mer
 	product, err := s.productRepo.FindByID(ctx, productID)
 	return err == nil && product.MerchantID == merchantID
 }
+
+
+
+
+
+// AddProductMedia adds new media to an existing product
+func (s *ProductService) AddProductMedia(ctx context.Context, productID, merchantID string, mediaInputs []dto.MediaInput) error {
+	logger := s.logger.With(zap.String("operation", "AddProductMedia"), zap.String("product_id", productID))
+
+	// Verify merchant owns the product
+	product, err := s.productRepo.FindByID(ctx, productID)
+	if err != nil {
+		logger.Error("Failed to find product", zap.Error(err))
+		return ErrInvalidProduct
+	}
+
+	if product.MerchantID != merchantID {
+		logger.Error("Unauthorized access to product", zap.String("merchant_id", merchantID))
+		return ErrUnauthorized
+	}
+
+	// Create media records
+	for _, mediaInput := range mediaInputs {
+		media := &models.Media{
+			ProductID: productID,
+			URL:       mediaInput.URL,
+			Type:      models.MediaType(mediaInput.Type),
+			// Note: PublicID should be extracted from the URL or passed separately if needed
+		}
+
+		if err := s.productRepo.CreateMedia(ctx, media); err != nil {
+			logger.Error("Failed to create media record", zap.Error(err))
+			return fmt.Errorf("failed to add media: %w", err)
+		}
+	}
+
+	// Invalidate cache
+	go s.InvalidateProductCache(context.Background(), productID)
+
+	logger.Info("Media added to product successfully", zap.Int("count", len(mediaInputs)))
+	return nil
+}
