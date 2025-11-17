@@ -144,7 +144,7 @@ func (h *MerchantHandler) Login(c *gin.Context) {
 // @Tags Merchant
 // @Produce json
 // @Param id path string true "Application ID (UUID)"
-// @Success 200 {object} object{id=string,status=string,merchant_basic_info=object{name=string,store_name=string,personal_email=string,work_email=string,password=string},personal_address=object{street=string,city=string,state=string,zip=string,country=string},work_address=object{street=string,city=string,state=string,zip=string,country=string},merchant_business_info=object{business_type=string,years_in_business=integer,annual_revenue=number,tax_id=string},merchant_documents=object{id_proof=string,business_license=string,bank_statement=string},created_at=string,updated_at=string} "Application details retrieved"
+// @Success 200 {object} dto.MerchantApplyResponse "Application details retrieved"
 // @Failure 404 {object} object{error=string} "Application not found"
 // @Failure 500 {object} object{error=string} "Failed to retrieve application"
 // @Router /merchant/application/{id} [get]
@@ -239,3 +239,6 @@ func (h *MerchantHandler) Logout(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Logout successful"})
 }
+
+
+

@@ -79,18 +79,144 @@ func (r *MerchantRepository) GetByWorkEmail(ctx context.Context, email string) (
 	return &m, nil
 }
 
-func (r *MerchantRepository) UpdateBankDetails(ctx context.Context, merchantID string, details dto.BankDetailsRequest) error {
-	// Use WithContext so DB operations respect request lifecycle
-	if err := db.DB.WithContext(ctx).
-		Model(&models.MerchantBankDetails{}).
-		Where("merchant_id = ?", merchantID).
-		Save(details).Error; err != nil {
 
+
+
+
+
+
+
+// func (r *MerchantRepository) UpdateBankDetails(ctx context.Context, merchantID string, details dto.BankDetailsRequest) error {
+// 	// Use WithContext so DB operations respect request lifecycle
+// 	if err := db.DB.WithContext(ctx).
+// 		Model(&models.MerchantBankDetails{}).
+// 		Where("merchant_id = ?", merchantID).
+// 		Save(details).Error; err != nil {
+
+// 		log.Printf("Failed to update bank details for merchant %s: %v", merchantID, err)
+// 		return err
+// 	}
+// 	return nil
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Add these methods to your MerchantRepository in merchant_repository.go
+
+// CreateBankDetails creates new bank details for a merchant
+func (r *MerchantRepository) CreateBankDetails(ctx context.Context, merchantID string, details dto.BankDetailsRequest) (*models.MerchantBankDetails, error) {
+	bankDetails := &models.MerchantBankDetails{
+		MerchantID:    merchantID,
+		BankName:      details.BankName,
+		BankCode:      details.BankCode,
+		AccountNumber: details.AccountNumber,
+		AccountName:   details.AccountName,
+		Currency:      details.Currency,
+		Status:        "pending",
+	}
+
+	if err := db.DB.WithContext(ctx).Create(bankDetails).Error; err != nil {
+		log.Printf("Failed to create bank details for merchant %s: %v", merchantID, err)
+		return nil, err
+	}
+
+	return bankDetails, nil
+}
+
+// GetBankDetails retrieves bank details for a merchant
+func (r *MerchantRepository) GetBankDetails(ctx context.Context, merchantID string) (*models.MerchantBankDetails, error) {
+	var bankDetails models.MerchantBankDetails
+	if err := db.DB.WithContext(ctx).
+		Where("merchant_id = ?", merchantID).
+		First(&bankDetails).Error; err != nil {
+		log.Printf("Failed to get bank details for merchant %s: %v", merchantID, err)
+		return nil, err
+	}
+	return &bankDetails, nil
+}
+
+// UpdateBankDetailsRecord updates existing bank details for a merchant
+func (r *MerchantRepository) UpdateBankDetailsRecord(ctx context.Context, merchantID string, details dto.BankDetailsRequest) (*models.MerchantBankDetails, error) {
+	var bankDetails models.MerchantBankDetails
+	
+	// First, get the existing record
+	if err := db.DB.WithContext(ctx).
+		Where("merchant_id = ?", merchantID).
+		First(&bankDetails).Error; err != nil {
+		log.Printf("Failed to find bank details for merchant %s: %v", merchantID, err)
+		return nil, err
+	}
+
+	// Update the fields
+	updates := map[string]interface{}{
+		"bank_name":      details.BankName,
+		"bank_code":      details.BankCode,
+		"account_number": details.AccountNumber,
+		"account_name":   details.AccountName,
+		"currency":       details.Currency,
+		"status":         "pending", // Reset to pending on update
+	}
+
+	if err := db.DB.WithContext(ctx).
+		Model(&bankDetails).
+		Updates(updates).Error; err != nil {
 		log.Printf("Failed to update bank details for merchant %s: %v", merchantID, err)
+		return nil, err
+	}
+
+	// Fetch the updated record
+	if err := db.DB.WithContext(ctx).
+		Where("merchant_id = ?", merchantID).
+		First(&bankDetails).Error; err != nil {
+		log.Printf("Failed to fetch updated bank details for merchant %s: %v", merchantID, err)
+		return nil, err
+	}
+
+	return &bankDetails, nil
+}
+
+// DeleteBankDetails removes bank details for a merchant
+func (r *MerchantRepository) DeleteBankDetails(ctx context.Context, merchantID string) error {
+	if err := db.DB.WithContext(ctx).
+		Where("merchant_id = ?", merchantID).
+		Delete(&models.MerchantBankDetails{}).Error; err != nil {
+		log.Printf("Failed to delete bank details for merchant %s: %v", merchantID, err)
 		return err
 	}
 	return nil
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // UpdateMerchant updates a merchant's profile information
 func (r *MerchantRepository) UpdateMerchant(ctx context.Context, merchantID string, updates map[string]interface{}) error {

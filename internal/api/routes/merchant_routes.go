@@ -80,6 +80,8 @@ func SetupMerchantRoutes(r *gin.Engine) {
 	merchantDisputeHandler := handlers.NewMerchantDisputeHandler(disputeService)
 
 	merchantAuthHandler := handlers.NewMerchantAuthHandler(merchantService)
+	merchantBankHandler := handlers.NewMerchantBankHandler(merchantService) 
+
 	mediaHandler := handlers.NewProductMediaHandler(productService, logger)
 	merchantproductHandler := handlers.NewProductHandlers(productService, logger)
 
@@ -95,6 +97,19 @@ func SetupMerchantRoutes(r *gin.Engine) {
 			protected.GET("/me", merchantAuthHandler.GetMyMerchant)
 			protected.PUT("/profile", merchantAuthHandler.UpdateProfile)
 			protected.POST("/logout", merchantAuthHandler.Logout)
+
+
+
+
+
+			bankDetailsGroup := protected.Group("/bank-details")
+			{
+				bankDetailsGroup.POST("", merchantBankHandler.CreateBankDetails)
+				bankDetailsGroup.GET("", merchantBankHandler.GetBankDetails)
+				bankDetailsGroup.PUT("", merchantBankHandler.UpdateBankDetails)
+				bankDetailsGroup.DELETE("", merchantBankHandler.DeleteBankDetails)
+			}
+
 
 			// Merchant orders
 			ordersGroup := protected.Group("/orders")

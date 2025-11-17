@@ -242,49 +242,207 @@ func (s *MerchantService) GenerateJWT(entity interface{}) (string, error) {
 //     return db.DB.Create(&details).Error
 // }
 
-func (s *MerchantService) AddBankDetails(ctx context.Context, merchantID string, details dto.BankDetailsRequest) error {
+// func (s *MerchantService) AddBankDetails(ctx context.Context, merchantID string, details dto.BankDetailsRequest) error {
+// 	// Validate bank name
+// 	bankSvc := bank.GetBankService()
+// 	if err := bankSvc.LoadBanks(); err != nil {
+// 		return fmt.Errorf("failed to load banks: %w", err)
+// 	}
+
+// 	bankCode, err := bankSvc.GetBankCode(details.BankName)
+// 	if err != nil {
+// 		return fmt.Errorf("invalid bank name: %w", err)
+// 	}
+
+// 	// Override with validated code
+// 	details.BankCode = bankCode
+
+// 	// Persist via repository
+// 	if err := s.repo.UpdateBankDetails(ctx, merchantID, details); err != nil {
+// 		return fmt.Errorf("failed to save bank details: %w", err)
+// 	}
+
+// 	return nil
+// }
+
+
+
+
+// func (s *MerchantService) UpdateBankDetails(ctx context.Context, merchantID string, details dto.BankDetailsRequest) error {
+// 	// Similar, but use Save or Update
+// 	if details.BankName == "" {
+// 		return errors.New("empty bank name")
+// 	}
+
+// 	if details.AccountNumber == "" {
+// 		return errors.New("empty bank name")
+// 	}
+
+// 	err := s.repo.UpdateBankDetails(ctx, merchantID, details)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	//payment.Status = models.PaymentStatus(status)
+
+// 	return nil
+
+// }
+
+
+
+
+
+
+
+
+
+
+// Add these methods to your MerchantService in merchant_service.go
+
+// AddBankDetails creates bank account details for a merchant
+func (s *MerchantService) AddBankDetails(ctx context.Context, merchantID string, details dto.BankDetailsRequest) (*dto.BankDetailsResponse, error) {
 	// Validate bank name
 	bankSvc := bank.GetBankService()
 	if err := bankSvc.LoadBanks(); err != nil {
-		return fmt.Errorf("failed to load banks: %w", err)
+		return nil, fmt.Errorf("failed to load banks: %w", err)
 	}
 
 	bankCode, err := bankSvc.GetBankCode(details.BankName)
 	if err != nil {
-		return fmt.Errorf("invalid bank name: %w", err)
+		return nil, fmt.Errorf("invalid bank name: %w", err)
 	}
 
 	// Override with validated code
 	details.BankCode = bankCode
 
-	// Persist via repository
-	if err := s.repo.UpdateBankDetails(ctx, merchantID, details); err != nil {
-		return fmt.Errorf("failed to save bank details: %w", err)
-	}
-
-	return nil
-}
-
-func (s *MerchantService) UpdateBankDetails(ctx context.Context, merchantID string, details dto.BankDetailsRequest) error {
-	// Similar, but use Save or Update
-	if details.BankName == "" {
-		return errors.New("empty bank name")
-	}
-
-	if details.AccountNumber == "" {
-		return errors.New("empty bank name")
-	}
-
-	err := s.repo.UpdateBankDetails(ctx, merchantID, details)
+	// Create bank details via repository
+	bankDetails, err := s.repo.CreateBankDetails(ctx, merchantID, details)
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("failed to save bank details: %w", err)
 	}
 
-	//payment.Status = models.PaymentStatus(status)
+	// Convert to response DTO
+	response := &dto.BankDetailsResponse{
+		ID:            bankDetails.ID,
+		MerchantID:    bankDetails.MerchantID,
+		BankName:      bankDetails.BankName,
+		BankCode:      bankDetails.BankCode,
+		AccountNumber: bankDetails.AccountNumber,
+		AccountName:   bankDetails.AccountName,
+		RecipientCode: bankDetails.RecipientCode,
+		Currency:      bankDetails.Currency,
+		Status:        bankDetails.Status,
+		CreatedAt:     bankDetails.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:     bankDetails.UpdatedAt.Format(time.RFC3339),
+	}
 
-	return nil
-
+	return response, nil
 }
+
+// GetBankDetails retrieves bank account details for a merchant
+func (s *MerchantService) GetBankDetails(ctx context.Context, merchantID string) (*dto.BankDetailsResponse, error) {
+	bankDetails, err := s.repo.GetBankDetails(ctx, merchantID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve bank details: %w", err)
+	}
+
+	// Convert to response DTO
+	response := &dto.BankDetailsResponse{
+		ID:            bankDetails.ID,
+		MerchantID:    bankDetails.MerchantID,
+		BankName:      bankDetails.BankName,
+		BankCode:      bankDetails.BankCode,
+		AccountNumber: bankDetails.AccountNumber,
+		AccountName:   bankDetails.AccountName,
+		RecipientCode: bankDetails.RecipientCode,
+		Currency:      bankDetails.Currency,
+		Status:        bankDetails.Status,
+		CreatedAt:     bankDetails.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:     bankDetails.UpdatedAt.Format(time.RFC3339),
+	}
+
+	return response, nil
+}
+
+// UpdateBankDetails updates bank account details for a merchant
+func (s *MerchantService) UpdateBankDetails(ctx context.Context, merchantID string, details dto.BankDetailsRequest) (*dto.BankDetailsResponse, error) {
+	// Validate inputs
+	if details.BankName == "" {
+		return nil, errors.New("bank name is required")
+	}
+	if details.AccountNumber == "" {
+		return nil, errors.New("account number is required")
+	}
+	if details.AccountName == "" {
+		return nil, errors.New("account name is required")
+	}
+
+	// Validate bank name
+	bankSvc := bank.GetBankService()
+	if err := bankSvc.LoadBanks(); err != nil {
+		return nil, fmt.Errorf("failed to load banks: %w", err)
+	}
+
+	bankCode, err := bankSvc.GetBankCode(details.BankName)
+	if err != nil {
+		return nil, fmt.Errorf("invalid bank name: %w", err)
+	}
+
+	// Override with validated code
+	details.BankCode = bankCode
+
+	// Update bank details via repository
+	bankDetails, err := s.repo.UpdateBankDetailsRecord(ctx, merchantID, details)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update bank details: %w", err)
+	}
+
+	// Convert to response DTO
+	response := &dto.BankDetailsResponse{
+		ID:            bankDetails.ID,
+		MerchantID:    bankDetails.MerchantID,
+		BankName:      bankDetails.BankName,
+		BankCode:      bankDetails.BankCode,
+		AccountNumber: bankDetails.AccountNumber,
+		AccountName:   bankDetails.AccountName,
+		RecipientCode: bankDetails.RecipientCode,
+		Currency:      bankDetails.Currency,
+		Status:        bankDetails.Status,
+		CreatedAt:     bankDetails.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:     bankDetails.UpdatedAt.Format(time.RFC3339),
+	}
+
+	return response, nil
+}
+
+// DeleteBankDetails removes bank account details for a merchant
+func (s *MerchantService) DeleteBankDetails(ctx context.Context, merchantID string) error {
+	if err := s.repo.DeleteBankDetails(ctx, merchantID); err != nil {
+		return fmt.Errorf("failed to delete bank details: %w", err)
+	}
+	return nil
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // UpdateMerchantProfile updates a merchant's profile information
 func (s *MerchantService) UpdateMerchantProfile(ctx context.Context, merchantID string, input dto.UpdateMerchantProfileInput) error {
@@ -349,3 +507,6 @@ func (s *MerchantService) UpdateMerchantProfile(ctx context.Context, merchantID 
 	return nil
 
 }
+
+
+
