@@ -28,6 +28,12 @@ const (
 	OrderStatusCancelled OrderStatus = "Cancelled"
 )
 
+// Add this new DTO
+type CreateOrderRequest struct {
+	ShippingMethod string `json:"shipping_method" validate:"required"`
+}
+
+
 // OrderResponse defines the structure for an order response.
 type OrderResponse struct {
 	ID           uint                `json:"id"`

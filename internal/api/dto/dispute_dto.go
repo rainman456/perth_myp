@@ -60,14 +60,14 @@ type DisputeResponseDTO struct {
 
 // CreateReturnRequestDTO for return requests
 type CreateReturnRequestDTO struct {
-	OrderItemID string `json:"order_item_id" binding:"required,uuid"`
+	OrderItemID uint `json:"order_item_id" binding:"required,uuid"`
 	Reason      string `json:"reason" binding:"required,max=500"`
 }
 
 // ReturnRequestResponseDTO for return request responses
 type ReturnRequestResponseDTO struct {
 	ID          string    `json:"id"`
-	OrderItemID string    `json:"order_item_id"`
+	OrderItemID uint    `json:"order_item_id"`
 	CustomerID  uint      `json:"customer_id"`
 	Reason      string    `json:"reason"`
 	Status      string    `json:"status"`
@@ -86,7 +86,7 @@ type UpdateReturnRequestDTO struct {
 // ReturnRequestResponseDTO - Unchanged (for single return request)
 type CreateReturnRequestResponseDTO struct {
 	ID          string    `json:"id"`
-	OrderItemID string    `json:"order_item_id"`
+	OrderItemID  uint    `json:"order_item_id"`
 	CustomerID  uint      `json:"customer_id"`
 	Reason      string    `json:"reason"`
 	Status      string    `json:"status"`

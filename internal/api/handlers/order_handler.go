@@ -34,19 +34,27 @@ func NewOrderHandler(orderService *order.OrderService) *OrderHandler {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
+// @Param body body dto.CreateOrderRequest true "Shipping method set to either standard or express"
 // @Success 200 {object} dto.OrderResponse
 // @Failure 400 {object} object{error=string}
 // @Router /orders [post]
 func (h *OrderHandler) CreateOrder(c *gin.Context) {
 	ctx := c.Request.Context()
-	//userIDStr := c.Query("user_id") // For testing
 	userID := getUserIDFromContext(c)
 	if userID == 0 {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in context - authentication required"})
 		return
 	}
-	//userID, _ := strconv.ParseUint(userIDStr, 10, 32)  // Helper to parse, assume implemented
-	newOrder, err := h.orderService.CreateOrder(ctx, uint(userID))
+
+	// Parse request body for shipping method
+	var req dto.CreateOrderRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "shipping_method is required"})
+		return
+	}
+
+	// Pass shipping method to service
+	newOrder, err := h.orderService.CreateOrder(ctx, uint(userID), req.ShippingMethod)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

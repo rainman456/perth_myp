@@ -6,16 +6,16 @@ import (
 	"api-customer-merchant/internal/db/repositories"
 	"api-customer-merchant/internal/middleware"
 	"api-customer-merchant/internal/services/dispute"
+	"api-customer-merchant/internal/services/email"
 	"api-customer-merchant/internal/services/merchant"
 	"api-customer-merchant/internal/services/order"
 	"api-customer-merchant/internal/services/payment"
 	"api-customer-merchant/internal/services/payout"
 	"api-customer-merchant/internal/services/product"
-	"api-customer-merchant/internal/services/email"
+	"api-customer-merchant/internal/services/settings"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
-
 )
 
 func SetupMerchantRoutes(r *gin.Engine) {
@@ -53,6 +53,8 @@ func SetupMerchantRoutes(r *gin.Engine) {
 
 	// Email service initialization
 	emailService := email.NewEmailService()
+	settingsRepo := repositories.NewSettingsRepository()
+	settingsService := settings.NewSettingsService(settingsRepo)
 
 	orderService := order.NewOrderService(
 		orderRepo,
@@ -64,6 +66,9 @@ func SetupMerchantRoutes(r *gin.Engine) {
 		userRepo,
 		paymentService,
 		emailService,
+		merchantRepo ,
+
+		settingsService, // ADD THIS
 		cfg,
 		logger,
 	)

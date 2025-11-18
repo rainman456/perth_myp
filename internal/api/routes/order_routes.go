@@ -8,6 +8,7 @@ import (
 	"api-customer-merchant/internal/services/email"
 	"api-customer-merchant/internal/services/order"
 	"api-customer-merchant/internal/services/payment"
+	"api-customer-merchant/internal/services/settings"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -41,6 +42,8 @@ func SetupOrderRoutes(r *gin.Engine) {
 	productRepo := repositories.NewProductRepository()
 	inventoryRepo := repositories.NewInventoryRepository()
 	userRepo := repositories.NewUserRepository() // ADD THIS
+	//merchantRepo := repositories.NewMerchantRepository()
+
 
 	// Payment service initialization
 	conf := config.Load()
@@ -58,6 +61,8 @@ func SetupOrderRoutes(r *gin.Engine) {
 
 	// Email service initialization
 	emailService := email.NewEmailService()
+	settingsRepo := repositories.NewSettingsRepository()
+	settingsService := settings.NewSettingsService(settingsRepo)
 
 	orderService := order.NewOrderService(
 		orderRepo,
@@ -69,11 +74,19 @@ func SetupOrderRoutes(r *gin.Engine) {
 		userRepo,
 		paymentService,
 		emailService,
+		merchantRepo,
+		settingsService, // ADD THIS
+
 		conf,
 		logger,
 	)
 
 	orderHandler := handlers.NewOrderHandler(orderService)
+	// settingsRepo := repositories.NewSettingsRepository()
+	// settingsService := settings.NewSettingsService(settingsRepo)
+	settingsHandler := handlers.NewSettingsHandler(settingsService, logger)
+	
+	r.GET("/settings", settingsHandler.GetSettings)
 	protected := middleware.AuthMiddleware("customer")
 
 	r.POST("/orders", protected, orderHandler.CreateOrder)

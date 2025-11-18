@@ -37,7 +37,7 @@ type Dispute struct {
 type ReturnRequest struct {
 	gorm.Model
 	ID               string    `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()" json:"id"`
-	OrderItemID      string    `gorm:"type:uuid;not null" json:"order_item_id"`
+	OrderItemID      uint    `gorm:"not null" json:"order_item_id"`
 	CustomerID        uint    `gorm:"not null" json:"customer_id"`
 	Reason           string    `gorm:"type:text" json:"reason"`
 	Status           string    `gorm:"type:varchar(255);default:'Pending'" json:"status"`
@@ -49,10 +49,10 @@ type ReturnRequest struct {
 }
 
 // Settings model (matching TS settings)
-type Settings struct {
-	gorm.Model
-	ID              string                 `gorm:"type:text;primaryKey;default:'global'" json:"id"`
-	Fees            float64                `gorm:"type:decimal(10,2);not null;default:5.00" json:"fees"`
-	TaxRate         float64                `gorm:"type:decimal(10,2);not null;default:0.00" json:"tax_rate"`
-	ShippingOptions map[string]interface{} `gorm:"type:jsonb;not null" json:"shipping_options"`
-}
+// type Settings struct {
+// 	gorm.Model
+// 	ID              string                 `gorm:"type:text;primaryKey;default:'global'" json:"id"`
+// 	Fees            float64                `gorm:"type:decimal(10,2);not null;default:5.00" json:"fees"`
+// 	TaxRate         float64                `gorm:"type:decimal(10,2);not null;default:0.00" json:"tax_rate"`
+// 	ShippingOptions map[string]interface{} `gorm:"type:jsonb;not null" json:"shipping_options"`
+// }

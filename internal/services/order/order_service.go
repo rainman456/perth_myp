@@ -16,6 +16,7 @@ import (
 	"api-customer-merchant/internal/db/repositories"
 	"api-customer-merchant/internal/services/email"
 	"api-customer-merchant/internal/services/payment"
+	"api-customer-merchant/internal/services/settings"
 
 	//"go.uber.org/zap"
 	//"github.com/go-playground/validator/v10"
@@ -35,6 +36,9 @@ type OrderService struct {
 	userRepo       *repositories.UserRepository // ADD THIS
 	paymentService *payment.PaymentService
 	emailService   *email.EmailService
+	settingsService *settings.SettingsService // ADD THIS
+	merchantRepo    *repositories.MerchantRepository
+
 	config         *config.Config // ADD THIS LINE
 	logger         *zap.Logger
 	//validator   *validator.Validate
@@ -52,6 +56,9 @@ func NewOrderService(
 	userRepo *repositories.UserRepository, 
 	paymentService *payment.PaymentService,
 	emailService *email.EmailService,
+	merchantRepo    *repositories.MerchantRepository,
+	settingsService *settings.SettingsService, // ADD THIS
+
 	config *config.Config, 
 	logger *zap.Logger,
 ) *OrderService {
@@ -65,6 +72,8 @@ func NewOrderService(
 		userRepo:       userRepo,
 		paymentService: paymentService,
 		emailService:   emailService,
+		merchantRepo:    merchantRepo,
+		settingsService: settingsService, // ADD THIS
 		config:         config,
 		logger:         logger,
 		db:             db.DB,
@@ -246,9 +255,15 @@ var (
 //     return response, nil
 // }
 
-func (s *OrderService) CreateOrder(ctx context.Context, userID uint) (*dto.OrderResponse, error) {
+func (s *OrderService) CreateOrder(ctx context.Context, userID uint, shippingMethod string) (*dto.OrderResponse, error) {
 	if userID == 0 {
 		return nil, errors.New("invalid user ID")
+	}
+
+	// Validate shipping method with settings
+	shippingPrice, err := s.settingsService.GetShippingCost(ctx, shippingMethod)
+	if err != nil {
+		return nil, fmt.Errorf("invalid shipping method: %w", err)
 	}
 
 	// Fetch user for payment initialization
@@ -281,12 +296,11 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID uint) (*dto.Order
 			}
 		}()
 
-		// Calculate total and create order items (DO NOT commit inventory yet)
+		// Calculate total and create order items
 		var orderItems []models.OrderItem
-		merchantSplits := make(map[string]decimal.Decimal) // ADD THIS - Track merchant totals
+		merchantSplits := make(map[string]decimal.Decimal)
 
 		for _, item := range cart.CartItems {
-			// Determine price: variant if present, else product
 			price := item.Product.FinalPrice
 			if item.VariantID != nil && item.Variant != nil {
 				price = item.Variant.FinalPrice
@@ -295,7 +309,6 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID uint) (*dto.Order
 			subtotal := decimal.NewFromInt(int64(item.Quantity)).Mul(price)
 			totalAmount = totalAmount.Add(subtotal)
 
-			// ADD THIS - Accumulate merchant subtotals
 			merchantSplits[item.MerchantID] = merchantSplits[item.MerchantID].Add(subtotal)
 
 			orderItem := models.OrderItem{
@@ -310,13 +323,18 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID uint) (*dto.Order
 			orderItems = append(orderItems, orderItem)
 		}
 
+		// Add shipping cost to total
+		shippingCost := decimal.NewFromFloat(shippingPrice)
+		totalWithShipping := totalAmount.Add(shippingCost)
+
 		// Create the order
 		newOrder = &models.Order{
-			UserID:      userID,
-			SubTotal:    totalAmount,
-			TotalAmount: totalAmount,
-			Status:      models.OrderStatusPending,
-			Currency:    "NGN",
+			UserID:         userID,
+			SubTotal:       totalAmount,
+			TotalAmount:    totalWithShipping, // Total includes shipping
+			Status:         models.OrderStatusPending,
+			ShippingMethod: shippingMethod, // Store selected shipping method
+			Currency:       "NGN",
 		}
 		if err := tx.Create(newOrder).Error; err != nil {
 			return fmt.Errorf("failed to create order: %w", err)
@@ -330,10 +348,9 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID uint) (*dto.Order
 			return fmt.Errorf("failed to create order items: %w", err)
 		}
 
-		// ADD THIS ENTIRE BLOCK - Create order-merchant splits
-		commission := decimal.NewFromFloat(s.config.PlatformCommission) // Platform commission (e.g., 0.10 for 10%)
+		// Create order-merchant splits
+		commission := decimal.NewFromFloat(s.config.PlatformCommission)
 		for merchantID, merchantSubtotal := range merchantSplits {
-			// Calculate platform fee and merchant's amount
 			platformFee := merchantSubtotal.Mul(commission)
 			merchantAmountDue := merchantSubtotal.Sub(platformFee)
 			
@@ -343,7 +360,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID uint) (*dto.Order
 				AmountDue:  merchantAmountDue,
 				Fee:        platformFee,
 				Status:     "pending",
-				HoldUntil:  time.Now().Add(14 * 24 * time.Hour), // 14-day hold period
+				HoldUntil:  time.Now().Add(14 * 24 * time.Hour),
 			}
 			
 			if err := tx.Create(split).Error; err != nil {
@@ -357,7 +374,6 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID uint) (*dto.Order
 				zap.Float64("amount_due", merchantAmountDue.InexactFloat64()),
 			)
 		}
-		// END OF ADDED BLOCK
 
 		// Reload order with items and user for response
 		if err := tx.Preload("OrderItems.Product.Media").
@@ -366,9 +382,6 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID uint) (*dto.Order
 			First(newOrder, "id = ?", newOrder.ID).Error; err != nil {
 			return fmt.Errorf("failed to reload order: %w", err)
 		}
-
-		// DO NOT clear cart items yet - keep them until payment succeeds
-		// DO NOT mark cart as converted yet
 
 		return nil
 	})
@@ -439,36 +452,60 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID uint) (*dto.Order
 			// Group items by merchant
 			merchantItems := make(map[string][]map[string]interface{})
 			merchantEmails := make(map[string]string)
-
+			merchantNames := make(map[string]string)
+		
 			for _, item := range newOrder.OrderItems {
 				merchantID := item.MerchantID
 				if _, exists := merchantItems[merchantID]; !exists {
 					merchantItems[merchantID] = []map[string]interface{}{}
-					// Get merchant email (in a real implementation, you would fetch this from the database)
-					merchantEmails[merchantID] = fmt.Sprintf("merchant-%s@perthmarketplace.com", merchantID)
+					
+					// Fetch merchant details
+					merchant, err := s.merchantRepo.GetByMerchantID(context.Background(), merchantID)
+					if err != nil {
+						s.logger.Error("Failed to fetch merchant", zap.String("merchant_id", merchantID), zap.Error(err))
+						continue
+					}
+					merchantEmails[merchantID] = merchant.WorkEmail
+					merchantNames[merchantID] = merchant.StoreName
 				}
-
+		
 				merchantItems[merchantID] = append(merchantItems[merchantID], map[string]interface{}{
 					"Name":     item.Product.Name,
 					"Quantity": item.Quantity,
 					"Price":    fmt.Sprintf("₦%.2f", item.Price),
 				})
 			}
-
+		
 			// Send email to each merchant
 			for merchantID, items := range merchantItems {
+				merchantTotal := 0.0
+				for _, item := range items {
+					// Calculate merchant's subtotal (parse the price string back)
+					priceStr := item["Price"].(string)
+					var price float64
+					fmt.Sscanf(priceStr, "₦%f", &price)
+					qty := item["Quantity"].(int)
+					merchantTotal += price * float64(qty)
+				}
+		
 				emailData := map[string]interface{}{
-					"MerchantName":         fmt.Sprintf("Merchant %s", merchantID),
+					"MerchantName":         merchantNames[merchantID],
 					"OrderID":              fmt.Sprintf("%d", newOrder.ID),
 					"OrderDate":            newOrder.CreatedAt.Format("January 2, 2006"),
-					"TotalAmount":          fmt.Sprintf("₦%.2f", newOrder.TotalAmount.InexactFloat64()),
+					"TotalAmount":          fmt.Sprintf("₦%.2f", merchantTotal),
 					"Items":                items,
 					"MerchantDashboardURL": "https://perthmarketplace.com/merchant/dashboard",
 				}
-
+		
 				merchantEmail := merchantEmails[merchantID]
 				if err := s.emailService.SendMerchantOrderNotification(merchantEmail, fmt.Sprintf("%d", newOrder.ID), emailData); err != nil {
-					s.logger.Error("Failed to send merchant order notification email", zap.Error(err))
+					s.logger.Error("Failed to send merchant order notification email", 
+						zap.String("merchant_id", merchantID),
+						zap.Error(err))
+				} else {
+					s.logger.Info("Merchant notification sent", 
+						zap.String("merchant_id", merchantID),
+						zap.String("email", merchantEmail))
 				}
 			}
 		}()
