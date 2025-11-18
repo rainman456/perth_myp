@@ -160,6 +160,7 @@ func ToCartProductResponse(
 	merchant *models.Merchant,
 ) dto.CartProductResponse {
 	// First image as primary
+	available := 0
 	primaryImage := ""
 	for _, media := range p.Media {
 		if media.Type == models.MediaTypeImage {
@@ -167,6 +168,17 @@ func ToCartProductResponse(
 			break // Only first image
 		}
 	}
+	
+	if p.SimpleInventory != nil  {
+		//available := 0
+		if  p.SimpleInventory.ID != "" {
+			available = p.SimpleInventory.Quantity - p.SimpleInventory.ReservedQuantity
+			if available < 0 {
+				available = 0
+			}
+		}
+	}
+
 
 	resp := dto.CartProductResponse{
 		ID:           p.ID,
@@ -179,7 +191,15 @@ func ToCartProductResponse(
 		},
 		FinalPrice:   p.FinalPrice.InexactFloat64(),
 		PrimaryImage: primaryImage,
-	}
+		Available:       available,
+		BackorderAllowed: p.SimpleInventory != nil && p.SimpleInventory.ID != "" && p.SimpleInventory.BackorderAllowed,	}
+
+	
+
+	
+
+
+
 
 	// Category (use DB-stored slug)
 	if p.CategoryID != 0 && p.Category.ID != 0 {

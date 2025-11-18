@@ -221,7 +221,7 @@ func (s *CartService) AddItemToCart(ctx context.Context, userID uint, quantity i
     if err := db.DB.WithContext(ctx).
         Preload("CartItems.Product.Category").
         Preload("CartItems.Product.Media").
-        //Preload("CartItems.Product").
+        Preload("CartItems.Product.SimpleInventory").
         //Preload("CartItems.Variant").
         Preload("CartItems.Variant.Inventory").
         First(&updatedCart, cart.ID).Error; err != nil {

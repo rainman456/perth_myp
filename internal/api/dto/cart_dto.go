@@ -64,6 +64,8 @@ type CartProductResponse struct {
 	Pricing   ProductPricingResponse `json:"pricing"`
 	FinalPrice   float64 `json:"final_price"` // Only need final price
 	PrimaryImage string  `json:"primary_image,omitempty"` // First image
+	Available       int     `json:"available,omitempty"` // From inventory
+	BackorderAllowed bool    `json:"backorder_allowed,omitempty"`
 }
 
 
