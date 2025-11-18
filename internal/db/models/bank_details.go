@@ -14,7 +14,7 @@ package models
        AccountName    string   `gorm:"size:255"`
        RecipientCode  string `gorm:"size:50"`
        Currency       string `gorm:"size:8;default:'NGN'"`
-       Status         string `gorm:"default:'pending'"`
+     //  Status         string `gorm:"default:'pending'"`
        CreatedAt      time.Time
        UpdatedAt      time.Time
 	   Merchant   Merchant `gorm:"foreignKey:MerchantID;references:MerchantID"`

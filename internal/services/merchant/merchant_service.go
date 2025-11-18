@@ -479,7 +479,7 @@ func (s *MerchantService) AddBankDetails(ctx context.Context, merchantID string,
 		AccountName:   bankDetails.AccountName,
 		RecipientCode: bankDetails.RecipientCode,
 		Currency:      bankDetails.Currency,
-		Status:        bankDetails.Status,
+		//Status:        bankDetails.Status,
 		CreatedAt:     bankDetails.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:     bankDetails.UpdatedAt.Format(time.RFC3339),
 	}
@@ -504,7 +504,7 @@ func (s *MerchantService) GetBankDetails(ctx context.Context, merchantID string)
 		AccountName:   bankDetails.AccountName,
 		RecipientCode: bankDetails.RecipientCode,
 		Currency:      bankDetails.Currency,
-		Status:        bankDetails.Status,
+		//Status:        bankDetails.Status,
 		CreatedAt:     bankDetails.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:     bankDetails.UpdatedAt.Format(time.RFC3339),
 	}
@@ -555,7 +555,7 @@ func (s *MerchantService) UpdateBankDetails(ctx context.Context, merchantID stri
 		AccountName:   bankDetails.AccountName,
 		RecipientCode: bankDetails.RecipientCode,
 		Currency:      bankDetails.Currency,
-		Status:        bankDetails.Status,
+		//Status:        bankDetails.Status,
 		CreatedAt:     bankDetails.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:     bankDetails.UpdatedAt.Format(time.RFC3339),
 	}

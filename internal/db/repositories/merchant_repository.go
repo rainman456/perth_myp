@@ -127,7 +127,7 @@ func (r *MerchantRepository) CreateBankDetails(ctx context.Context, merchantID s
 		AccountNumber: details.AccountNumber,
 		AccountName:   details.AccountName,
 		Currency:      details.Currency,
-		Status:        "pending",
+		//Status:        "pending",
 	}
 
 	if err := db.DB.WithContext(ctx).Create(bankDetails).Error; err != nil {
