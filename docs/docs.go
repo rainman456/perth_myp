@@ -4210,6 +4210,17 @@ const docTemplate = `{
                     "Orders"
                 ],
                 "summary": "Create order from cart",
+                "parameters": [
+                    {
+                        "description": "Shipping method set to either standard or express",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreateOrderRequest"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -5422,6 +5433,34 @@ const docTemplate = `{
                 }
             }
         },
+        "/settings": {
+            "get": {
+                "description": "Retrieves global marketplace settings including fees, tax, and shipping",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Get marketplace settings",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/wishlist": {
             "get": {
                 "security": [
@@ -5838,6 +5877,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "created_at": {
+                    "description": "Status        string ` + "`" + `json:\"status\"` + "`" + `",
                     "type": "string"
                 },
                 "currency": {
@@ -5850,9 +5890,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "recipient_code": {
-                    "type": "string"
-                },
-                "status": {
                     "type": "string"
                 },
                 "updated_at": {
@@ -5978,6 +6015,13 @@ const docTemplate = `{
         "dto.CartProductResponse": {
             "type": "object",
             "properties": {
+                "available": {
+                    "description": "From inventory",
+                    "type": "integer"
+                },
+                "backorder_allowed": {
+                    "type": "boolean"
+                },
                 "category_slug": {
                     "description": "Name         string  ` + "`" + `json:\"name\"` + "`" + `\nMerchantID        string ` + "`" + `json:\"merchant_id\"` + "`" + `\nMerchantName      string ` + "`" + `json:\"merchant_name\"` + "`" + `\nMerchantStoreName string ` + "`" + `json:\"merchant_store_name\"` + "`" + `\nSlug         string  ` + "`" + `json:\"slug\"` + "`" + `\nCategoryName string  ` + "`" + `json:\"category_name\"` + "`" + `",
                     "type": "string"
@@ -6167,6 +6211,17 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.CreateOrderRequest": {
+            "type": "object",
+            "required": [
+                "shipping_method"
+            ],
+            "properties": {
+                "shipping_method": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.CreateReturnRequestDTO": {
             "type": "object",
             "required": [
@@ -6175,7 +6230,7 @@ const docTemplate = `{
             ],
             "properties": {
                 "order_item_id": {
-                    "type": "string"
+                    "type": "integer"
                 },
                 "reason": {
                     "type": "string",
@@ -6196,7 +6251,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "order_item_id": {
-                    "type": "string"
+                    "type": "integer"
                 },
                 "reason": {
                     "type": "string"
@@ -7217,7 +7272,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "order_item_id": {
-                    "type": "string"
+                    "type": "integer"
                 },
                 "reason": {
                     "type": "string"

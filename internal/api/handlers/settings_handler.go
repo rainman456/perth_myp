@@ -25,7 +25,7 @@ func NewSettingsHandler(settingsService *settings.SettingsService, logger *zap.L
 // @Description Retrieves global marketplace settings including fees, tax, and shipping
 // @Tags Settings
 // @Produce json
-// @Success 200 {object} models.Settings
+// @Success 200
 // @Failure 500 {object} object{error=string}
 // @Router /settings [get]
 func (h *SettingsHandler) GetSettings(c *gin.Context) {
