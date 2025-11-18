@@ -106,19 +106,6 @@ definitions:
     - delta
     - inventory_id
     type: object
-  dto.BulkUpdateProductInput:
-    properties:
-      product:
-        $ref: '#/definitions/dto.UpdateProductInput'
-      product_id:
-        type: string
-      variants:
-        items:
-          $ref: '#/definitions/dto.BulkUpdateVariant'
-        type: array
-    required:
-    - product_id
-    type: object
   dto.BulkUpdateRequest:
     properties:
       items:
@@ -135,15 +122,6 @@ definitions:
           - quantity
           type: object
         type: array
-    type: object
-  dto.BulkUpdateVariant:
-    properties:
-      variant:
-        $ref: '#/definitions/dto.UpdateVariantInput'
-      variant_id:
-        type: string
-    required:
-    - variant_id
     type: object
   dto.CancelOrderRequest:
     properties:
@@ -292,6 +270,7 @@ definitions:
   dto.CreateDisputeResponseDTO:
     properties:
       created_at:
+        description: Resolution  string    `json:"resolution,omitempty"`
         type: string
       customer_id:
         type: integer
@@ -305,12 +284,10 @@ definitions:
         type: string
       reason:
         type: string
-      resolution:
-        type: string
       resolved_at:
         type: string
       status:
-        type: string
+        $ref: '#/definitions/dto.PayoutStatus'
     type: object
   dto.CreateReturnRequestDTO:
     properties:
@@ -391,7 +368,7 @@ definitions:
       order_id:
         type: integer
       status:
-        type: string
+        $ref: '#/definitions/dto.PayoutStatus'
     type: object
   dto.InitializePaymentRequest:
     properties:
@@ -743,14 +720,27 @@ definitions:
       order_id:
         type: integer
       status:
+        allOf:
+        - $ref: '#/definitions/dto.PaymentStatus'
         description: e.g., "success", "pending"
-        type: string
       transaction_id:
         description: Paystack ref
         type: string
       updated_at:
         type: string
     type: object
+  dto.PaymentStatus:
+    enum:
+    - Pending
+    - Completed
+    - Failed
+    - Refunded
+    type: string
+    x-enum-varnames:
+    - PaymentStatusPending
+    - PaymentStatusCompleted
+    - PaymentStatusFailed
+    - PaymentStatusRefunded
   dto.PayoutRequest:
     properties:
       amount:
@@ -775,6 +765,16 @@ definitions:
       updated_at:
         type: string
     type: object
+  dto.PayoutStatus:
+    enum:
+    - Pending
+    - Completed
+    - Open
+    type: string
+    x-enum-varnames:
+    - PayoutStatusPending
+    - PayoutStatusCompleted
+    - PayoutStatusOpen
   dto.ProductAutocompleteResponse:
     properties:
       description:
@@ -1092,30 +1092,6 @@ definitions:
         additionalProperties: {}
         type: object
       work_email:
-        type: string
-    type: object
-  dto.UpdateProductInput:
-    properties:
-      base_price:
-        type: number
-      category_id:
-        type: integer
-      category_name:
-        type: string
-      description:
-        maxLength: 1000
-        type: string
-      discount:
-        minimum: 0
-        type: number
-      discount_type:
-        enum:
-        - fixed
-        - percentage
-        - ""
-        type: string
-      name:
-        maxLength: 255
         type: string
     type: object
   dto.UpdateReviewDTO:
@@ -3286,20 +3262,46 @@ paths:
       - Merchant
     put:
       consumes:
-      - application/json
-      description: Updates a product with variants and media for authenticated merchant
+      - multipart/form-data
+      description: Updates a product with optional new images for authenticated merchant
       parameters:
       - description: Product ID
         in: path
         name: id
         required: true
         type: string
-      - description: Product update details
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/dto.UpdateProductInput'
+      - description: Product name
+        in: formData
+        name: name
+        type: string
+      - description: Product description
+        in: formData
+        name: description
+        type: string
+      - description: Base price
+        in: formData
+        name: base_price
+        type: number
+      - description: Category ID
+        in: formData
+        name: category_id
+        type: integer
+      - description: Category name
+        in: formData
+        name: category_name
+        type: string
+      - description: Discount amount
+        in: formData
+        name: discount
+        type: number
+      - description: Discount type (fixed/percentage)
+        in: formData
+        name: discount_type
+        type: string
+      - description: New product images (multiple files allowed)
+        in: formData
+        name: images
+        type: file
       produces:
       - application/json
       responses:
@@ -3556,18 +3558,27 @@ paths:
   /merchant/products/bulk-update:
     put:
       consumes:
-      - application/json
-      description: Update multiple products and their variants at once for authenticated
-        merchant
+      - multipart/form-data
+      description: Update multiple products and their variants at once with optional
+        new images
       parameters:
-      - description: Array of product updates
-        in: body
-        name: body
+      - description: JSON array of product updates
+        in: formData
+        name: updates
         required: true
-        schema:
-          items:
-            $ref: '#/definitions/dto.BulkUpdateProductInput'
-          type: array
+        type: string
+      - description: New images for product update 0
+        in: formData
+        name: images_0
+        type: file
+      - description: New images for product update 1
+        in: formData
+        name: images_1
+        type: file
+      - description: 'New images for product update N (pattern: images_{index})'
+        in: formData
+        name: images_N
+        type: file
       produces:
       - application/json
       responses:
@@ -3607,7 +3618,7 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Bulk update products
+      summary: Bulk update products with images
       tags:
       - Merchant
   /merchant/products/bulk-upload:

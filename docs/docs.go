@@ -3111,9 +3111,9 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Update multiple products and their variants at once for authenticated merchant",
+                "description": "Update multiple products and their variants at once with optional new images",
                 "consumes": [
-                    "application/json"
+                    "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
@@ -3121,19 +3121,32 @@ const docTemplate = `{
                 "tags": [
                     "Merchant"
                 ],
-                "summary": "Bulk update products",
+                "summary": "Bulk update products with images",
                 "parameters": [
                     {
-                        "description": "Array of product updates",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/dto.BulkUpdateProductInput"
-                            }
-                        }
+                        "type": "string",
+                        "description": "JSON array of product updates",
+                        "name": "updates",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "New images for product update 0",
+                        "name": "images_0",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "New images for product update 1",
+                        "name": "images_1",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "New images for product update N (pattern: images_{index})",
+                        "name": "images_N",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
@@ -3473,9 +3486,9 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Updates a product with variants and media for authenticated merchant",
+                "description": "Updates a product with optional new images for authenticated merchant",
                 "consumes": [
-                    "application/json"
+                    "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
@@ -3493,13 +3506,52 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Product update details",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dto.UpdateProductInput"
-                        }
+                        "type": "string",
+                        "description": "Product name",
+                        "name": "name",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Product description",
+                        "name": "description",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "number",
+                        "description": "Base price",
+                        "name": "base_price",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Category ID",
+                        "name": "category_id",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Category name",
+                        "name": "category_name",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "number",
+                        "description": "Discount amount",
+                        "name": "discount",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Discount type (fixed/percentage)",
+                        "name": "discount_type",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "New product images (multiple files allowed)",
+                        "name": "images",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
@@ -5848,26 +5900,6 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.BulkUpdateProductInput": {
-            "type": "object",
-            "required": [
-                "product_id"
-            ],
-            "properties": {
-                "product": {
-                    "$ref": "#/definitions/dto.UpdateProductInput"
-                },
-                "product_id": {
-                    "type": "string"
-                },
-                "variants": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/dto.BulkUpdateVariant"
-                    }
-                }
-            }
-        },
         "dto.BulkUpdateRequest": {
             "type": "object",
             "properties": {
@@ -5891,20 +5923,6 @@ const docTemplate = `{
                             }
                         }
                     }
-                }
-            }
-        },
-        "dto.BulkUpdateVariant": {
-            "type": "object",
-            "required": [
-                "variant_id"
-            ],
-            "properties": {
-                "variant": {
-                    "$ref": "#/definitions/dto.UpdateVariantInput"
-                },
-                "variant_id": {
-                    "type": "string"
                 }
             }
         },
@@ -6120,6 +6138,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "created_at": {
+                    "description": "Resolution  string    ` + "`" + `json:\"resolution,omitempty\"` + "`" + `",
                     "type": "string"
                 },
                 "customer_id": {
@@ -6140,14 +6159,11 @@ const docTemplate = `{
                 "reason": {
                     "type": "string"
                 },
-                "resolution": {
-                    "type": "string"
-                },
                 "resolved_at": {
                     "type": "string"
                 },
                 "status": {
-                    "type": "string"
+                    "$ref": "#/definitions/dto.PayoutStatus"
                 }
             }
         },
@@ -6268,7 +6284,7 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "status": {
-                    "type": "string"
+                    "$ref": "#/definitions/dto.PayoutStatus"
                 }
             }
         },
@@ -6791,7 +6807,11 @@ const docTemplate = `{
                 },
                 "status": {
                     "description": "e.g., \"success\", \"pending\"",
-                    "type": "string"
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/dto.PaymentStatus"
+                        }
+                    ]
                 },
                 "transaction_id": {
                     "description": "Paystack ref",
@@ -6801,6 +6821,21 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        },
+        "dto.PaymentStatus": {
+            "type": "string",
+            "enum": [
+                "Pending",
+                "Completed",
+                "Failed",
+                "Refunded"
+            ],
+            "x-enum-varnames": [
+                "PaymentStatusPending",
+                "PaymentStatusCompleted",
+                "PaymentStatusFailed",
+                "PaymentStatusRefunded"
+            ]
         },
         "dto.PayoutRequest": {
             "type": "object",
@@ -6838,6 +6873,19 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        },
+        "dto.PayoutStatus": {
+            "type": "string",
+            "enum": [
+                "Pending",
+                "Completed",
+                "Open"
+            ],
+            "x-enum-varnames": [
+                "PayoutStatusPending",
+                "PayoutStatusCompleted",
+                "PayoutStatusOpen"
+            ]
         },
         "dto.ProductAutocompleteResponse": {
             "type": "object",
@@ -7306,40 +7354,6 @@ const docTemplate = `{
                 },
                 "work_email": {
                     "type": "string"
-                }
-            }
-        },
-        "dto.UpdateProductInput": {
-            "type": "object",
-            "properties": {
-                "base_price": {
-                    "type": "number"
-                },
-                "category_id": {
-                    "type": "integer"
-                },
-                "category_name": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string",
-                    "maxLength": 1000
-                },
-                "discount": {
-                    "type": "number",
-                    "minimum": 0
-                },
-                "discount_type": {
-                    "type": "string",
-                    "enum": [
-                        "fixed",
-                        "percentage",
-                        ""
-                    ]
-                },
-                "name": {
-                    "type": "string",
-                    "maxLength": 255
                 }
             }
         },

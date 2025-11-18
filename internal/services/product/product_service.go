@@ -333,10 +333,10 @@ func (s *ProductService) InvalidateProductCache(ctx context.Context, productID s
 	}
 
 	// Delete list caches (all pages might contain this product)
-	err = utils.InvalidateCachePattern(ctx, "product:list:*")
-	if err != nil {
-		log.Fatal(err)
-	}
+	// err = utils.InvalidateCachePattern(ctx, "product:list:*")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
 	s.logger.Info("Product cache invalidated", zap.String("product_id", productID))
 }
