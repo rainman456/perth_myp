@@ -249,6 +249,32 @@ func GetBankService() *BankService {
 }
 
 // LoadBanks loads bank.json once
+// func (bs *BankService) LoadBanks() error {
+// 	var loadErr error
+// 	bs.once.Do(func() {
+// 		file, err := os.ReadFile("banks.json")
+// 		if err != nil {
+// 			loadErr = ErrBankFileNotFound
+// 			return
+// 		}
+
+// 		var data map[string]string
+// 		if err := json.Unmarshal(file, &data); err != nil {
+// 			loadErr = err
+// 			return
+// 		}
+
+// 		bs.mu.Lock()
+// 		bs.banks = data
+// 		bs.mu.Unlock()
+// 	})
+// 	return loadErr
+// }
+
+
+
+
+// LoadBanks loads bank.json once
 func (bs *BankService) LoadBanks() error {
 	var loadErr error
 	bs.once.Do(func() {
@@ -258,18 +284,83 @@ func (bs *BankService) LoadBanks() error {
 			return
 		}
 
-		var data map[string]string
-		if err := json.Unmarshal(file, &data); err != nil {
-			loadErr = err
+		// Two possible shapes: { status, message, data: [...] } OR plain [...] array
+		// We'll unmarshal into an intermediate structure that can handle both.
+		type rawBank map[string]any
+
+		// try top-level object with "data"
+		var top struct {
+			Data []rawBank `json:"data"`
+		}
+		if err := json.Unmarshal(file, &top); err == nil && len(top.Data) > 0 {
+			bs.mu.Lock()
+			defer bs.mu.Unlock()
+			m := make(map[string]string, len(top.Data))
+			for _, item := range top.Data {
+				name, _ := toString(item["name"])
+				code, _ := toString(item["code"])
+				if name == "" {
+					// skip entries without a name
+					continue
+				}
+				normalized := strings.ToUpper(strings.TrimSpace(name))
+				m[normalized] = code
+			}
+			bs.banks = m
 			return
 		}
 
-		bs.mu.Lock()
-		bs.banks = data
-		bs.mu.Unlock()
+		// otherwise try raw array
+		var arr []rawBank
+		if err := json.Unmarshal(file, &arr); err == nil && len(arr) > 0 {
+			bs.mu.Lock()
+			defer bs.mu.Unlock()
+			m := make(map[string]string, len(arr))
+			for _, item := range arr {
+				name, _ := toString(item["name"])
+				code, _ := toString(item["code"])
+				if name == "" {
+					continue
+				}
+				normalized := strings.ToUpper(strings.TrimSpace(name))
+				m[normalized] = code
+			}
+			bs.banks = m
+			return
+		}
+
+		// If we got here, the file didn't match expected shapes
+		loadErr = errors.New("invalid banks.json format")
 	})
 	return loadErr
 }
+
+// toString converts various JSON value types to string safely.
+// It returns the string and a boolean indicating whether the value was non-empty.
+func toString(v any) (string, bool) {
+	if v == nil {
+		return "", false
+	}
+	switch t := v.(type) {
+	case string:
+		return t, t != ""
+	case float64:
+		// JSON numbers decode as float64; convert without scientific notation when possible
+		// Format as integer if it's whole, otherwise as float
+		if float64(int64(t)) == t {
+			return fmt.Sprintf("%d", int64(t)), true
+		}
+		return fmt.Sprintf("%v", t), true
+	case bool:
+		// unlikely for code, but handle gracefully
+		return fmt.Sprintf("%t", t), true
+	default:
+		// fallback to fmt
+		s := fmt.Sprintf("%v", t)
+		return s, s != ""
+	}
+}
+
 
 // GetBankCode validates and returns bank code
 func (bs *BankService) GetBankCode(bankName string) (string, error) {
