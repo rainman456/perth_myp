@@ -72,7 +72,7 @@ type BankDetailsResponse struct {
 	AccountName   string `json:"account_name"`
 	RecipientCode string `json:"recipient_code,omitempty"`
 	Currency      string `json:"currency"`
-	Status        string `json:"status"`
+	//Status        string `json:"status"`
 	CreatedAt     string `json:"created_at"`
 	UpdatedAt     string `json:"updated_at"`
 }
