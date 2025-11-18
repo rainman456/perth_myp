@@ -35,8 +35,14 @@ func (r *CartItemRepository) FindByID(ctx context.Context, id uint) (*models.Car
 	var cartItem models.CartItem
 	err := r.db.WithContext(ctx).
 		Preload("Cart.User").
-		Preload("Product.Merchant").
+		Preload("Product.Media").
+		Preload("Product.SimpleInventory").
+		Preload("Variant").
+		Preload("Variant.Inventory").
 		Preload("Merchant").
+		Preload("Product.Category").
+
+
 		First(&cartItem, id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrCartItemNotFound

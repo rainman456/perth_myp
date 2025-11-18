@@ -112,12 +112,23 @@ func GetOrSetCacheJSON[T any](ctx context.Context, key string, ttl time.Duration
 
 
 // InvalidateCache - Delete single key
+// FIXED: Handle nil RedisClient
 func InvalidateCache(ctx context.Context, key string) error {
+	if RedisClient == nil {
+		log.Printf("redis not initialized, skipping cache invalidation for key %s", key)
+		return nil // Not an error - just no-op when Redis is unavailable
+	}
 	return RedisClient.Del(ctx, key).Err()
 }
 
 // InvalidateCachePattern - Delete keys matching pattern
+// FIXED: Handle nil RedisClient
 func InvalidateCachePattern(ctx context.Context, pattern string) error {
+	if RedisClient == nil {
+		log.Printf("redis not initialized, skipping cache pattern invalidation for pattern %s", pattern)
+		return nil // Not an error - just no-op when Redis is unavailable
+	}
+
 	iter := RedisClient.Scan(ctx, 0, pattern, 0).Iterator()
 	keys := []string{}
 
