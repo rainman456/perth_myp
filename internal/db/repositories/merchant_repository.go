@@ -169,7 +169,7 @@ func (r *MerchantRepository) UpdateBankDetailsRecord(ctx context.Context, mercha
 		"account_number": details.AccountNumber,
 		"account_name":   details.AccountName,
 		"currency":       details.Currency,
-		"status":         "pending", // Reset to pending on update
+		//"status":         "pending", // Reset to pending on update
 	}
 
 	if err := db.DB.WithContext(ctx).
