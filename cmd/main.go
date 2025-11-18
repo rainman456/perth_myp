@@ -5,9 +5,10 @@ import (
 	"log"
 	"os"
 
-	//"api-customer-merchant/internal/api/handlers"
+	"api-customer-merchant/internal/api/handlers"
+//"api-customer-merchant/internal/api/handlers"
 	"api-customer-merchant/internal/api/routes"
-	"api-customer-merchant/internal/bank"
+//"api-customer-merchant/internal/bank"
 	"api-customer-merchant/internal/config"
 
 	//"api-customer-merchant/internal/services/cart"
@@ -22,6 +23,7 @@ import (
 	"github.com/joho/godotenv"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+
 	//_ "api-customer-merchant/docs" // Import generated docs
 	"github.com/gin-contrib/cors"
 )
@@ -54,10 +56,7 @@ func main() {
 	if secret == "" {
 		log.Fatal("JWT_SECRET not set")
 	}
-	 bankSvc := bank.GetBankService()
-   if err := bankSvc.LoadBanks(); err != nil {
-       log.Fatal(err)
-   }
+	
 
 	//  if err := godotenv.Load(); err != nil {
 	// 	log.Fatal("Error loading .env file")
@@ -95,6 +94,15 @@ func main() {
 	routes.SetupReviewRoutes(r)
 	routes.SetupWishlistRoutes(r)
 	routes.RegisterPaymentRoutes(r)
+
+
+	//svc := bank.NewFetchBankService()
+	// Optionally set a different cache file:
+	// svc.CacheFile = "data/banks.json" // if you expose that field in the constructor
+
+	handler := handlers.NewBankHandler()
+
+	r.GET("/banks", handler.GetBanks)
 	
 
 	// Swagger endpoint

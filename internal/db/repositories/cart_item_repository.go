@@ -34,7 +34,7 @@ func (r *CartItemRepository) Create(ctx context.Context, cartItem *models.CartIt
 func (r *CartItemRepository) FindByID(ctx context.Context, id uint) (*models.CartItem, error) {
 	var cartItem models.CartItem
 	err := r.db.WithContext(ctx).
-		Preload("Cart.User").
+		//Preload("Cart.User").
 		Preload("Product.Media").
 		Preload("Product.SimpleInventory").
 		Preload("Variant").

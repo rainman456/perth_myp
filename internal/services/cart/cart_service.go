@@ -362,11 +362,70 @@ func (s *CartService) RemoveCartItem(ctx context.Context, cartItemID uint) (*mod
 	return s.cartRepo.FindByID(ctx, cartItem.CartID)
 }
 
-func (s *CartService) GetCartItemByID(ctx context.Context, cartItemID uint) (*models.CartItem, error) {
+func (s *CartService) GetCartItemByID(ctx context.Context, cartItemID uint) (*dto.CartItemResponse, error) {
 	if cartItemID == 0 {
 		return nil, errors.New("invalid cart item ID")
 	}
-	return s.cartItemRepo.FindByID(ctx, cartItemID)
+    //response := helpers.ToCartResponse(cart)
+
+	 cart_item ,err:= s.cartItemRepo.FindByID(ctx, cartItemID)
+    if err!=nil{
+        return nil, errors.New("error")
+    }
+   
+     response := &dto.CartItemResponse{
+		     ID:        cart_item.ID,
+			ProductID: cart_item.ProductID,
+			Name:      cart_item.Product.Name,
+			VariantID: cart_item.VariantID,
+			Quantity:  cart_item.Quantity,
+			Subtotal:  cart_item.Cart.SubTotal, 
+            Product: helpers.ToCartProductResponse(
+				&cart_item.Product,
+				nil, // No variants needed
+				nil, // No reviews needed
+				&cart_item.Merchant,
+			),
+			Variant: func() *dto.CartVariantResponse {
+				if cart_item.Variant != nil && cart_item.Variant.ID != "" {
+					available := 0
+					if cart_item.Variant.Inventory.ID != "" {
+						available = cart_item.Variant.Inventory.Quantity - cart_item.Variant.Inventory.ReservedQuantity
+						if available < 0 {
+							available = 0
+						}
+					}
+					var color, size *string
+					if c, ok := cart_item.Variant.Attributes["color"]; ok {
+						color = &c
+					}
+					if s, ok := cart_item.Variant.Attributes["size"]; ok {
+						size = &s
+					}
+					return &dto.CartVariantResponse{
+						ID:              cart_item.Variant.ID,
+						ProductID:       cart_item.Variant.ProductID,
+						Color:           color,
+						Size:            size,
+						Pricing: dto.VariantPricingResponse{ // Added full pricing
+							BasePrice:       cart_item.Product.BasePrice.InexactFloat64(),
+							PriceAdjustment: cart_item.Variant.PriceAdjustment.InexactFloat64(),
+							TotalPrice:      cart_item.Variant.TotalPrice.InexactFloat64(),
+							Discount:        cart_item.Variant.Discount.InexactFloat64(),
+							FinalPrice:      cart_item.Variant.FinalPrice.InexactFloat64(),
+						},
+						FinalPrice:      cart_item.Variant.FinalPrice.InexactFloat64(),
+						Available:       available,
+						BackorderAllowed: cart_item.Variant.Inventory.ID != "" && cart_item.Variant.Inventory.BackorderAllowed,
+					}
+				}
+				return nil
+			}(),
+		}
+		
+	
+
+    return  response,nil
 }
 
 // ClearCart, BulkAddItems ... (add ctx to all calls; stub Bulk if not used)
