@@ -23,9 +23,15 @@ import (
 type OrderStatus string
 
 const (
-	OrderStatusPending   OrderStatus = "Pending"
-	OrderStatusCompleted OrderStatus = "Completed"
-	OrderStatusCancelled OrderStatus = "Cancelled"
+	OrderStatusPending       OrderStatus = "Pending"
+	OrderStatusConfirmed     OrderStatus = "Confirmed"
+	OrderStatusPaid          OrderStatus = "Paid"
+	OrderStatusProcessing    OrderStatus = "Processing"
+	OrderStatusShipped       OrderStatus = "Shipped"
+	OrderStatusCompleted     OrderStatus = "Completed"
+	OrderStatusCancelled     OrderStatus = "Cancelled"
+	OrderStatusOutForDelivery OrderStatus = "OutForDelivery" // Keep for backward compatibility if needed
+	OrderStatusDelivered     OrderStatus = "Delivered"       
 )
 
 // Add this new DTO
