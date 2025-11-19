@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strconv"
 )
 
 type SettingsService struct {
@@ -30,20 +31,31 @@ func (s *SettingsService) GetShippingCost(ctx context.Context, shippingMethod st
 		return 0, err
 	}
 
-	var shippingOptions []models.ShippingOption
+	var shippingOptions map[string]interface{}
 	if err := json.Unmarshal(settings.ShippingOptions, &shippingOptions); err != nil {
 		return 0, err
 	}
 
-	for _, option := range shippingOptions {
-		if option.Name == shippingMethod && option.Enabled {
-			return option.Price, nil
-		}
+	priceVal, ok := shippingOptions[shippingMethod]
+	if !ok {
+		return 0, errors.New("invalid shipping method")
 	}
 
-	return 0, errors.New("invalid or disabled shipping method")
-}
+	var price float64
+	switch v := priceVal.(type) {
+	case float64:
+		price = v
+	case string:
+		price, err = strconv.ParseFloat(v, 64)
+		if err != nil {
+			return 0, err
+		}
+	default:
+		return 0, errors.New("invalid price type")
+	}
 
+	return price, nil
+}
 // UpdateSettings updates the global settings
 
 
