@@ -530,6 +530,26 @@ func (s *OrderService) GetOrder(ctx context.Context, id uint) (*models.Order, er
 
 }
 
+
+
+
+
+func (s *OrderService) GetCustomerOrder(ctx context.Context, id uint) (*dto.OrderResponse, error) {
+	if id == 0 {
+		return nil, errors.New("invalid order ID")
+	}
+	// The repository already preloads necessary associations.
+	order,err:=s.orderRepo.FindByID(ctx, id)
+	if err!=nil{
+		return nil, errors.New("invalid order ID")
+	}
+	resp:=helpers.ToOrderResponse(order)
+	return resp,nil
+	//return s.orderRepo.FindByID(id)
+
+}
+
+
 // GetOrdersByUserID retrieves all orders for a user
 // func (s *OrderService) GetOrdersByUserID(userID uint) ([]models.Order, error) {
 // 	if userID == 0 {

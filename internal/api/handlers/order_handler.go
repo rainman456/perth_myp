@@ -85,7 +85,7 @@ func (h *OrderHandler) GetOrder(c *gin.Context) {
 		return
 	}
 
-	order, err := h.orderService.GetOrder(c.Request.Context(), uint(orderID))
+	order, err := h.orderService.GetCustomerOrder(c.Request.Context(), uint(orderID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()}) // Adjust status code as needed
 		return
