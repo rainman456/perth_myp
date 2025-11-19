@@ -200,7 +200,6 @@ func (s *PaymentService) InitializeCheckout(ctx context.Context, req dto.Initial
 	return response, nil
 }
 
-
 func (s *PaymentService) VerifyPayment(ctx context.Context, reference string) (*dto.PaymentResponse, error) {
 	logger := s.logger.With(zap.String("operation", "VerifyPayment"), zap.String("reference", reference))
 
@@ -215,11 +214,8 @@ func (s *PaymentService) VerifyPayment(ctx context.Context, reference string) (*
 		return s.mapPaymentToDTO(payment), nil
 	}
 
-	// psClient := paystack.NewClient(paystack.WithSecretKey(s.config.PaystackSecretKey))
-	// var resp m.Response[m.Transaction]
-	// err := psClient.Transactions.Verify(ctx, reference, &resp)
+	// Verify with Paystack
 	resp, err := s.verifyPaystack(ctx, reference)
-
 	if err != nil || !resp.Status || resp.Data.Status != "success" {
 		logger.Error("Paystack verification failed", zap.Error(err))
 
@@ -229,6 +225,7 @@ func (s *PaymentService) VerifyPayment(ctx context.Context, reference string) (*
 
 		return nil, ErrVerificationFailed
 	}
+
 	meta, merr := normalizeMetadata(resp.Data.Metadata)
 	if merr != nil {
 		logger.Warn("failed to parse metadata", zap.Error(merr))
@@ -239,7 +236,7 @@ func (s *PaymentService) VerifyPayment(ctx context.Context, reference string) (*
 	}
 
 	// Payment successful - now commit inventory and update order
-	err = s.db.WithContext(context.Background()).Transaction(func(tx *gorm.DB) error {
+	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// Reload & lock payment
 		var p models.Payment
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
@@ -273,6 +270,9 @@ func (s *PaymentService) VerifyPayment(ctx context.Context, reference string) (*
 			logger.Warn("order has no items", zap.Uint("order_id", order.ID))
 		}
 
+		// Set order to Paid and all items to Processing after successful payment
+		order.Status = models.OrderStatusPaid
+
 		// Collect inventory IDs and quantities for batch update
 		type invUpdate struct {
 			ID       string
@@ -281,28 +281,32 @@ func (s *PaymentService) VerifyPayment(ctx context.Context, reference string) (*
 		var updates []invUpdate
 		invIDs := make([]string, 0, len(order.OrderItems))
 
-		for _, item := range order.OrderItems {
+		for i := range order.OrderItems {
+			// Set each item to Processing status
+			order.OrderItems[i].FulfillmentStatus = models.FulfillmentStatusProcessing
+			
 			var inv models.Inventory
-			q := tx.Where("merchant_id = ?", item.MerchantID)
-			if item.VariantID != nil && *item.VariantID != "" {
-				q = q.Where("variant_id = ?", *item.VariantID)
+			q := tx.Where("merchant_id = ?", order.OrderItems[i].MerchantID)
+			if order.OrderItems[i].VariantID != nil && *order.OrderItems[i].VariantID != "" {
+				q = q.Where("variant_id = ?", *order.OrderItems[i].VariantID)
 			} else {
-				q = q.Where("product_id = ?", item.ProductID)
+				q = q.Where("product_id = ?", order.OrderItems[i].ProductID)
 			}
 
 			// Lock inventory row
 			if err := q.Clauses(clause.Locking{Strength: "UPDATE"}).First(&inv).Error; err != nil {
-				return fmt.Errorf("inventory not found for item %v: %w", item.ID, err)
+				return fmt.Errorf("inventory not found for item %v: %w", order.OrderItems[i].ID, err)
 			}
 
-			updates = append(updates, invUpdate{ID: inv.ID, Quantity: item.Quantity})
+			updates = append(updates, invUpdate{ID: inv.ID, Quantity: order.OrderItems[i].Quantity})
 			invIDs = append(invIDs, inv.ID)
 		}
 
-		// Batch update inventories
+		// Batch update inventories - commit reserved stock
 		if len(updates) > 0 {
 			var casesQty, casesRes []string
 			for _, u := range updates {
+				// Reduce quantity and reserved_quantity
 				casesQty = append(casesQty, fmt.Sprintf("WHEN id = '%s' THEN GREATEST(quantity - %d, 0)", u.ID, u.Quantity))
 				casesRes = append(casesRes, fmt.Sprintf("WHEN id = '%s' THEN GREATEST(reserved_quantity - %d, 0)", u.ID, u.Quantity))
 			}
@@ -320,10 +324,16 @@ func (s *PaymentService) VerifyPayment(ctx context.Context, reference string) (*
 			}
 		}
 
-		// Update order status to Paid
-		order.Status = models.OrderStatusProcessing
+		// Save order with updated status
 		if err := tx.Save(&order).Error; err != nil {
 			return fmt.Errorf("failed to update order status: %w", err)
+		}
+
+		// Save all order items with Processing status
+		for i := range order.OrderItems {
+			if err := tx.Save(&order.OrderItems[i]).Error; err != nil {
+				return fmt.Errorf("failed to update order item %d status: %w", order.OrderItems[i].ID, err)
+			}
 		}
 
 		// Update merchant splits to processing
@@ -364,6 +374,7 @@ func (s *PaymentService) VerifyPayment(ctx context.Context, reference string) (*
 	logger.Info("Payment verified and committed",
 		zap.Uint("payment_id", payment.ID),
 		zap.Uint("order_id", payment.OrderID),
+		zap.String("order_status", string(models.OrderStatusPaid)),
 	)
 
 	return s.mapPaymentToDTO(payment), nil
@@ -431,6 +442,9 @@ func (s *PaymentService) handleChargeSuccess(ctx context.Context, reference stri
 			logger.Warn("order has no items", zap.Uint("order_id", order.ID))
 		}
 
+		// Set order to Paid and all items to Processing after successful payment
+		order.Status = models.OrderStatusPaid
+
 		// Collect inventory IDs and quantities for batch update
 		type invUpdate struct {
 			ID       string
@@ -439,28 +453,32 @@ func (s *PaymentService) handleChargeSuccess(ctx context.Context, reference stri
 		var updates []invUpdate
 		invIDs := make([]string, 0, len(order.OrderItems))
 
-		for _, item := range order.OrderItems {
+		for i := range order.OrderItems {
+			// Set each item to Processing status
+			order.OrderItems[i].FulfillmentStatus = models.FulfillmentStatusProcessing
+			
 			var inv models.Inventory
-			q := tx.Where("merchant_id = ?", item.MerchantID)
-			if item.VariantID != nil && *item.VariantID != "" {
-				q = q.Where("variant_id = ?", *item.VariantID)
+			q := tx.Where("merchant_id = ?", order.OrderItems[i].MerchantID)
+			if order.OrderItems[i].VariantID != nil && *order.OrderItems[i].VariantID != "" {
+				q = q.Where("variant_id = ?", *order.OrderItems[i].VariantID)
 			} else {
-				q = q.Where("product_id = ?", item.ProductID)
+				q = q.Where("product_id = ?", order.OrderItems[i].ProductID)
 			}
 
 			// Lock inventory row
 			if err := q.Clauses(clause.Locking{Strength: "UPDATE"}).First(&inv).Error; err != nil {
-				return fmt.Errorf("inventory not found for item %v: %w", item.ID, err)
+				return fmt.Errorf("inventory not found for item %v: %w", order.OrderItems[i].ID, err)
 			}
 
-			updates = append(updates, invUpdate{ID: inv.ID, Quantity: item.Quantity})
+			updates = append(updates, invUpdate{ID: inv.ID, Quantity: order.OrderItems[i].Quantity})
 			invIDs = append(invIDs, inv.ID)
 		}
 
-		// Batch update inventories
+		// Batch update inventories - commit reserved stock
 		if len(updates) > 0 {
 			var casesQty, casesRes []string
 			for _, u := range updates {
+				// Reduce quantity and reserved_quantity
 				casesQty = append(casesQty, fmt.Sprintf("WHEN id = '%s' THEN GREATEST(quantity - %d, 0)", u.ID, u.Quantity))
 				casesRes = append(casesRes, fmt.Sprintf("WHEN id = '%s' THEN GREATEST(reserved_quantity - %d, 0)", u.ID, u.Quantity))
 			}
@@ -478,10 +496,16 @@ func (s *PaymentService) handleChargeSuccess(ctx context.Context, reference stri
 			}
 		}
 
-		// Update order status to Paid
-		order.Status = models.OrderStatusProcessing
+		// Save order with updated status
 		if err := tx.Save(&order).Error; err != nil {
 			return fmt.Errorf("failed to update order status: %w", err)
+		}
+
+		// Save all order items with Processing status
+		for i := range order.OrderItems {
+			if err := tx.Save(&order.OrderItems[i]).Error; err != nil {
+				return fmt.Errorf("failed to update order item %d status: %w", order.OrderItems[i].ID, err)
+			}
 		}
 
 		// Update merchant splits to processing
@@ -522,6 +546,7 @@ func (s *PaymentService) handleChargeSuccess(ctx context.Context, reference stri
 	logger.Info("Payment verified and committed",
 		zap.Uint("payment_id", payment.ID),
 		zap.Uint("order_id", payment.OrderID),
+		zap.String("order_status", string(models.OrderStatusPaid)),
 	)
 
 	return s.mapPaymentToDTO(payment), nil

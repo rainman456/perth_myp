@@ -11,19 +11,26 @@ import (
 type OrderStatus string
 
 const (
-	OrderStatusPending    OrderStatus = "Pending"
-	OrderStatusPaid       OrderStatus = "Paid"
-	OrderStatusProcessing OrderStatus = "Processing"
-	OrderStatusCompleted  OrderStatus = "Completed"
-	OrderStatusCancelled  OrderStatus = "Cancelled"
-	OrderStatusOutForDelivery  OrderStatus = "OutForDelivery"
-	OrderStatusDelivered  OrderStatus  = "Delivered"
+	OrderStatusPending       OrderStatus = "Pending"
+	OrderStatusConfirmed     OrderStatus = "Confirmed"
+	OrderStatusPaid          OrderStatus = "Paid"
+	OrderStatusProcessing    OrderStatus = "Processing"
+	OrderStatusShipped       OrderStatus = "Shipped"
+	OrderStatusCompleted     OrderStatus = "Completed"
+	OrderStatusCancelled     OrderStatus = "Cancelled"
+	OrderStatusOutForDelivery OrderStatus = "OutForDelivery" // Keep for backward compatibility if needed
+	OrderStatusDelivered     OrderStatus = "Delivered"       
 )
+
+// order status: paid - confirmed - processing - completed - cancelled
+// order item status: processing - confirmed - declined - sent to aronova hub - out for delivery - delivered
 
 // Valid checks if the status is one of the allowed values
 func (s OrderStatus) Valid() error {
 	switch s {
-	case OrderStatusPending, OrderStatusPaid, OrderStatusProcessing, OrderStatusCompleted, OrderStatusCancelled ,OrderStatusOutForDelivery,OrderStatusDelivered:
+	case OrderStatusPending, OrderStatusConfirmed, OrderStatusPaid, OrderStatusProcessing, 
+		OrderStatusShipped, OrderStatusCompleted, OrderStatusCancelled, 
+		OrderStatusOutForDelivery, OrderStatusDelivered:
 		return nil
 	default:
 		return fmt.Errorf("invalid order status: %s", s)
@@ -68,4 +75,45 @@ func (o *Order) BeforeUpdate(tx *gorm.DB) error {
 		return err
 	}
 	return nil
+}
+
+
+
+
+func (o *Order) UpdateStatusBasedOnItems() {
+	if len(o.OrderItems) == 0 {
+		return
+	}
+
+	allDelivered := true
+	allDeclined := true
+	allSentOrOutForDelivery := true
+	anyProcessed := false
+
+	for _, item := range o.OrderItems {
+		if item.FulfillmentStatus != FulfillmentStatusDelivered {
+			allDelivered = false
+		}
+		if item.FulfillmentStatus != FulfillmentStatusDeclined {
+			allDeclined = false
+		}
+		if item.FulfillmentStatus != FulfillmentStatusSentToAronovaHub && 
+		   item.FulfillmentStatus != FulfillmentStatusOutForDelivery {
+			allSentOrOutForDelivery = false
+		}
+		if item.FulfillmentStatus != FulfillmentStatusProcessing {
+			anyProcessed = true
+		}
+	}
+
+	// Apply business logic
+	if allDelivered {
+		o.Status = OrderStatusCompleted
+	} else if allDeclined {
+		o.Status = OrderStatusCancelled
+	} else if allSentOrOutForDelivery {
+		o.Status = OrderStatusShipped
+	} else if anyProcessed {
+		o.Status = OrderStatusProcessing
+	}
 }

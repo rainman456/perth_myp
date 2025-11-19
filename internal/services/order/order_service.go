@@ -266,6 +266,13 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID uint, shippingMet
 		return nil, fmt.Errorf("invalid shipping method: %w", err)
 	}
 
+	// Get platform commission from settings
+	platformCommissionPercent, err := s.settingsService.GetPlatformFee(ctx)
+	if err != nil {
+		s.logger.Error("Failed to fetch platform commission from settings", zap.Error(err))
+		return nil, fmt.Errorf("failed to fetch platform commission: %w", err)
+	}
+
 	// Fetch user for payment initialization
 	user, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil {
@@ -348,8 +355,9 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID uint, shippingMet
 			return fmt.Errorf("failed to create order items: %w", err)
 		}
 
-		// Create order-merchant splits
-		commission := decimal.NewFromFloat(s.config.PlatformCommission)
+		// Create order-merchant splits using settings fee
+		commission := decimal.NewFromFloat(platformCommissionPercent).Div(decimal.NewFromInt(100)) // Convert percentage to decimal
+		
 		for merchantID, merchantSubtotal := range merchantSplits {
 			platformFee := merchantSubtotal.Mul(commission)
 			merchantAmountDue := merchantSubtotal.Sub(platformFee)
@@ -370,6 +378,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID uint, shippingMet
 			s.logger.Info("Created merchant split",
 				zap.String("merchant_id", merchantID),
 				zap.Float64("subtotal", merchantSubtotal.InexactFloat64()),
+				zap.Float64("commission_percent", platformCommissionPercent),
 				zap.Float64("fee", platformFee.InexactFloat64()),
 				zap.Float64("amount_due", merchantAmountDue.InexactFloat64()),
 			)
@@ -514,11 +523,11 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID uint, shippingMet
 	s.logger.Info("Order created successfully",
 		zap.Uint("order_id", newOrder.ID),
 		zap.Uint("user_id", userID),
+		zap.Float64("platform_commission_percent", platformCommissionPercent),
 		zap.String("payment_reference", paymentResp.TransactionID))
 
 	return response, nil
 }
-
 // GetOrder retrieves a single order by its ID.
 func (s *OrderService) GetOrder(ctx context.Context, id uint) (*models.Order, error) {
 	if id == 0 {
@@ -679,80 +688,178 @@ func (s *OrderService) CancelOrder(ctx context.Context, orderID uint, userID uin
 
 // AcceptOrderItem allows a merchant to accept an order item
 func (s *OrderService) AcceptOrderItem(ctx context.Context, orderItemID uint, merchantID string) error {
-	// Fetch the order item
-	orderItem, err := s.orderItemRepo.FindByIDWithContext(ctx, orderItemID)
-	if err != nil {
-		return fmt.Errorf("failed to find order item: %w", err)
-	}
+	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Fetch the order item with order and all items
+		orderItem, err := s.orderItemRepo.FindByIDWithContext(ctx, orderItemID)
+		if err != nil {
+			return fmt.Errorf("failed to find order item: %w", err)
+		}
 
-	// Verify the merchant owns this order item
-	if orderItem.MerchantID != merchantID {
-		return errors.New("unauthorized: merchant does not own this order item")
-	}
+		// Verify the merchant owns this order item
+		if orderItem.MerchantID != merchantID {
+			return errors.New("unauthorized: merchant does not own this order item")
+		}
 
-	// Validate status transition using state machine logic
-	if err := orderItem.ValidateStatusTransition(models.FulfillmentStatusConfirmed); err != nil {
-		return fmt.Errorf("invalid status transition: %w", err)
-	}
+		// Validate status transition
+		if err := orderItem.ValidateStatusTransition(models.FulfillmentStatusConfirmed); err != nil {
+			return fmt.Errorf("invalid status transition: %w", err)
+		}
 
-	// Update the fulfillment status to Confirmed
-	orderItem.FulfillmentStatus = models.FulfillmentStatusConfirmed
-	if err := s.orderItemRepo.Update(orderItem); err != nil {
-		return fmt.Errorf("failed to update order item status: %w", err)
-	}
+		// Update the fulfillment status to Confirmed
+		orderItem.FulfillmentStatus = models.FulfillmentStatusConfirmed
+		if err := tx.Save(orderItem).Error; err != nil {
+			return fmt.Errorf("failed to update order item status: %w", err)
+		}
 
-	return nil
+		// Load full order with all items to check if all items are confirmed
+		var order models.Order
+		if err := tx.Preload("OrderItems").First(&order, orderItem.OrderID).Error; err != nil {
+			return fmt.Errorf("failed to load order: %w", err)
+		}
+
+		// Check if all items are confirmed
+		allConfirmed := true
+		for _, item := range order.OrderItems {
+			if item.FulfillmentStatus != models.FulfillmentStatusConfirmed {
+				allConfirmed = false
+				break
+			}
+		}
+
+		// If all items confirmed, update order status to Confirmed
+		if allConfirmed {
+			order.Status = models.OrderStatusConfirmed
+			if err := tx.Save(&order).Error; err != nil {
+				return fmt.Errorf("failed to update order status: %w", err)
+			}
+		}
+
+		return nil
+	})
 }
-
+// DeclineOrderItem allows a merchant to decline an order item
 // DeclineOrderItem allows a merchant to decline an order item
 func (s *OrderService) DeclineOrderItem(ctx context.Context, orderItemID uint, merchantID string) error {
-	// Fetch the order item
-	orderItem, err := s.orderItemRepo.FindByIDWithContext(ctx, orderItemID)
-	if err != nil {
-		return fmt.Errorf("failed to find order item: %w", err)
-	}
+	logger := s.logger.With(zap.Uint("order_item_id", orderItemID), zap.String("merchant_id", merchantID))
+	
+	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Fetch the order item with order and all items
+		orderItem, err := s.orderItemRepo.FindByIDWithContext(ctx, orderItemID)
+		if err != nil {
+			return fmt.Errorf("failed to find order item: %w", err)
+		}
 
-	// Verify the merchant owns this order item
-	if orderItem.MerchantID != merchantID {
-		return errors.New("unauthorized: merchant does not own this order item")
-	}
+		// Verify the merchant owns this order item
+		if orderItem.MerchantID != merchantID {
+			return errors.New("unauthorized: merchant does not own this order item")
+		}
 
-	if err := orderItem.ValidateStatusTransition(models.FulfillmentStatusDeclined); err != nil {
-		return fmt.Errorf("invalid status transition: %w", err)
-	}
-	// Update the fulfillment status to Declined
-	orderItem.FulfillmentStatus = models.FulfillmentStatusDeclined
-	if err := s.orderItemRepo.Update(orderItem); err != nil {
-		return fmt.Errorf("failed to update order item status: %w", err)
-	}
+		// Validate status transition
+		if err := orderItem.ValidateStatusTransition(models.FulfillmentStatusDeclined); err != nil {
+			return fmt.Errorf("invalid status transition: %w", err)
+		}
 
-	return nil
+		// Update the fulfillment status to Declined
+		orderItem.FulfillmentStatus = models.FulfillmentStatusDeclined
+		if err := tx.Save(orderItem).Error; err != nil {
+			return fmt.Errorf("failed to update order item status: %w", err)
+		}
+
+		// Release inventory for declined item
+		inventoryQuery := "merchant_id = ?"
+		args := []interface{}{orderItem.MerchantID}
+		if orderItem.VariantID != nil {
+			inventoryQuery += " AND variant_id = ?"
+			args = append(args, *orderItem.VariantID)
+		} else {
+			inventoryQuery += " AND product_id = ?"
+			args = append(args, orderItem.ProductID)
+		}
+
+		// Release reserved quantity back to available stock
+		if err := tx.Model(&models.Inventory{}).
+			Where(inventoryQuery, args...).
+			Update("reserved_quantity", gorm.Expr("GREATEST(reserved_quantity - ?, 0)", orderItem.Quantity)).
+			Error; err != nil {
+			return fmt.Errorf("failed to release inventory: %w", err)
+		}
+
+		// Load full order with all items to check if all items are declined
+		var order models.Order
+		if err := tx.Preload("OrderItems").First(&order, orderItem.OrderID).Error; err != nil {
+			return fmt.Errorf("failed to load order: %w", err)
+		}
+
+		// Check if all items are declined
+		allDeclined := true
+		for _, item := range order.OrderItems {
+			if item.FulfillmentStatus != models.FulfillmentStatusDeclined {
+				allDeclined = false
+				break
+			}
+		}
+
+		// If all items declined, cancel order and initiate full refund
+		if allDeclined {
+			order.Status = models.OrderStatusCancelled
+			if err := tx.Save(&order).Error; err != nil {
+				return fmt.Errorf("failed to update order status: %w", err)
+			}
+
+			// Initiate refund (if payment was completed)
+			var payment models.Payment
+			if err := tx.Where("order_id = ? AND status = ?", order.ID, models.PaymentStatusCompleted).
+				First(&payment).Error; err == nil {
+				// Payment exists and was completed - initiate refund
+				// TODO: Implement refund logic here
+				logger.Info("Full refund needed", zap.Uint("order_id", order.ID))
+			}
+		}
+
+		return nil
+	})
 }
 
 // UpdateOrderItemToSentToAronovaHub allows a merchant to update an order item to "SentToAronovaHub" status
+// UpdateOrderItemToSentToAronovaHub allows a merchant to update an order item to "SentToAronovaHub" status
 func (s *OrderService) UpdateOrderItemToSentToAronovaHub(ctx context.Context, orderItemID uint, merchantID string) error {
-	// Fetch the order item
-	orderItem, err := s.orderItemRepo.FindByIDWithContext(ctx, orderItemID)
-	if err != nil {
-		return fmt.Errorf("failed to find order item: %w", err)
-	}
+	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Fetch the order item
+		orderItem, err := s.orderItemRepo.FindByIDWithContext(ctx, orderItemID)
+		if err != nil {
+			return fmt.Errorf("failed to find order item: %w", err)
+		}
 
-	// Verify the merchant owns this order item
-	if orderItem.MerchantID != merchantID {
-		return errors.New("unauthorized: merchant does not own this order item")
-	}
+		// Verify the merchant owns this order item
+		if orderItem.MerchantID != merchantID {
+			return errors.New("unauthorized: merchant does not own this order item")
+		}
 
-	if err := orderItem.ValidateStatusTransition(models.FulfillmentStatusSentToAronovaHub); err != nil {
-		return fmt.Errorf("invalid status transition: %w", err)
-	}
+		// Validate status transition
+		if err := orderItem.ValidateStatusTransition(models.FulfillmentStatusSentToAronovaHub); err != nil {
+			return fmt.Errorf("invalid status transition: %w", err)
+		}
 
-	// Update the fulfillment status to SentToAronovaHub
-	orderItem.FulfillmentStatus = models.FulfillmentStatusSentToAronovaHub
-	if err := s.orderItemRepo.Update(orderItem); err != nil {
-		return fmt.Errorf("failed to update order item status: %w", err)
-	}
+		// Update the fulfillment status to SentToAronovaHub
+		orderItem.FulfillmentStatus = models.FulfillmentStatusSentToAronovaHub
+		if err := tx.Save(orderItem).Error; err != nil {
+			return fmt.Errorf("failed to update order item status: %w", err)
+		}
 
-	return nil
+		// Load full order with all items to update order status
+		var order models.Order
+		if err := tx.Preload("OrderItems").First(&order, orderItem.OrderID).Error; err != nil {
+			return fmt.Errorf("failed to load order: %w", err)
+		}
+
+		// Update order status based on items
+		order.UpdateStatusBasedOnItems()
+		if err := tx.Save(&order).Error; err != nil {
+			return fmt.Errorf("failed to update order status: %w", err)
+		}
+
+		return nil
+	})
 }
 
 

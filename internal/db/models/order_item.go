@@ -9,16 +9,22 @@ import (
 type FulfillmentStatus string
 
 const (
-    FulfillmentStatusProcessing       FulfillmentStatus = "Processing" // NEW
-    FulfillmentStatusConfirmed        FulfillmentStatus = "Confirmed"
-    FulfillmentStatusDeclined         FulfillmentStatus = "Declined"
-    FulfillmentStatusSentToAronovaHub FulfillmentStatus = "SentToAronovaHub"
-    FulfillmentStatusShipped          FulfillmentStatus = "Shipped"
+	FulfillmentStatusProcessing       FulfillmentStatus = "Processing"
+	FulfillmentStatusConfirmed        FulfillmentStatus = "Confirmed"
+	FulfillmentStatusDeclined         FulfillmentStatus = "Declined"
+	FulfillmentStatusSentToAronovaHub FulfillmentStatus = "SentToAronovaHub"
+	FulfillmentStatusOutForDelivery   FulfillmentStatus = "OutForDelivery"
+	FulfillmentStatusDelivered        FulfillmentStatus = "Delivered"
+	FulfillmentStatusShipped          FulfillmentStatus = "Shipped" //
 )
+// order status: paid - confirmed - processing - completed - cancelled
+// order item status: processing - confirmed - declined - sent to aronova hub - out for delivery - delivered
 // Valid checks if the status is one of the allowed values
 func (s FulfillmentStatus) Valid() error {
 	switch s {
-	case FulfillmentStatusProcessing, FulfillmentStatusConfirmed, FulfillmentStatusDeclined, FulfillmentStatusSentToAronovaHub, FulfillmentStatusShipped:
+	case FulfillmentStatusProcessing, FulfillmentStatusConfirmed, FulfillmentStatusDeclined, 
+		FulfillmentStatusSentToAronovaHub, FulfillmentStatusOutForDelivery, 
+		FulfillmentStatusDelivered, FulfillmentStatusShipped:
 		return nil
 	default:
 		return fmt.Errorf("invalid fulfillment status: %s", s)
@@ -65,17 +71,25 @@ func (oi *OrderItem) CanBeModified() bool {
 
 // ValidateStatusTransition checks if status change is allowed
 func (oi *OrderItem) ValidateStatusTransition(newStatus FulfillmentStatus) error {
-    switch oi.FulfillmentStatus {
-    case FulfillmentStatusProcessing:
-        if newStatus != FulfillmentStatusConfirmed && newStatus != FulfillmentStatusDeclined {
-            return fmt.Errorf("can only transition to Confirmed/Declined from Processing")
-        }
-    case FulfillmentStatusConfirmed:
-        if newStatus != FulfillmentStatusSentToAronovaHub {
-            return fmt.Errorf("can only transition to SentToAronovaHub from Confirmed")
-        }
-    case FulfillmentStatusSentToAronovaHub, FulfillmentStatusShipped, FulfillmentStatusDeclined:
-        return fmt.Errorf("cannot transition from terminal status: %s", oi.FulfillmentStatus)
-    }
-    return nil
+	switch oi.FulfillmentStatus {
+	case FulfillmentStatusProcessing:
+		if newStatus != FulfillmentStatusConfirmed && newStatus != FulfillmentStatusDeclined {
+			return fmt.Errorf("can only transition to Confirmed/Declined from Processing")
+		}
+	case FulfillmentStatusConfirmed:
+		if newStatus != FulfillmentStatusSentToAronovaHub {
+			return fmt.Errorf("can only transition to SentToAronovaHub from Confirmed")
+		}
+	case FulfillmentStatusSentToAronovaHub:
+		if newStatus != FulfillmentStatusOutForDelivery {
+			return fmt.Errorf("can only transition to OutForDelivery from SentToAronovaHub")
+		}
+	case FulfillmentStatusOutForDelivery:
+		if newStatus != FulfillmentStatusDelivered {
+			return fmt.Errorf("can only transition to Delivered from OutForDelivery")
+		}
+	case FulfillmentStatusDelivered, FulfillmentStatusDeclined:
+		return fmt.Errorf("cannot transition from terminal status: %s", oi.FulfillmentStatus)
+	}
+	return nil
 }

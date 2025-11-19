@@ -45,3 +45,12 @@ func (s *SettingsService) GetShippingCost(ctx context.Context, shippingMethod st
 }
 
 // UpdateSettings updates the global settings
+
+
+func (s *SettingsService) GetPlatformFee(ctx context.Context) (float64, error) {
+	settings, err := s.settingsRepo.GetSettings(ctx)
+	if err != nil {
+		return 0, err
+	}
+	return settings.Fees, nil
+}
