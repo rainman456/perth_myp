@@ -284,7 +284,7 @@ func (s *PaymentService) VerifyPayment(ctx context.Context, reference string) (*
 		for i := range order.OrderItems {
 			// Set each item to Processing status
 			order.OrderItems[i].FulfillmentStatus = models.FulfillmentStatusProcessing
-			
+
 			var inv models.Inventory
 			q := tx.Where("merchant_id = ?", order.OrderItems[i].MerchantID)
 			if order.OrderItems[i].VariantID != nil && *order.OrderItems[i].VariantID != "" {
@@ -338,10 +338,10 @@ func (s *PaymentService) VerifyPayment(ctx context.Context, reference string) (*
 
 		// Update merchant splits to processing
 		if err := tx.Model(&models.OrderMerchantSplit{}).
-			Where("order_id = ? AND status = ?", order.ID, "pending").
-			Update("status", "processing").Error; err != nil {
-			return fmt.Errorf("failed to update merchant splits: %w", err)
-		}
+    Where("order_id = ? AND status = ?", order.ID, models.OrderMerchantSplitStatusPending).
+    UpdateColumn("status", models.OrderMerchantSplitStatusProcessing).Error; err != nil {
+    return fmt.Errorf("failed to update merchant splits: %w", err)
+}
 
 		// Clear cart items using join (fix user_id issue)
 		if err := tx.Exec(`
@@ -456,7 +456,7 @@ func (s *PaymentService) handleChargeSuccess(ctx context.Context, reference stri
 		for i := range order.OrderItems {
 			// Set each item to Processing status
 			order.OrderItems[i].FulfillmentStatus = models.FulfillmentStatusProcessing
-			
+
 			var inv models.Inventory
 			q := tx.Where("merchant_id = ?", order.OrderItems[i].MerchantID)
 			if order.OrderItems[i].VariantID != nil && *order.OrderItems[i].VariantID != "" {
@@ -655,8 +655,8 @@ func (s *PaymentService) handleTransferSuccess(ctx context.Context, data map[str
 
 	// Mark related splits as completed (not paid)
 	splitRepo := repositories.NewOrderMerchantSplitRepository()
-	if err := splitRepo.UpdateStatusByMerchantAndStatus(ctx, payout.MerchantID, 
-		models.OrderMerchantSplitStatusProcessing, 
+	if err := splitRepo.UpdateStatusByMerchantAndStatus(ctx, payout.MerchantID,
+		models.OrderMerchantSplitStatusProcessing,
 		models.OrderMerchantSplitStatusCompleted); err != nil {
 		return err
 	}

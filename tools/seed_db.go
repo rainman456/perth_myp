@@ -23,7 +23,7 @@ func main() {
 
 	// Run migrations first (optional, for dev)
 	 //db.AutoMigrate(&models.Category{}, &models.Product{}, &models.Variant{}, &models.Media{}, &models.Inventory{})
-	 db.AutoMigrate(&models.Settings{})
+	 db.AutoMigrate(&models.OrderMerchantSplit{})
 	// Merchant IDs to use
 	// merchantID1 := "68a63ffc-f988-47a3-bc74-989b498b1e01"
 	// merchantID2 := "984d6da6-29c4-4506-abaf-608b3498cc04"
