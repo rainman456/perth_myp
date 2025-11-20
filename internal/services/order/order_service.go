@@ -401,9 +401,11 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID uint, shippingMet
 	}
 
 	// Initialize payment with Paystack
+	shippingCost := decimal.NewFromFloat(shippingPrice)
+		totalWithShipping := totalAmount.Add(shippingCost)
 	paymentReq := dto.InitializePaymentRequest{
 		OrderID:  newOrder.ID,
-		Amount:   totalAmount.InexactFloat64(),
+		Amount:   totalWithShipping.InexactFloat64(),
 		Email:    user.Email,
 		Currency: "NGN",
 	}

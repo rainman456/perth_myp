@@ -137,7 +137,7 @@ func (s *PaymentService) InitializeCheckout(ctx context.Context, req dto.Initial
 	}
 
 	// Compute expected amount in kobo (integer) from order subtotal (decimal.Decimal)
-	amountKoboFromOrderInt64 := order.SubTotal.Mul(decimal.NewFromInt(100)).IntPart()
+	amountKoboFromOrderInt64 := order.TotalAmount.Mul(decimal.NewFromInt(100)).IntPart()
 	amountKobo := int(amountKoboFromOrderInt64) // paystack client expects int (kobo)
 	// Compute requested amount in kobo and compare as integers to avoid float equality issues
 	reqAmountKoboInt64 := decimal.NewFromFloat(req.Amount).Mul(decimal.NewFromInt(100)).IntPart()
