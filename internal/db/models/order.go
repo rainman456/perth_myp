@@ -10,6 +10,9 @@ import (
 // OrderStatus defines possible order status values
 type OrderStatus string
 
+
+
+
 const (
 	OrderStatusPending       OrderStatus = "Pending"
 	OrderStatusConfirmed     OrderStatus = "Confirmed"

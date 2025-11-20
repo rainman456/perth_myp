@@ -648,26 +648,24 @@ func (s *PaymentService) handleTransferSuccess(ctx context.Context, data map[str
 		return err
 	}
 
-	payout.Status = "completed"
+	payout.Status = models.PayoutStatusCompleted
 	if err := s.payoutRepo.Update(ctx, payout); err != nil {
 		return err
 	}
 
-	// Mark related splits as paid
-	// if err := s.splitRepo.UpdateStatusByMerchantAndStatus(ctx, payout.MerchantID, "processing", "paid"); err != nil {
-	// 	return err
-	// }
-
-	// Update merchant totals
-	merchant, err := s.merchantRepo.GetByMerchantID(ctx, payout.MerchantID)
-	if err != nil {
+	// Mark related splits as completed (not paid)
+	splitRepo := repositories.NewOrderMerchantSplitRepository()
+	if err := splitRepo.UpdateStatusByMerchantAndStatus(ctx, payout.MerchantID, 
+		models.OrderMerchantSplitStatusProcessing, 
+		models.OrderMerchantSplitStatusCompleted); err != nil {
 		return err
 	}
 
-	merchant.TotalPayouts = merchant.TotalPayouts + payout.Amount
-	merchant.LastPayoutDate = func() *time.Time { t := time.Now(); return &t }() // if err := s.merchantRepo.Update(ctx, merchant); err != nil {
-	// 	return err
-	// }
+	// Update merchant totals
+	merchantRepo := repositories.NewMerchantRepository()
+	if err := merchantRepo.UpdateMerchantFinancials(ctx, payout.MerchantID); err != nil {
+		return err
+	}
 
 	s.logger.Info("Payout completed successfully", zap.String("payout_id", payout.ID))
 	return nil
@@ -689,24 +687,20 @@ func (s *PaymentService) handleTransferFailure(ctx context.Context, data map[str
 		return err
 	}
 
-	payout.Status = "failed"
+	payout.Status = models.PayoutStatusPending
 	if err := s.payoutRepo.Update(ctx, payout); err != nil {
 		return err
 	}
 
-	// Reset splits to payout_requested
-	// if err := s.splitRepo.UpdateStatusByMerchantAndStatus(ctx, payout.MerchantID, "processing", "payout_requested"); err != nil {
-	// 	return err
-	// }
+	// Reset splits back to processing (they can be paid out again)
+	splitRepo := repositories.NewOrderMerchantSplitRepository()
+	if err := splitRepo.UpdateStatusByMerchantAndStatus(ctx, payout.MerchantID,
+		models.OrderMerchantSplitStatusCompleted,
+		models.OrderMerchantSplitStatusProcessing); err != nil {
+		return err
+	}
 
-	// Send notification (implement if needed)
 	reason, _ := data["reason"].(string)
-	// merchant, err := s.merchantRepo.FindByID(ctx, payout.MerchantID)
-	// if err == nil {
-	// 	// Call sendPayoutFailedEmail(merchant.WorkEmail, merchant.StoreName, payout.Amount.InexactFloat64(), reason)
-	// 	// Stub or implement the email function
-	// }
-
 	s.logger.Error("Payout failed", zap.String("payout_id", payout.ID), zap.String("reason", reason))
 	return nil
 }

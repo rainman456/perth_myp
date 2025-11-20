@@ -367,7 +367,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID uint, shippingMet
 				MerchantID: merchantID,
 				AmountDue:  merchantAmountDue,
 				Fee:        platformFee,
-				Status:     "pending",
+				Status:     models.OrderMerchantSplitStatusPending,
 				HoldUntil:  time.Now().Add(14 * 24 * time.Hour),
 			}
 			
@@ -908,4 +908,62 @@ func (s *OrderService) GetUserOrders(ctx context.Context, userID uint) ([]dto.Or
 		orderDTOs = append(orderDTOs, orderDTO)
 	}
 	return orderDTOs, nil
+}
+
+
+
+
+
+func (s *OrderService) UpdateOrderToCompleted(ctx context.Context, orderID uint) error {
+	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Load order with items
+		var order models.Order
+		if err := tx.Preload("OrderItems").First(&order, orderID).Error; err != nil {
+			return fmt.Errorf("failed to load order: %w", err)
+		}
+
+		// Check if all items are delivered
+		allDelivered := true
+		for _, item := range order.OrderItems {
+			if item.FulfillmentStatus != models.FulfillmentStatusDelivered {
+				allDelivered = false
+				break
+			}
+		}
+
+		if !allDelivered {
+			return nil // Not all items delivered yet
+		}
+
+		// Update order status to completed
+		order.Status = models.OrderStatusCompleted
+		if err := tx.Save(&order).Error; err != nil {
+			return fmt.Errorf("failed to update order status: %w", err)
+		}
+
+		// Update merchant splits to completed
+		if err := tx.Model(&models.OrderMerchantSplit{}).
+			Where("order_id = ?", orderID).
+			Update("status", models.OrderMerchantSplitStatusCompleted).Error; err != nil {
+			return fmt.Errorf("failed to update merchant splits: %w", err)
+		}
+
+		// Update merchant financials for all merchants in this order
+		var splits []models.OrderMerchantSplit
+		if err := tx.Where("order_id = ?", orderID).Find(&splits).Error; err != nil {
+			return fmt.Errorf("failed to find splits: %w", err)
+		}
+
+		merchantRepo := repositories.NewMerchantRepository()
+		for _, split := range splits {
+			if err := merchantRepo.UpdateMerchantFinancials(ctx, split.MerchantID); err != nil {
+				s.logger.Error("Failed to update merchant financials",
+					zap.String("merchant_id", split.MerchantID),
+					zap.Error(err))
+				// Continue with other merchants even if one fails
+			}
+		}
+
+		return nil
+	})
 }

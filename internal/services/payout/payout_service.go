@@ -68,13 +68,13 @@ func (s *PayoutService) GetPayoutsByMerchantID(merchantID string) ([]models.Payo
 
 // RequestPayout requests a payout for a merchant
 func (s *PayoutService) RequestPayout(ctx context.Context, merchantID string, requestedAmount float64) (*models.Payout, error) {
-	// Calculate total available balance
+	// Calculate total available balance (only from processing splits that passed hold period)
 	var sumStr string
 	err := db.DB.Model(&models.OrderMerchantSplit{}).
-		Where("merchant_id = ? AND status = 'pending' AND hold_until < ?", merchantID, time.Now()).
+		Where("merchant_id = ? AND status = ? AND hold_until < ?", 
+			merchantID, models.OrderMerchantSplitStatusProcessing, time.Now()).
 		Pluck("COALESCE(SUM(amount_due), '0')", &sumStr).Error
 	if err != nil {
-		
 		return nil, err
 	}
 
@@ -104,11 +104,12 @@ func (s *PayoutService) RequestPayout(ctx context.Context, merchantID string, re
 		return nil, err
 	}
 
-	// Update splits to cover the requested amount
-	// This marks splits as "payout_requested" up to the requested amount
+	// Update splits to mark them as being paid out
+	// Keep them in processing status, but track which payout they belong to
 	var splits []models.OrderMerchantSplit
-	err = db.DB.Where("merchant_id = ? AND status = 'pending' AND hold_until < ?", merchantID, time.Now()).
-		Order("hold_until ASC").  // Process oldest first
+	err = db.DB.Where("merchant_id = ? AND status = ? AND hold_until < ?", 
+		merchantID, models.OrderMerchantSplitStatusProcessing, time.Now()).
+		Order("hold_until ASC").
 		Find(&splits).Error
 	if err != nil {
 		return nil, err
@@ -124,12 +125,30 @@ func (s *PayoutService) RequestPayout(ctx context.Context, merchantID string, re
 		remaining = remaining.Sub(split.AmountDue)
 	}
 
-	// Update the selected splits
-	if len(splitIDs) > 0 {
-		db.DB.Model(&models.OrderMerchantSplit{}).
-			Where("id IN ?", splitIDs).
-			Update("status", "payout_requested")
-	}
+	// Note: Splits remain in processing status until payout completes
+	// They are tracked by the payout relationship
+	// When payout completes, they will be marked as completed
 
 	return payout, nil
+}
+
+
+
+
+func (s *PayoutService) GetAvailableBalance(ctx context.Context, merchantID string) (float64, error) {
+	var sumStr string
+	err := db.DB.Model(&models.OrderMerchantSplit{}).
+		Where("merchant_id = ? AND status = ? AND hold_until < ?", 
+			merchantID, models.OrderMerchantSplitStatusProcessing, time.Now()).
+		Pluck("COALESCE(SUM(amount_due), '0')", &sumStr).Error
+	if err != nil {
+		return 0, err
+	}
+
+	total, err := decimal.NewFromString(sumStr)
+	if err != nil {
+		return 0, err
+	}
+
+	return total.InexactFloat64(), nil
 }

@@ -657,3 +657,51 @@ func (s *MerchantService) UpdateMerchantProfile(ctx context.Context, merchantID 
 
 
 
+// func (s *MerchantService) GetMerchantFinancials(ctx context.Context, merchantID string) (*dto.MerchantFinancialsResponse, error) {
+// 	if merchantID == "" {
+// 		return nil, errors.New("merchant ID cannot be empty")
+// 	}
+
+// 	// Get merchant
+// 	//merchant, err := s.repo.GetByMerchantID(ctx, merchantID)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to get merchant: %w", err)
+// 	}
+
+// 	// Calculate and update financials
+// 	if err := s.repo.UpdateMerchantFinancials(ctx, merchantID); err != nil {
+// 		return nil, fmt.Errorf("failed to update merchant financials: %w", err)
+// 	}
+
+// 	// Reload merchant with updated values
+// 	merchant, err = s.repo.GetByMerchantID(ctx, merchantID)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to reload merchant: %w", err)
+// 	}
+
+// 	// return &dto.MerchantFinancialsResponse{
+// 	// 	TotalSales:     merchant.TotalSales,
+// 	// 	TotalPayouts:   merchant.TotalPayouts,
+// 	// 	AccountBalance: merchant.AccountBalance,
+// 	// 	CommissionRate: merchant.CommissionRate,
+// 	// }, nil
+// }
+
+// // RefreshMerchantFinancials manually triggers a financial recalculation
+// func (s *MerchantService) RefreshMerchantFinancials(ctx context.Context, merchantID string) error {
+// 	if merchantID == "" {
+// 		return errors.New("merchant ID cannot be empty")
+// 	}
+
+// 	return s.repo.UpdateMerchantFinancials(ctx, merchantID)
+// }
+
+// // Add the DTO definition to internal/api/dto/merchant_dto.go:
+// /*
+// type MerchantFinancialsResponse struct {
+// 	TotalSales     float64 `json:"total_sales"`
+// 	TotalPayouts   float64 `json:"total_payouts"`
+// 	AccountBalance float64 `json:"account_balance"`
+// 	CommissionRate float64 `json:"commission_rate"`
+// }
+// */

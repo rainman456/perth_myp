@@ -2,11 +2,14 @@ package repositories
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"api-customer-merchant/internal/api/dto"
 	"api-customer-merchant/internal/db"
 	"api-customer-merchant/internal/db/models"
+
+	"github.com/shopspring/decimal"
 	//"gorm.io/gorm"
 )
 
@@ -243,5 +246,109 @@ func (r *MerchantRepository) UpdateMerchant(ctx context.Context, merchantID stri
 		log.Printf("Failed to update merchant %s: %v", merchantID, err)
 		return err
 	}
+	return nil
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+func (r *MerchantRepository) CalculateTotalSales(ctx context.Context, merchantID string) (float64, error) {
+	var totalSales decimal.Decimal
+	
+	err := db.DB.WithContext(ctx).
+		Model(&models.OrderMerchantSplit{}).
+		Select("COALESCE(SUM(amount_due), 0)").
+		Joins("JOIN orders ON orders.id = order_merchant_splits.order_id").
+		Where("order_merchant_splits.merchant_id = ? AND orders.status = ?", 
+			merchantID, models.OrderStatusCompleted).
+		Scan(&totalSales).Error
+	
+	if err != nil {
+		log.Printf("Failed to calculate total sales for merchant %s: %v", merchantID, err)
+		return 0, err
+	}
+	
+	return totalSales.InexactFloat64(), nil
+}
+
+// CalculateTotalPayouts calculates total completed payouts
+func (r *MerchantRepository) CalculateTotalPayouts(ctx context.Context, merchantID string) (float64, error) {
+	var totalPayouts float64
+	
+	err := db.DB.WithContext(ctx).
+		Model(&models.Payout{}).
+		Select("COALESCE(SUM(amount), 0)").
+		Where("merchant_id = ? AND status = ?", merchantID, models.PayoutStatusCompleted).
+		Scan(&totalPayouts).Error
+	
+	if err != nil {
+		log.Printf("Failed to calculate total payouts for merchant %s: %v", merchantID, err)
+		return 0, err
+	}
+	
+	return totalPayouts, nil
+}
+
+// UpdateMerchantFinancials updates merchant's financial fields
+func (r *MerchantRepository) UpdateMerchantFinancials(ctx context.Context, merchantID string) error {
+	totalSales, err := r.CalculateTotalSales(ctx, merchantID)
+	if err != nil {
+		return fmt.Errorf("failed to calculate total sales: %w", err)
+	}
+	
+	totalPayouts, err := r.CalculateTotalPayouts(ctx, merchantID)
+	if err != nil {
+		return fmt.Errorf("failed to calculate total payouts: %w", err)
+	}
+	
+	// Get merchant to access commission_rate (platform fee)
+	var merchant models.Merchant
+	if err := db.DB.WithContext(ctx).
+		Where("merchant_id = ?", merchantID).
+		First(&merchant).Error; err != nil {
+		log.Printf("Failed to get merchant %s: %v", merchantID, err)
+		return fmt.Errorf("failed to get merchant: %w", err)
+	}
+	
+	// Calculate platform fee from total sales using merchant's commission rate
+	platformFee := totalSales * (merchant.CommissionRate / 100)
+	
+	// Account balance = total sales - platform fee
+	accountBalance := totalSales - platformFee
+	
+	updates := map[string]interface{}{
+		"total_sales":     totalSales,
+		"total_payouts":   totalPayouts,
+		"account_balance": accountBalance,
+	}
+	
+	if err := db.DB.WithContext(ctx).
+		Model(&models.Merchant{}).
+		Where("merchant_id = ?", merchantID).
+		Updates(updates).Error; err != nil {
+		log.Printf("Failed to update merchant financials for %s: %v", merchantID, err)
+		return err
+	}
+	
 	return nil
 }
