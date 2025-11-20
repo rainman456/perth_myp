@@ -61,6 +61,8 @@ type OrderItemResponse struct {
 	Quantity  int     `json:"quantity"`
 	Price     float64 `json:"price"`
 	Image   string    `json:"image_url"`
+	CategorySlug string  `json:"category_slug"`
+	
 
 }
 
@@ -95,6 +97,7 @@ type OrderProductResponse struct {
 	Description string `json:"description"`
 	Price       float64 `json:"price"`
 	Image   string    `json:"image_url"`
+	CategorySlug string  `json:"category_slug"`
 }
 
 type OrderMerchantResponse struct {

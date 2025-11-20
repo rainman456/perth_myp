@@ -43,6 +43,7 @@ func ToOrderItemResponse(v *models.OrderItem) *dto.OrderItemResponse {
 		Quantity:  v.Quantity,
 		Price:     v.Price,
 		Image:  "",
+		CategorySlug: v.Product.Category.CategorySlug,
 	}
 	if len(v.Product.Media) > 0 {
 		resp.Image = v.Product.Media[0].URL // Assume Media has URL field

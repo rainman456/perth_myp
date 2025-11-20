@@ -894,6 +894,7 @@ func (s *OrderService) GetUserOrders(ctx context.Context, userID uint) ([]dto.Or
 					Name:        item.Product.Name,
 					Description: item.Product.Description,
 					Price:       item.Product.BasePrice.InexactFloat64(),
+					CategorySlug: item.Product.Category.CategorySlug,
 				}
 				if len(item.Product.Media) > 0 {
 					itemDTO.Product.Image = item.Product.Media[0].URL // Assume Media has URL field

@@ -43,6 +43,7 @@ func (r *OrderRepository) FindByID(ctx context.Context, id uint) (*models.Order,
 		Preload("OrderItems.Product.Media").
 		Preload("OrderItems.Product").
 		Preload("OrderItems.Merchant").
+		Preload("OrderItems.Product.Category").
 		First(&order, id).Error
 	return &order, err
 }
@@ -62,6 +63,9 @@ func (r *OrderRepository) FindByUserID(ctx context.Context, userID uint) ([]mode
 		}).
 		Preload("OrderItems.Product.Media", func(db *gorm.DB) *gorm.DB {
 			return db.Select("id, product_id, url")
+		}).
+		Preload("OrderItems.Product.Category", func(db *gorm.DB) *gorm.DB {
+			return db.Select("category_slug")
 		}).
 		Where("user_id = ?", userID).
 		Order("created_at DESC").
