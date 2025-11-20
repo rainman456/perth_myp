@@ -510,10 +510,10 @@ func (s *PaymentService) handleChargeSuccess(ctx context.Context, reference stri
 
 		// Update merchant splits to processing
 		if err := tx.Model(&models.OrderMerchantSplit{}).
-			Where("order_id = ? AND status = ?", order.ID, "pending").
-			Update("status", "processing").Error; err != nil {
-			return fmt.Errorf("failed to update merchant splits: %w", err)
-		}
+    Where("order_id = ? AND status = ?", order.ID, models.OrderMerchantSplitStatusPending).
+    UpdateColumn("status", models.OrderMerchantSplitStatusProcessing).Error; err != nil {
+    return fmt.Errorf("failed to update merchant splits: %w", err)
+}
 
 		// Clear cart items using join (fix user_id issue)
 		if err := tx.Exec(`
