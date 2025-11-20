@@ -368,7 +368,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID uint, shippingMet
 				AmountDue:  merchantAmountDue,
 				Fee:        platformFee,
 				Status:     models.OrderMerchantSplitStatusPending,
-				HoldUntil:  time.Now().Add(14 * 24 * time.Hour),
+				HoldUntil:  time.Now().Add(7 * 24 * time.Hour),
 			}
 			
 			if err := tx.Create(split).Error; err != nil {
@@ -944,7 +944,7 @@ func (s *OrderService) UpdateOrderToCompleted(ctx context.Context, orderID uint)
 		// Update merchant splits to completed
 		if err := tx.Model(&models.OrderMerchantSplit{}).
 			Where("order_id = ?", orderID).
-			Update("status", models.OrderMerchantSplitStatusCompleted).Error; err != nil {
+			Update("status", models.OrderMerchantSplitStatusPaid).Error; err != nil {
 			return fmt.Errorf("failed to update merchant splits: %w", err)
 		}
 

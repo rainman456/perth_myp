@@ -657,7 +657,7 @@ func (s *PaymentService) handleTransferSuccess(ctx context.Context, data map[str
 	splitRepo := repositories.NewOrderMerchantSplitRepository()
 	if err := splitRepo.UpdateStatusByMerchantAndStatus(ctx, payout.MerchantID,
 		models.OrderMerchantSplitStatusProcessing,
-		models.OrderMerchantSplitStatusCompleted); err != nil {
+		models.OrderMerchantSplitStatusPaid); err != nil {
 		return err
 	}
 
@@ -695,7 +695,7 @@ func (s *PaymentService) handleTransferFailure(ctx context.Context, data map[str
 	// Reset splits back to processing (they can be paid out again)
 	splitRepo := repositories.NewOrderMerchantSplitRepository()
 	if err := splitRepo.UpdateStatusByMerchantAndStatus(ctx, payout.MerchantID,
-		models.OrderMerchantSplitStatusCompleted,
+		models.OrderMerchantSplitStatusPayoutRequested,
 		models.OrderMerchantSplitStatusProcessing); err != nil {
 		return err
 	}

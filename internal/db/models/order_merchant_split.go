@@ -13,21 +13,26 @@ import (
 type OrderMerchantSplitStatus string
 
 const (
-    OrderMerchantSplitStatusPending    OrderMerchantSplitStatus = "pending"
-    OrderMerchantSplitStatusProcessing OrderMerchantSplitStatus = "processing"
-    OrderMerchantSplitStatusCompleted  OrderMerchantSplitStatus = "completed"
+    OrderMerchantSplitStatusPending          OrderMerchantSplitStatus = "pending"
+    OrderMerchantSplitStatusPayoutRequested  OrderMerchantSplitStatus = "payout_requested"
+    OrderMerchantSplitStatusProcessing       OrderMerchantSplitStatus = "processing"
+    OrderMerchantSplitStatusPaid             OrderMerchantSplitStatus = "paid"
+    OrderMerchantSplitStatusReversed         OrderMerchantSplitStatus = "reversed"
 )
 
 // Valid checks if the status is one of the allowed values
 func (s OrderMerchantSplitStatus) Valid() error {
     switch s {
-    case OrderMerchantSplitStatusPending, OrderMerchantSplitStatusProcessing, OrderMerchantSplitStatusCompleted:
+    case OrderMerchantSplitStatusPending, 
+         OrderMerchantSplitStatusPayoutRequested, 
+         OrderMerchantSplitStatusProcessing, 
+         OrderMerchantSplitStatusPaid,
+         OrderMerchantSplitStatusReversed:
         return nil
     default:
         return fmt.Errorf("invalid order merchant split status: %s", s)
     }
 }
-
 type OrderMerchantSplit struct {
     gorm.Model
     OrderID    uint    `gorm:"index"`
