@@ -4,6 +4,7 @@ import (
 	"api-customer-merchant/internal/api/dto"
 	"api-customer-merchant/internal/services/payout"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -140,4 +141,67 @@ func (h *PayoutHandler) RequestPayout(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, response)
+}
+
+
+
+
+
+
+
+// GetMerchantPayoutSummary returns a summary of merchant payouts
+// @Summary Merchant payout summary
+// @Description Returns merchant payout summary (available balance, pending balance, totals, counts)
+// @Tags Merchant Payouts
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} dto.MerchantPayoutSummaryResponse
+// @Failure 400 {object} object{error=string}
+// @Failure 401 {object} object{error=string}
+// @Failure 500 {object} object{error=string}
+// @Router /merchant/payouts/summary [get]
+func (h *PayoutHandler) GetMerchantPayoutSummary(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	merchantID, exists := c.Get("merchantID")
+	if !exists {
+		h.logger.Warn("Unauthorized access to GetMerchantPayoutSummary")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	merchantIDStr, ok := merchantID.(string)
+	if !ok || merchantIDStr == "" {
+		h.logger.Warn("Invalid merchant ID in context")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid merchant ID"})
+		return
+	}
+
+	summary, err := h.payoutService.GetMerchantPayoutSummary(ctx, merchantIDStr)
+	if err != nil {
+		h.logger.Error("Failed to get merchant payout summary", zap.String("merchant_id", merchantIDStr), zap.Error(err))
+
+		// Provide a few clearer possible errors (tweak messages to match service errors)
+		if strings.Contains(err.Error(), "merchant not found") {
+			c.JSON(http.StatusNotFound, gin.H{"error": "merchant not found"})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve payout summary"})
+		return
+	}
+
+	// Map service result -> DTO response. Adjust field conversions if your types differ.
+	// resp := dto.MerchantPayoutSummaryResponse{
+	// 	MerchantID:       merchantIDStr,
+	// 	AvailableBalance: summary.AvailableBalance.InexactFloat64(), // assuming decimal.Decimal
+	// 	PendingBalance:   summary.PendingBalance,                   // assuming float64
+	// 	TotalSales:       summary.TotalSales.InexactFloat64(),      // assuming decimal.Decimal
+	// 	TotalPayouts:     summary.TotalPayouts.InexactFloat64(),    // assuming decimal.Decimal
+	// 	CompletedPayouts: summary.CompletedPayouts,
+	// 	PendingPayouts:   summary.PendingPayouts,
+	// }
+
+	c.JSON(http.StatusOK, summary)
 }

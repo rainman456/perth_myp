@@ -199,3 +199,14 @@ type UpdateMerchantProfileInput struct {
 	StoreLogoURL        *string         `json:"store_logo_url,omitempty"`
 	Banner              *string         `json:"banner,omitempty"`
 }
+
+
+type MerchantPayoutSummaryResponse struct {
+	MerchantID       string  `json:"merchant_id"`
+	AvailableBalance float64 `json:"available_balance"`
+	PendingBalance   float64 `json:"pending_balance"`
+	TotalSales       float64 `json:"total_sales"`
+	TotalPayouts     float64 `json:"total_payouts"`
+	CompletedPayouts int     `json:"completed_payouts"`
+	PendingPayouts   int     `json:"pending_payouts"`
+}

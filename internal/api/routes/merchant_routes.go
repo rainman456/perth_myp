@@ -144,6 +144,7 @@ func SetupMerchantRoutes(r *gin.Engine) {
 			{
 				payoutsGroup.GET("", merchantPayoutHandler.GetMerchantPayouts)
 				payoutsGroup.POST("/request", merchantPayoutHandler.RequestPayout)
+				payoutsGroup.GET("/summary",merchantPayoutHandler.GetMerchantPayoutSummary)
 			}
 
 			productsGroup := protected.Group("/products")
