@@ -257,7 +257,7 @@ type UpdateReviewDTO struct {
 
 type ReviewResponseDTO struct {
 	//ID        uint      `json:"id"`
-	//ProductID string    `json:"product_id"`
+	ProductID string    `json:"product_id"`
 	ProductName string `json:"product_name"`
 	//UserID    uint      `json:"user_id"`
 	Rating    int       `json:"rating"`
@@ -265,6 +265,7 @@ type ReviewResponseDTO struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 	UserName  string    `json:"user_name"`
+	Image   string    `json:"image_url"`
 	//AverageRating uint  `json:"average_rating"`
 }
 

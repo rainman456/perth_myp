@@ -156,12 +156,28 @@ func (s *ReviewService) DeleteReview(ctx context.Context, id uint, userID uint) 
 }
 
 func (s *ReviewService) mapToDTO(r *models.Review) *dto.ReviewResponseDTO {
+	primaryImage:=""
+	for _, media := range r.Product.Media {
+		if media.Type == models.MediaTypeImage {
+			primaryImage = media.URL
+			break // Only first image
+		}
+	}
 	return &dto.ReviewResponseDTO{
+
+		
+
 		ProductName:  r.Product.Name,
+		ProductID: r.ProductID,
 		Rating:      r.Rating,
 		Comment:     r.Comment,
+		Image: primaryImage,
 		CreatedAt:   r.CreatedAt,
 		UpdatedAt:   r.UpdatedAt,
 		UserName:    r.User.Name,
 	}
+
+	//primaryImage := ""
+	
+	
 }
